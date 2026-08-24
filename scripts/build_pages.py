@@ -117,7 +117,22 @@ def notebook_url(exercise_id: str) -> str:
     return f"http://127.0.0.1:8888/lab/tree/notebooks/{exercise_id}.ipynb"
 
 
-def shell(*, lang: str, title: str, body: str, description: str, prefix: str = "", switch_href: str = "index.html") -> str:
+def shell(
+    *,
+    lang: str,
+    title: str,
+    body: str,
+    description: str,
+    asset_prefix: str = "",
+    home_href: str = "index.html",
+    switch_href: str = "index.html",
+) -> str:
+    """Render one page with explicit paths from that page to shared assets/home.
+
+    Asset depth and language location are independent. Keeping them explicit
+    prevents nested pages from accidentally generating paths such as
+    `problems/styles.css` or `en/styles.css`.
+    """
     ui = UI[lang]
     other = "es" if lang == "en" else "en"
     return f'''<!doctype html>
@@ -127,24 +142,25 @@ def shell(*, lang: str, title: str, body: str, description: str, prefix: str = "
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="{esc(description)}">
   <title>{esc(title)} · ROOT Kata</title>
-  <link rel="stylesheet" href="{prefix}styles.css">
+  <link rel="stylesheet" href="{asset_prefix}styles.css">
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="{prefix}index.html">ROOT Kata</a>
+    <a class="brand" href="{home_href}">ROOT Kata</a>
     <span>{esc(ui["tagline"])}</span>
     <nav class="lang-switch" aria-label="Language"><a href="{switch_href}" lang="{other}" hreflang="{other}">{other.upper()}</a></nav>
   </header>
   {body}
   <footer class="site-footer">{ui["footer"]}</footer>
-  <script src="{prefix}site.js" defer></script>
+  <script src="{asset_prefix}site.js" defer></script>
 </body>
 </html>
 '''
 
 
 def kata_row(meta_view: dict, lang: str) -> str:
-    eid = meta_view["id"]; ui = UI[lang]
+    eid = meta_view["id"]
+    ui = UI[lang]
     return f'''
       <article class="kata-row" data-eid="{esc(eid)}">
         <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
@@ -163,7 +179,9 @@ def kata_row(meta_view: dict, lang: str) -> str:
 
 
 def build_index(exercises: list[tuple[dict, Path]], lang: str) -> None:
-    ui = UI[lang]; prefix = "" if lang == "es" else "en/"
+    ui = UI[lang]
+    page_prefix = "" if lang == "es" else "en/"
+    asset_prefix = "" if lang == "es" else "../"
     rows = "".join(kata_row(view(meta, lang), lang) for meta, _ in exercises)
     flow = f'<span>{ui["flow"][0]}</span><span aria-hidden="true">→</span><span>{ui["flow"][1]}</span><span aria-hidden="true">→</span><span>{ui["flow"][2]}</span>'
     total = len(exercises)
@@ -190,16 +208,30 @@ def build_index(exercises: list[tuple[dict, Path]], lang: str) -> None:
 
     <aside class="local-note">{ui["local_note"]}</aside>
   </main>'''
-    target = DOCS / prefix if lang != "es" else DOCS
+    target = DOCS / page_prefix if lang != "es" else DOCS
     target.mkdir(parents=True, exist_ok=True)
     switch = "en/index.html" if lang == "es" else "../index.html"
-    (target / "index.html").write_text(shell(lang=lang, title="Katas", body=body,
-                                             description=ui["hero_text"], prefix=prefix, switch_href=switch), encoding="utf-8")
+    (target / "index.html").write_text(
+        shell(
+            lang=lang,
+            title="Katas",
+            body=body,
+            description=ui["hero_text"],
+            asset_prefix=asset_prefix,
+            home_href="index.html",
+            switch_href=switch,
+        ),
+        encoding="utf-8",
+    )
 
 
 def build_problem(meta: dict, directory: Path, lang: str) -> None:
-    eid = meta["id"]; ui = UI[lang]; v = view(meta, lang)
-    prefix = "" if lang == "es" else "en/"
+    eid = meta["id"]
+    ui = UI[lang]
+    v = view(meta, lang)
+    page_prefix = "" if lang == "es" else "en/"
+    asset_prefix = "../" if lang == "es" else "../../"
+    home_href = "../index.html"
     examples = []
     for item in v.get("examples", []):
         explanation = f'<p>{esc(item["explanation"])}</p>' if item.get("explanation") else ""
@@ -218,7 +250,7 @@ def build_problem(meta: dict, directory: Path, lang: str) -> None:
     command = jupyter_command(eid)
     body = f'''
   <main class="problem-layout">
-    <a class="back-link" href="{prefix}index.html">{esc(ui["all_katas"])}</a>
+    <a class="back-link" href="{home_href}">{esc(ui["all_katas"])}</a>
     <article class="problem">
       <header class="problem-header">
         <div class="problem-meta">
@@ -263,15 +295,25 @@ def build_problem(meta: dict, directory: Path, lang: str) -> None:
           <p>{esc(ui["start_help"])}</p>
           <pre><code>{esc(command)}</code></pre>
         </div>
-        <a class="button primary large jupyter-link" href="{esc(notebook_url(eid))}" target="_blank" rel="noopener" data-command="{esc(command)}">{esc(ui["open_in_jupyter"])}</a>
+        <a class="button primary large jupyter-link" href="{esc(notebook_url(eid))}" target="_blank" rel="noopener" data-command="{esc(command)}">{esc(ui['open_in_jupyter'])}</a>
       </section>
     </article>
   </main>'''
-    target = DOCS / prefix / "problems"
+    target = DOCS / page_prefix / "problems"
     target.mkdir(parents=True, exist_ok=True)
     switch = f"../en/problems/{eid}.html" if lang == "es" else f"../../problems/{eid}.html"
-    (target / f"{eid}.html").write_text(shell(lang=lang, title=v["title"], body=body,
-                                              description=v["summary"], prefix=prefix + "problems/", switch_href=switch), encoding="utf-8")
+    (target / f"{eid}.html").write_text(
+        shell(
+            lang=lang,
+            title=v["title"],
+            body=body,
+            description=v["summary"],
+            asset_prefix=asset_prefix,
+            home_href=home_href,
+            switch_href=switch,
+        ),
+        encoding="utf-8",
+    )
     source = directory / meta.get("problem_markdown", "problem.md")
     if source.is_file():
         shutil.copyfile(source, target / f"{eid}.md")
