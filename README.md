@@ -22,56 +22,26 @@ La ruta inicial tiene solo tres ejercicios:
 
 La progresión es intencionalmente pequeña: **acumular → seleccionar → histogramar**.
 
-## Instalación recomendada
+## Instalación
 
-La regla importante es simple: **ROOT, Python, JupyterLab y ROOT Kata deben vivir en el mismo entorno**.
-
-### 1. Clona el repositorio
+Requisito único: **conda** (o `mamba`/`micromamba`). Si no lo tienes, instala [Miniforge](https://github.com/conda-forge/miniforge) y vuelve aquí.
 
 ```bash
 git clone https://github.com/fbientrigo/root-kata.git
 cd root-kata
+./install.sh
 ```
 
-### 2. Crea el entorno
+El instalador crea el entorno `root-kata` (Python 3.12 + CERN ROOT + JupyterLab), instala ROOT Kata con el Python del propio entorno y verifica que todo vive en el mismo lugar.
 
-Con conda:
+Cada sesión empieza así:
 
 ```bash
-conda env create -f environment.yml
 conda activate root-kata
+root-kata lab
 ```
 
-Si ya usas `mamba` o `micromamba`, puedes reemplazar `conda` por ese comando.
-
-El entorno instala solamente lo necesario para la experiencia del alumno:
-
-- Python 3.12
-- CERN ROOT
-- JupyterLab
-- pip
-
-### 3. Instala ROOT Kata
-
-```bash
-pip install -e .
-```
-
-### 4. Comprueba el entorno
-
-```bash
-root-kata doctor
-```
-
-Antes de hacer un ejercicio ROOT conviene comprobar que el compilador, `root-config` y PyROOT sean visibles desde este mismo entorno.
-
-### 5. Abre Jupyter
-
-```bash
-jupyter lab --port=8888
-```
-
-Mantén esa terminal abierta mientras trabajas.
+Eso arranca JupyterLab en `http://127.0.0.1:8888/lab` sin abrir navegador desde la terminal. Mantén esa terminal abierta mientras trabajas.
 
 ## Abrir los ejercicios
 
@@ -116,23 +86,25 @@ Cuando todos pasan, el kata queda resuelto localmente.
 
 ## Si `Open in Jupyter` no funciona
 
-La web pública no controla tu Jupyter local. El botón presupone que Jupyter está corriendo en el puerto `8888`.
-
-Comprueba primero:
+La web pública no controla tu Jupyter local. El botón presupone que Jupyter está corriendo en el puerto `8888`:
 
 ```bash
 conda activate root-kata
-jupyter lab --port=8888
+root-kata lab
 ```
 
-Luego abre Jupyter manualmente y ejecuta:
+### Instalación manual (alternativa)
 
-```python
-import root_kata as rk
-rk.start("cpp-sum-positive")
+Si prefieres hacerlo paso a paso, o `./install.sh` falló y quieres ver dónde:
+
+```bash
+conda env create -f environment.yml   # o: conda env update -f environment.yml si ya existe
+conda activate root-kata
+python -m pip install -e .            # siempre `python -m pip`, nunca un `pip` suelto
+root-kata doctor
 ```
 
-No hace falta instalar ninguna extensión de Jupyter.
+La regla importante es simple: **ROOT, Python, JupyterLab y ROOT Kata deben vivir en el mismo entorno**. Un `pip install` sin el `python -m` puede instalar ROOT Kata en otro Python (por ejemplo, uno de usuario) mientras `import root_kata` falla dentro del entorno. `root-kata doctor` detecta exactamente ese desajuste.
 
 ## Comandos útiles
 
@@ -149,6 +121,7 @@ rk.export()
 Desde terminal:
 
 ```bash
+root-kata lab
 root-kata doctor
 root-kata list
 root-kata start cpp-sum-positive
