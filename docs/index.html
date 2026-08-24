@@ -16,60 +16,65 @@
   
   <main class="home">
     <section class="hero">
-      <p class="eyebrow">Ruta inicial de 3 katas</p>
       <h1>Practica las operaciones que vas a reutilizar.</h1>
       <p>Lee un problema pequeño, ábrelo en Jupyter, completa una función y ejecuta las pruebas visibles. Sin cuentas y sin nube.</p>
       <div class="flow" aria-label="Learning path"><span>1 · acumular</span><span aria-hidden="true">→</span><span>2 · seleccionar</span><span aria-hidden="true">→</span><span>3 · histogramar</span></div>
     </section>
 
-    <section class="kata-grid" aria-label="Katas">
+    <section class="progress-panel" data-total="3" aria-labelledby="progress-title">
+      <h2 id="progress-title">Tu progreso</h2>
+      <div class="progress-row">
+        <progress id="overall-progress" value="0" max="3" aria-hidden="true"></progress>
+        <span id="progress-count" role="status" aria-live="polite">0 / 3</span>
+      </div>
+      <ul id="badge-list" class="badge-list"></ul>
+    </section>
+
+    <section class="kata-list" aria-label="Ejercicios">
       
-      <article class="kata-card">
-        <div class="card-topline">
-          <span class="step">1</span>
-          <span class="difficulty">Fácil</span>
-          <span class="runtime">C++</span>
+      <article class="kata-row" data-eid="cpp-sum-positive">
+        <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
+        <div class="row-body">
+          <div class="row-topline"><span class="difficulty">Fácil</span><span aria-hidden="true">·</span><span>≈ 5 min</span></div>
+          <h2>Suma valores positivos</h2>
+          <p>Calienta con el patrón bucle + condición + acumulador que se usa en todo análisis de datos.</p>
+          <div class="chips"><span class="chip">std::vector</span><span class="chip">bucle range-for</span><span class="chip">if</span><span class="chip">acumulador</span></div>
         </div>
-        <h2>Suma valores positivos</h2>
-        <p>Calienta con el patrón bucle + condición + acumulador que se usa en todo análisis de datos.</p>
-        <div class="chips"><span class="chip">std::vector</span><span class="chip">bucle range-for</span><span class="chip">if</span><span class="chip">acumulador</span></div>
-        <div class="card-meta">≈ 5 min · Calentamiento C++</div>
-        <div class="card-actions">
+        <div class="row-actions">
           <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-sum-positive.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
 rk.start(&quot;cpp-sum-positive&quot;)">Abrir en Jupyter</a>
-          <a class="button secondary" href="problems/cpp-sum-positive.html">Leer problema</a>
+          <a class="button secondary problem-link" href="problems/cpp-sum-positive.html">Ver problema</a>
+          <span class="completed-label" hidden>Completado</span>
         </div>
       </article>
-      <article class="kata-card">
-        <div class="card-topline">
-          <span class="step">2</span>
-          <span class="difficulty">Fácil</span>
-          <span class="runtime">C++</span>
+      <article class="kata-row" data-eid="cpp-count-above">
+        <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
+        <div class="row-body">
+          <div class="row-topline"><span class="difficulty">Fácil</span><span aria-hidden="true">·</span><span>≈ 7 min</span></div>
+          <h2>Cuenta valores sobre un corte</h2>
+          <p>Practica la operación central del análisis: aplica un umbral y cuenta lo que sobrevive.</p>
+          <div class="chips"><span class="chip">std::vector</span><span class="chip">argumentos de función</span><span class="chip">comparación estricta</span><span class="chip">selección</span></div>
         </div>
-        <h2>Cuenta valores sobre un corte</h2>
-        <p>Practica la operación central del análisis: aplica un umbral y cuenta lo que sobrevive.</p>
-        <div class="chips"><span class="chip">std::vector</span><span class="chip">argumentos de función</span><span class="chip">comparación estricta</span><span class="chip">selección</span></div>
-        <div class="card-meta">≈ 7 min · Selecciones C++</div>
-        <div class="card-actions">
+        <div class="row-actions">
           <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-count-above.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
 rk.start(&quot;cpp-count-above&quot;)">Abrir en Jupyter</a>
-          <a class="button secondary" href="problems/cpp-count-above.html">Leer problema</a>
+          <a class="button secondary problem-link" href="problems/cpp-count-above.html">Ver problema</a>
+          <span class="completed-label" hidden>Completado</span>
         </div>
       </article>
-      <article class="kata-card">
-        <div class="card-topline">
-          <span class="step">3</span>
-          <span class="difficulty">Fácil</span>
-          <span class="runtime">ROOT</span>
+      <article class="kata-row" data-eid="cpp-root-histogram">
+        <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
+        <div class="row-body">
+          <div class="row-topline"><span class="difficulty">Fácil</span><span aria-hidden="true">·</span><span>≈ 10 min</span></div>
+          <h2>Llena un histograma ROOT</h2>
+          <p>Convierte un vector de mediciones en el primer objeto ROOT que usarás todo el tiempo: un TH1D.</p>
+          <div class="chips"><span class="chip">TH1D</span><span class="chip">Fill</span><span class="chip">binning</span><span class="chip">underflow/overflow</span></div>
         </div>
-        <h2>Llena un histograma ROOT</h2>
-        <p>Convierte un vector de mediciones en el primer objeto ROOT que usarás todo el tiempo: un TH1D.</p>
-        <div class="chips"><span class="chip">TH1D</span><span class="chip">Fill</span><span class="chip">binning</span><span class="chip">underflow/overflow</span></div>
-        <div class="card-meta">≈ 10 min · Fundamentos ROOT</div>
-        <div class="card-actions">
+        <div class="row-actions">
           <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-histogram.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
 rk.start(&quot;cpp-root-histogram&quot;)">Abrir en Jupyter</a>
-          <a class="button secondary" href="problems/cpp-root-histogram.html">Leer problema</a>
+          <a class="button secondary problem-link" href="problems/cpp-root-histogram.html">Ver problema</a>
+          <span class="completed-label" hidden>Completado</span>
         </div>
       </article>
     </section>
