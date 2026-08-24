@@ -46,9 +46,22 @@ in_env python -m pip install --no-input -e .
 
 # ------------------------------------------------------- interpreter checks
 bold "Verifying that everything lives in the same environment"
-in_env python - <<'VERIFY'
-import pathlib, shutil, sys
+# NOTE: `conda run` does not forward stdin, so the check must be a real file.
+VERIFY_SCRIPT="$(mktemp /tmp/root-kata-verify-XXXXXX.py)"
+trap 'rm -f "$VERIFY_SCRIPT"' EXIT
+cat > "$VERIFY_SCRIPT" <<'VERIFY'
+import pathlib, shutil, sys, os
 print(f"python      {sys.executable}")
+# A previous broken install may have left a user-level `root-kata` launcher
+# (e.g. ~/.local/bin) whose shebang points at another Python; it shadows the
+# environment's command even after `conda activate`. Remove that stale copy.
+for d in (os.environ.get("XDG_BIN_HOME"), "~/.local/bin", "~/bin"):
+    if not d:
+        continue
+    stale = pathlib.Path(d).expanduser() / "root-kata"
+    if stale.is_file() and stale.resolve().parent != pathlib.Path(sys.executable).parent:
+        stale.unlink()
+        print(f"removed     {stale} (stale entry point from another Python)")
 import root_kata
 print(f"root_kata   {pathlib.Path(root_kata.__file__).resolve()}")
 rk = shutil.which("root-kata")
@@ -60,6 +73,7 @@ if rk is None or pathlib.Path(rk).resolve().parent != pathlib.Path(sys.executabl
 import ROOT
 print(f"ROOT        {ROOT.gROOT.GetVersion()}")
 VERIFY
+in_env python "$VERIFY_SCRIPT"
 
 bold "ROOT Kata is ready. Next steps:
 
