@@ -4,7 +4,7 @@
   "title": "Count values above a cut",
   "track": "C++ selections",
   "difficulty": "Easy",
-  "order": 2,
+  "order": 5,
   "published": true,
   "estimated_minutes": 7,
   "summary": "Practice the core analysis operation: apply a threshold and count what survives.",
