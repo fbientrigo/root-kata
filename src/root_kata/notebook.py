@@ -6,8 +6,9 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from . import i18n
 from . import progress as _progress
-from .catalog import get_exercise
+from .catalog import get_exercise, localized
 from .cpp_runner import run_cpp
 from .doctor import doctor as _doctor
 from .grader import grade_code
@@ -47,12 +48,12 @@ def _register_kata_magic(ipython, *, announce: bool) -> None:  # noqa: ANN001
         def kata(line: str, cell: str) -> None:
             exercise_id = line.strip().split()[0] if line.strip() else ""
             if not exercise_id:
-                print("usage: %%kata <exercise-id>")
+                print(i18n.t("magic_usage"))
                 return
             check(exercise_id, cell)
         ipython.register_magic_function(kata, "cell", "kata")
     if announce:
-        print("root_kata loaded: use %%kata <exercise-id> at the top of a cell.")
+        print(i18n.t("magic_loaded"))
 
 
 def _prepare_notebook_cell(exercise_id: str, code: str) -> bool:
@@ -92,16 +93,17 @@ def start(exercise_id: str, *, force: bool = False) -> None:
         shutil.copy2(ex_dir / meta["starter"], dst)
     code = dst.read_text(encoding="utf-8")
     cell_ready = _prepare_notebook_cell(exercise_id, code)
+    view = localized(meta)
     if _in_notebook():
-        _display(_statement_text(meta, exercise_id), _statement_html(meta, exercise_id, cell_ready=cell_ready))
+        _display(_statement_text(view, exercise_id), _statement_html(view, exercise_id, cell_ready=cell_ready))
     else:
-        print(f"(keeping your existing {dst})" if existed else f"Created {dst}")
-        print(_statement_text(meta, exercise_id))
+        print(i18n.t("keeping_existing", path=dst) if existed else i18n.t("created_path", path=dst))
+        print(_statement_text(view, exercise_id))
 
 
 def show(exercise_id: str) -> None:
-    meta, _ = get_exercise(exercise_id)
-    _display(_statement_text(meta, exercise_id), _statement_html(meta, exercise_id, cell_ready=None))
+    view = localized(get_exercise(exercise_id)[0])
+    _display(_statement_text(view, exercise_id), _statement_html(view, exercise_id, cell_ready=None))
 
 
 def tests(exercise_id: str) -> None:
@@ -110,17 +112,18 @@ def tests(exercise_id: str) -> None:
     print(f"--- {name} ---")
     print((ex_dir / name).read_text(encoding="utf-8"))
     if meta["kind"] == "cpp":
-        print(f"--- {meta['validator']} (what each value must satisfy) ---")
+        print("---", meta["validator"], "---")
         print((ex_dir / meta["validator"]).read_text(encoding="utf-8"))
 
 
 def hint(exercise_id: str, n: int = 1) -> None:
-    hints = get_exercise(exercise_id)[0].get("hints", [])
+    meta = localized(get_exercise(exercise_id)[0])
+    hints = meta.get("hints", [])
     if not hints:
-        print("No hints for this exercise.")
+        print(i18n.t("no_hints"))
         return
     for i, h in enumerate(hints[:n], 1):
-        print(f"hint {i}/{len(hints)}: {h}")
+        print(i18n.t("hint_n", i=i, n=len(hints), hint=h))
 
 
 def check(exercise_id: str, code: str | None = None, *, timeout: float = 10.0) -> dict[str, Any]:
@@ -130,16 +133,17 @@ def check(exercise_id: str, code: str | None = None, *, timeout: float = 10.0) -
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(code, encoding="utf-8")
     if not path.exists():
-        print(f"No solution yet. Run rk.start('{exercise_id}') first (it creates {path}).")
+        print(i18n.t("no_solution_yet", exercise_id=exercise_id, path=path))
         return {"status": "not_started", "passed": False}
     if meta["kind"] == "cpp":
         result = run_cpp(exercise_id, path, timeout_seconds=timeout)
     else:
         result = grade_code(exercise_id, path.read_text(encoding="utf-8"), timeout_seconds=timeout)
-    result["_badge"] = meta.get("badge")
+    view = localized(meta)
     result["exercise_id"] = exercise_id
     result["new_badges"] = _progress.record(exercise_id, result)
-    _display(_format_text(result), _format_html(result, meta))
+    result["_meta"] = view
+    _display(_format_text(result), _format_html(result, view))
     return result
 
 
@@ -148,13 +152,17 @@ def doctor() -> bool:
 
 
 def progress() -> dict[str, Any]:
+    from .catalog import badge_label, difficulty_label
     s = _progress.summary()
-    out = [f"Solved {s['n_solved']}/{s['n_total']}", ""]
+    out = [i18n.t("progress_solved", n=s["n_solved"], m=s["n_total"]), ""]
     for e in s["exercises"]:
+        view = localized(e)
         mark = "✅" if e["solved"] else ("🔁" if e["attempts"] else "⬜")
-        out.append(f"  {mark} {e['id']:<24} {e['difficulty']:<6} {e['title']}" + (f"   ({e['attempts']} attempts)" if e["attempts"] else ""))
+        suffix = "   " + i18n.t("attempts_count", n=e["attempts"]) if e["attempts"] else ""
+        out.append(f"  {mark} {e['id']:<24} {difficulty_label(view['difficulty']):<8} {view['title']}" + suffix)
     out.append("")
-    out.append("Badges: " + (", ".join(f"🏅 {b}" for b in s["badges"]) if s["badges"] else "none yet"))
+    badges = ", ".join(f"🏅 {badge_label(b)}" for b in sorted(s["badges"])) if s["badges"] else i18n.t("badges_none")
+    out.append(i18n.t("badges_prefix") + " " + badges)
     print("\n".join(out))
     return s
 

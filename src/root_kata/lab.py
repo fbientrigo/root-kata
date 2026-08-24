@@ -52,14 +52,15 @@ def ensure_notebooks(base: Path | None = None) -> list[Path]:
 
 
 def lab(port: int = DEFAULT_PORT, host: str = "127.0.0.1") -> int:
+    from . import i18n
     written = ensure_notebooks()
     for path in written:
-        print(f"prepared {path}")
+        print(i18n.t("lab_prepared", path=path))
     cmd = [sys.executable, "-m", "jupyter", "lab", "--no-browser",
            f"--ip={host}", f"--port={port}"]
     url = f"http://{host}:{port}/lab"
-    print(f"\nROOT Kata Jupyter: {url}")
-    print("Open that URL in your browser. Press Ctrl-C here to stop.\n")
+    print(f"\n{i18n.t('lab_url', url=url)}")
+    print(i18n.t("lab_stop_hint") + "\n")
     try:
         return subprocess.run(cmd).returncode
     except KeyboardInterrupt:
