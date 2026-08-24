@@ -4,7 +4,7 @@
   "title": "Sum positive values",
   "track": "C++ warm-up",
   "difficulty": "Easy",
-  "order": 1,
+  "order": 4,
   "published": true,
   "estimated_minutes": 5,
   "summary": "Warm up with the loop + condition + accumulator pattern used throughout data analysis.",
