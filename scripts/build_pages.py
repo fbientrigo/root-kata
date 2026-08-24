@@ -32,12 +32,13 @@ UI = {
         "start_title": "Empieza en Jupyter",
         "start_help": "Abre tu Jupyter local y pega el comando de abajo. El botón intenta copiarlo.",
         "easy": "Fácil",
+        "introductory": "Introductorio",
         "minutes": "≈ {n} min",
         "local_note": "<strong>Abrir en Jupyter</strong><span>El botón abre el cuaderno del kata en <code>127.0.0.1:8888</code> (requiere <code>root-kata lab</code> corriendo) e intenta copiar el comando.</span>",
-        "hero_eyebrow": "Ruta inicial de 3 katas",
-        "hero_title": "Practica las operaciones que vas a reutilizar.",
-        "hero_text": "Lee un problema pequeño, ábrelo en Jupyter, completa una función y ejecuta las pruebas visibles. Sin cuentas y sin nube.",
-        "flow": ["1 · acumular", "2 · seleccionar", "3 · histogramar"],
+        "hero_eyebrow": "Ruta inicial desde cero",
+        "hero_title": "Empieza pequeño. Llega a ROOT entendiendo cada paso.",
+        "hero_text": "Comienza con C++ elemental y avanza hasta una primera operación ROOT. Cada kata introduce una sola idea útil.",
+        "flow": ["1 · imprimir", "2 · arreglos", "3 · analizar"],
         "your_progress": "Tu progreso",
         "completed": "Completado",
         "view_problem": "Ver problema",
@@ -60,12 +61,13 @@ UI = {
         "start_title": "Start in Jupyter",
         "start_help": "Open your local Jupyter and paste the command below. The button tries to copy it for you.",
         "easy": "Easy",
+        "introductory": "Introductory",
         "minutes": "≈ {n} min",
         "local_note": "<strong>Open in Jupyter</strong><span>The button opens the kata notebook at <code>127.0.0.1:8888</code> (needs <code>root-kata lab</code> running) and tries to copy the command.</span>",
-        "hero_eyebrow": "3-step starter track",
-        "hero_title": "Practice the operations you will actually reuse.",
-        "hero_text": "Read a small problem, open it in Jupyter, edit one function, run the visible tests. No account and no cloud runner.",
-        "flow": ["1 · accumulate", "2 · select", "3 · histogram"],
+        "hero_eyebrow": "Starter path from zero",
+        "hero_title": "Start small. Reach ROOT understanding every step.",
+        "hero_text": "Begin with elementary C++ and advance to a first ROOT operation. Each kata introduces one useful idea.",
+        "flow": ["1 · print", "2 · arrays", "3 · analyze"],
         "your_progress": "Your progress",
         "completed": "Completed",
         "view_problem": "View problem",
@@ -94,14 +96,21 @@ def view(meta: dict, lang: str) -> dict:
     out = dict(meta)
     overlay = meta.get(lang)
     if lang != "en" and isinstance(overlay, dict):
-        for field in ("title", "track", "summary", "description", "topics", "learning_goal"):
+        for field in ("title", "track", "difficulty", "summary", "description", "topics", "learning_goal"):
             if field in overlay:
                 out[field] = overlay[field]
         if "requirements" in overlay:
             out["requirements"] = overlay["requirements"]
         if "examples" in overlay:
             out["examples"] = [{**base, **extra} for base, extra in zip(meta.get("examples", []), overlay["examples"])]
-    out["difficulty_label"] = UI[lang]["easy"] if str(meta.get("difficulty", "")).lower() == "easy" else meta.get("difficulty", "")
+    raw_difficulty = str(out.get("difficulty", ""))
+    key = raw_difficulty.lower()
+    if key == "easy":
+        out["difficulty_label"] = UI[lang]["easy"]
+    elif key == "introductory":
+        out["difficulty_label"] = UI[lang]["introductory"]
+    else:
+        out["difficulty_label"] = raw_difficulty
     return out
 
 
