@@ -10,3 +10,4 @@ build/
 kata/
 .root-kata/
 root-kata-progress.json
+notebooks/
