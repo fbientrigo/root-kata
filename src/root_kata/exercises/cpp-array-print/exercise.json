@@ -1,0 +1,61 @@
+{
+  "id": "cpp-array-print",
+  "kind": "cpp",
+  "title": "Print an array",
+  "track": "C++ first steps",
+  "difficulty": "Introductory",
+  "order": 3,
+  "published": true,
+  "estimated_minutes": 4,
+  "summary": "Print the values already stored in a tiny C++ array.",
+  "description": "Implement void print_values(). Print the three values in the array in order. Spaces or line breaks between values are both accepted.",
+  "requirements": [
+    "Print 4, 8 and 15 in that order.",
+    "Use the values array already present in the starter.",
+    "Do not print extra numbers."
+  ],
+  "examples": [
+    {"input": "{4, 8, 15}", "output": "4 8 15", "explanation": "Whitespace formatting is flexible; the order and values are what matter."}
+  ],
+  "hints": [
+    "You can print each element directly, or use a small loop."
+  ],
+  "entrypoint": "print_values",
+  "starter": "solution.cpp",
+  "harness": "harness.cpp",
+  "validator": "validator.py",
+  "requires": [],
+  "topics": ["C++ array", "std::cout", "iteration"],
+  "learning_goal": "Connect stored values in an array with visible program output.",
+  "resources": [
+    {"label": "Built-in arrays — cppreference", "url": "https://en.cppreference.com/w/cpp/language/array"},
+    {"label": "std::cout — cppreference", "url": "https://en.cppreference.com/w/cpp/io/cout"}
+  ],
+  "es": {
+    "title": "Imprime un arreglo",
+    "track": "Primeros pasos en C++",
+    "difficulty": "Introductorio",
+    "summary": "Imprime los valores que ya están guardados en un arreglo pequeño de C++.",
+    "description": "Implementa void print_values(). Imprime los tres valores del arreglo en orden. Se aceptan espacios o saltos de línea entre los valores.",
+    "requirements": [
+      "Imprime 4, 8 y 15 en ese orden.",
+      "Usa el arreglo values que ya aparece en el starter.",
+      "No imprimas números extra."
+    ],
+    "examples": [
+      {"explanation": "El formato de espacios es flexible; lo importante son los valores y su orden."}
+    ],
+    "hints": [
+      "Puedes imprimir cada elemento directamente o usar un bucle pequeño."
+    ],
+    "topics": ["arreglo C++", "std::cout", "recorrido"],
+    "learning_goal": "Conectar valores guardados en un arreglo con una salida visible del programa.",
+    "cases": {
+      "value count": "cantidad de valores",
+      "first value": "primer valor",
+      "second value": "segundo valor",
+      "third value": "tercer valor"
+    },
+    "messages": {}
+  }
+}
