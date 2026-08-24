@@ -60,6 +60,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "logs_line": "Registros: {build} · {run}",
         "need_hint": "¿Necesitas una pista?",
         "new_badge": "Nueva insignia:",
+        "continue": "Continuar →",
+        "continue_help": "Tu progreso también se reflejará en la web local del catálogo.",
         # plain-text result formatter
         "harness_signature_note_text": "(el error está en el banco de pruebas: normalmente la firma de tu función difiere de la pedida)",
         "stderr_tail": "stderr (final):",
@@ -186,6 +188,8 @@ _STRINGS: dict[str, dict[str, str]] = {
         "logs_line": "Logs: {build} · {run}",
         "need_hint": "Need a hint?",
         "new_badge": "New badge:",
+        "continue": "Continue →",
+        "continue_help": "Your progress will also be reflected on the local catalog page.",
         "harness_signature_note_text": "(the error is in the harness, which usually means your function signature differs from the one requested)",
         "stderr_tail": "stderr (tail):",
         "logs_reproduce_text": "  logs: {work}/build.log, run.log   ·   reproduce: sh {work}/compile.sh",
