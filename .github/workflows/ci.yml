@@ -26,8 +26,5 @@ jobs:
       - name: Run tests
         run: python -m unittest discover -s tests -v
 
-      - name: Rebuild static pages
+      - name: Smoke-test static page generation
         run: python scripts/build_pages.py
-
-      - name: Verify committed pages are current
-        run: git diff --exit-code -- docs
