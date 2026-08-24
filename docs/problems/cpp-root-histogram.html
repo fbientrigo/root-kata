@@ -8,17 +8,71 @@
   <link rel="stylesheet" href="../styles.css">
 </head>
 <body>
-  <header class="site-header"><a class="brand" href="../index.html">ROOT Kata</a><span>short C++/ROOT practice in Jupyter</span></header>
-  <main class="problem-layout"><a class="back-link" href="../index.html">← All katas</a><article class="problem">
-  <header class="problem-header"><div class="problem-meta"><span class="difficulty">Easy</span><span>≈ 10 min</span><span>ROOT + C++</span></div><h1>Fill a ROOT histogram</h1><p class="lead">Turn a vector of measurements into the first ROOT object you will use constantly: a TH1D.</p><div class="chips"><span class="chip">TH1D</span><span class="chip">Fill</span><span class="chip">binning</span><span class="chip">underflow/overflow</span></div></header>
-  <section><h2>Problem</h2><p>Implement TH1D* build_histogram(const std::vector&lt;double&gt;&amp; values). Return a heap-allocated TH1D named h_pt with 10 bins covering [0, 100], with every value filled exactly once.</p><div class="contract"><span>Implement</span><code>build_histogram(…)</code></div></section>
-  <section><h2>Example</h2><div class="example-box"><div><span>Input</span><code>{10, 20, 30}</code></div><div><span>Output</span><code>TH1D with 3 entries and mean 20</code></div><p>Each input value contributes one Fill call.</p></div></section>
-  <section><h2>Requirements</h2><ul><li>Use exactly 10 bins from 0 to 100.</li><li>Name the histogram h_pt.</li><li>Fill each input value exactly once.</li><li>Return a pointer created with new TH1D(...).</li></ul></section>
-  <section><h2>What this practices</h2><p>Create a ROOT histogram with an explicit binning and fill it once for every input value.</p></section>
-  <section><h2>References</h2><ul class="resource-list"><li><a href="https://root.cern.ch/doc/master/classTH1.html" target="_blank" rel="noopener">TH1 — ROOT reference</a></li><li><a href="https://en.cppreference.com/w/cpp/container/vector" target="_blank" rel="noopener">std::vector — cppreference</a></li></ul></section>
-  <section class="start-panel"><div><h2>Start in Jupyter</h2><p>Open your local Jupyter and paste the command below. The button tries to copy it for you.</p><pre><code>import root_kata as rk
-rk.start(&quot;cpp-root-histogram&quot;)</code></pre></div><a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab" target="_blank" rel="noopener" data-command="import root_kata as rk
-rk.start(&quot;cpp-root-histogram&quot;)">Open in Jupyter</a></section>
-  <p class="source-link"><a href="cpp-root-histogram.md">Markdown problem source</a></p></article></main>
-  <footer class="site-footer">Unofficial educational prototype · no accounts · runs on your machine</footer><script src="../site.js" defer></script>
-</body></html>
+  <header class="site-header">
+    <a class="brand" href="../index.html">ROOT Kata</a>
+    <span>short C++/ROOT practice in Jupyter</span>
+  </header>
+  
+  <main class="problem-layout">
+    <a class="back-link" href="../index.html">← All katas</a>
+    <article class="problem">
+      <header class="problem-header">
+        <div class="problem-meta">
+          <span class="difficulty">Easy</span>
+          <span>≈ 10 min</span>
+          <span>ROOT + C++</span>
+        </div>
+        <h1>Fill a ROOT histogram</h1>
+        <p class="lead">Turn a vector of measurements into the first ROOT object you will use constantly: a TH1D.</p>
+        <div class="chips"><span class="chip">TH1D</span><span class="chip">Fill</span><span class="chip">binning</span><span class="chip">underflow/overflow</span></div>
+      </header>
+
+      <section>
+        <h2>Problem</h2>
+        <p>Implement TH1D* build_histogram(const std::vector&lt;double&gt;&amp; values). Return a heap-allocated TH1D named h_pt with 10 bins covering [0, 100], with every value filled exactly once.</p>
+        <div class="contract"><span>Implement</span><code>build_histogram(…)</code></div>
+      </section>
+
+      <section>
+        <h2>Example</h2>
+        
+        <div class="example-box">
+          <div><span>Input</span><code>{10, 20, 30}</code></div>
+          <div><span>Output</span><code>TH1D with 3 entries and mean 20</code></div>
+          <p>Each input value contributes one Fill call.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Requirements</h2>
+        <ul><li>Use exactly 10 bins from 0 to 100.</li><li>Name the histogram h_pt.</li><li>Fill each input value exactly once.</li><li>Return a pointer created with new TH1D(...).</li></ul>
+      </section>
+
+      <section>
+        <h2>What this practices</h2>
+        <p>Create a ROOT histogram with an explicit binning and fill it once for every input value.</p>
+      </section>
+
+      <section>
+        <h2>References</h2>
+        <ul class="resource-list"><li><a href="https://root.cern.ch/doc/master/classTH1.html" target="_blank" rel="noopener">TH1 — ROOT reference</a></li><li><a href="https://en.cppreference.com/w/cpp/container/vector" target="_blank" rel="noopener">std::vector — cppreference</a></li></ul>
+      </section>
+
+      <section class="start-panel">
+        <div>
+          <h2>Start in Jupyter</h2>
+          <p>Open your local Jupyter and paste the command below. The button tries to copy it for you.</p>
+          <pre><code>import root_kata as rk
+rk.start(&quot;cpp-root-histogram&quot;)</code></pre>
+        </div>
+        <a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-histogram&quot;)">Open in Jupyter</a>
+      </section>
+
+      <p class="source-link"><a href="cpp-root-histogram.md">Markdown problem source</a></p>
+    </article>
+  </main>
+  <footer class="site-footer">Unofficial educational prototype · no accounts · runs on your machine</footer>
+  <script src="../site.js" defer></script>
+</body>
+</html>

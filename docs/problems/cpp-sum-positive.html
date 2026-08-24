@@ -1,12 +1,78 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Warm up with the loop + condition + accumulator pattern used throughout data analysis."><title>Sum positive values · ROOT Kata</title><link rel="stylesheet" href="../styles.css"></head><body>
-<header class="site-header"><a class="brand" href="../index.html">ROOT Kata</a><span>short C++/ROOT practice in Jupyter</span></header>
-<main class="problem-layout"><a class="back-link" href="../index.html">← All katas</a><article class="problem"><header class="problem-header"><div class="problem-meta"><span class="difficulty">Easy</span><span>≈ 5 min</span><span>C++17</span></div><h1>Sum positive values</h1><p class="lead">Warm up with the loop + condition + accumulator pattern used throughout data analysis.</p><div class="chips"><span class="chip">std::vector</span><span class="chip">range-for</span><span class="chip">if</span><span class="chip">accumulator</span></div></header>
-<section><h2>Problem</h2><p>Implement double sum_positive(const std::vector&lt;double&gt;&amp; values). Return the sum of values strictly greater than zero.</p><div class="contract"><span>Implement</span><code>sum_positive(…)</code></div></section>
-<section><h2>Example</h2><div class="example-box"><div><span>Input</span><code>{-2, 3, 0, 5}</code></div><div><span>Output</span><code>8</code></div><p>Only 3 and 5 are strictly positive.</p></div></section>
-<section><h2>Requirements</h2><ul><li>Return 0 for an empty vector.</li><li>Ignore zero and negative values.</li><li>Do not modify the input vector.</li></ul></section>
-<section><h2>What this practices</h2><p>Traverse a vector, make a decision for each value, and accumulate a numeric result.</p></section>
-<section><h2>References</h2><ul class="resource-list"><li><a href="https://en.cppreference.com/w/cpp/container/vector" target="_blank" rel="noopener">std::vector — cppreference</a></li><li><a href="https://en.cppreference.com/w/cpp/language/range-for" target="_blank" rel="noopener">Range-based for loop — cppreference</a></li></ul></section>
-<section class="start-panel"><div><h2>Start in Jupyter</h2><p>Open your local Jupyter and paste the command below. The button tries to copy it for you.</p><pre><code>import root_kata as rk
-rk.start(&quot;cpp-sum-positive&quot;)</code></pre></div><a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab" target="_blank" rel="noopener" data-command="import root_kata as rk
-rk.start(&quot;cpp-sum-positive&quot;)">Open in Jupyter</a></section><p class="source-link"><a href="cpp-sum-positive.md">Markdown problem source</a></p></article></main><footer class="site-footer">Unofficial educational prototype · no accounts · runs on your machine</footer><script src="../site.js" defer></script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Warm up with the loop + condition + accumulator pattern used throughout data analysis.">
+  <title>Sum positive values · ROOT Kata</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../index.html">ROOT Kata</a>
+    <span>short C++/ROOT practice in Jupyter</span>
+  </header>
+  
+  <main class="problem-layout">
+    <a class="back-link" href="../index.html">← All katas</a>
+    <article class="problem">
+      <header class="problem-header">
+        <div class="problem-meta">
+          <span class="difficulty">Easy</span>
+          <span>≈ 5 min</span>
+          <span>C++17</span>
+        </div>
+        <h1>Sum positive values</h1>
+        <p class="lead">Warm up with the loop + condition + accumulator pattern used throughout data analysis.</p>
+        <div class="chips"><span class="chip">std::vector</span><span class="chip">range-for</span><span class="chip">if</span><span class="chip">accumulator</span></div>
+      </header>
+
+      <section>
+        <h2>Problem</h2>
+        <p>Implement double sum_positive(const std::vector&lt;double&gt;&amp; values). Return the sum of values strictly greater than zero.</p>
+        <div class="contract"><span>Implement</span><code>sum_positive(…)</code></div>
+      </section>
+
+      <section>
+        <h2>Example</h2>
+        
+        <div class="example-box">
+          <div><span>Input</span><code>{-2, 3, 0, 5}</code></div>
+          <div><span>Output</span><code>8</code></div>
+          <p>Only 3 and 5 are strictly positive.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Requirements</h2>
+        <ul><li>Return 0 for an empty vector.</li><li>Ignore zero and negative values.</li><li>Do not modify the input vector.</li></ul>
+      </section>
+
+      <section>
+        <h2>What this practices</h2>
+        <p>Traverse a vector, make a decision for each value, and accumulate a numeric result.</p>
+      </section>
+
+      <section>
+        <h2>References</h2>
+        <ul class="resource-list"><li><a href="https://en.cppreference.com/w/cpp/container/vector" target="_blank" rel="noopener">std::vector — cppreference</a></li><li><a href="https://en.cppreference.com/w/cpp/language/range-for" target="_blank" rel="noopener">Range-based for loop — cppreference</a></li></ul>
+      </section>
+
+      <section class="start-panel">
+        <div>
+          <h2>Start in Jupyter</h2>
+          <p>Open your local Jupyter and paste the command below. The button tries to copy it for you.</p>
+          <pre><code>import root_kata as rk
+rk.start(&quot;cpp-sum-positive&quot;)</code></pre>
+        </div>
+        <a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-sum-positive&quot;)">Open in Jupyter</a>
+      </section>
+
+      <p class="source-link"><a href="cpp-sum-positive.md">Markdown problem source</a></p>
+    </article>
+  </main>
+  <footer class="site-footer">Unofficial educational prototype · no accounts · runs on your machine</footer>
+  <script src="../site.js" defer></script>
+</body>
+</html>
