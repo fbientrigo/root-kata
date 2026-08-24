@@ -5,8 +5,11 @@
 {
   "solved": {"cpp-sum-positive": {"at": "2026-08-23T14:02:11", "attempts": 3, "first_try": false}},
   "attempts": {"cpp-root-histogram": 2},
-  "badges": {"First Compile": "2026-08-23T14:02:11"}
+  "badges": {"first_kata": "2026-08-23T14:02:11"}
 }
+
+Badge keys are stable ids (never localized). Older files that stored English
+badge names are migrated once on load; retired badges are dropped.
 """
 from __future__ import annotations
 
@@ -15,16 +18,28 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .catalog import list_exercises
 
-META_BADGES = [
-    ("First Kata", "Solve any exercise", lambda s, ex: len(s) >= 1),
-    ("Hat Trick", "Solve three exercises", lambda s, ex: len(s) >= 3),
-    ("Track Complete: ROOT basics", "Solve every 'ROOT basics' exercise", lambda s, ex: bool([e for e in ex if e["track"] == "ROOT basics"]) and all(e["id"] in s for e in ex if e["track"] == "ROOT basics")),
-    ("Completionist", "Solve every available exercise", lambda s, ex: bool(ex) and all(e["id"] in s for e in ex)),
+# (stable id, description-id, predicate(solved_ids, exercises))
+BADGES: list[tuple[str, str, Callable[[set[str], list[dict[str, Any]]], bool]]] = [
+    ("first_kata", "badge.first_kata.desc", lambda solved, ex: len(solved) >= 1),
+    ("first_root_histogram", "badge.first_root_histogram.desc", lambda solved, ex: "cpp-root-histogram" in solved),
+    ("basics_complete", "badge.basics_complete.desc", lambda solved, ex: bool(ex) and {e["id"] for e in ex} <= solved),
 ]
+
+# Migration: pre-i18n progress files used English display names as badge keys.
+_OLD_BADGE_IDS = {
+    "First Kata": "first_kata",
+    "Histogrammer": "first_root_histogram",
+    "First Compile": None,  # retired: per-exercise noise
+    "Cut Maker": None,
+    "Clean Shot": None,     # retired: solving on the first try is not rewarded
+    "Hat Trick": "basics_complete",
+    "Track Complete: ROOT basics": "basics_complete",
+    "Completionist": "basics_complete",
+}
 
 
 def home() -> Path:
@@ -36,9 +51,38 @@ def _path() -> Path:
 
 
 def load() -> dict[str, Any]:
-    try: data = json.loads(_path().read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError): data = {}
+    try:
+        raw = _path().read_text(encoding="utf-8")
+        data = json.loads(raw)
+        if isinstance(data, dict):
+            data, changed = _migrate(data)
+            if changed:
+                save(data)
+        else:
+            data = {}
+    except (OSError, json.JSONDecodeError):
+        data = {}
     data.setdefault("solved", {}); data.setdefault("attempts", {}); data.setdefault("badges", {}); return data
+
+
+def _migrate(data: dict[str, Any]) -> tuple[dict[str, Any], bool]:
+    """Map legacy English badge names to stable ids; drop retired ones."""
+    badges = data.get("badges")
+    if not isinstance(badges, dict):
+        return data, False
+    known = {b[0] for b in BADGES}
+    migrated: dict[str, str] = {}
+    changed = False
+    for name, at in badges.items():
+        badge_id = name if name in known else _OLD_BADGE_IDS.get(name)
+        if badge_id is None or badge_id != name:
+            changed = True
+            if badge_id is None:
+                continue
+        migrated.setdefault(badge_id, at)  # keep earliest timestamp
+    if changed:
+        data["badges"] = migrated
+    return data, changed
 
 
 def save(data: dict[str, Any]) -> None:
@@ -46,14 +90,13 @@ def save(data: dict[str, Any]) -> None:
 
 
 def record(exercise_id: str, result: dict[str, Any]) -> list[str]:
+    """Update attempts/solved; return newly earned *badge ids*."""
     data = load(); now = datetime.now().replace(microsecond=0).isoformat(); data["attempts"][exercise_id] = data["attempts"].get(exercise_id, 0) + 1; new: list[str] = []
     if result.get("passed") and exercise_id not in data["solved"]:
-        attempts = data["attempts"][exercise_id]; data["solved"][exercise_id] = {"at": now, "attempts": attempts, "first_try": attempts == 1}; badge = result.get("_badge")
-        if badge and badge not in data["badges"]: data["badges"][badge] = now; new.append(badge)
-        if attempts == 1 and "Clean Shot" not in data["badges"]: data["badges"]["Clean Shot"] = now; new.append("Clean Shot")
+        attempts = data["attempts"][exercise_id]; data["solved"][exercise_id] = {"at": now, "attempts": attempts, "first_try": attempts == 1}
         solved = set(data["solved"]); exercises = list_exercises()
-        for name, _desc, pred in META_BADGES:
-            if name not in data["badges"] and pred(solved, exercises): data["badges"][name] = now; new.append(name)
+        for badge_id, _desc, pred in BADGES:
+            if badge_id not in data["badges"] and pred(solved, exercises): data["badges"][badge_id] = now; new.append(badge_id)
     save(data); return new
 
 

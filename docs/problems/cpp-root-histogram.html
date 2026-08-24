@@ -1,78 +1,77 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Turn a vector of measurements into the first ROOT object you will use constantly: a TH1D.">
-  <title>Fill a ROOT histogram · ROOT Kata</title>
-  <link rel="stylesheet" href="../styles.css">
+  <meta name="description" content="Convierte un vector de mediciones en el primer objeto ROOT que usarás todo el tiempo: un TH1D.">
+  <title>Llena un histograma ROOT · ROOT Kata</title>
+  <link rel="stylesheet" href="problems/styles.css">
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="../index.html">ROOT Kata</a>
-    <span>short C++/ROOT practice in Jupyter</span>
+    <a class="brand" href="problems/index.html">ROOT Kata</a>
+    <span>práctica corta de C++/ROOT en Jupyter</span>
+    <nav class="lang-switch" aria-label="Language"><a href="../en/problems/cpp-root-histogram.html" lang="en" hreflang="en">EN</a></nav>
   </header>
   
   <main class="problem-layout">
-    <a class="back-link" href="../index.html">← All katas</a>
+    <a class="back-link" href="index.html">← Todos los katas</a>
     <article class="problem">
       <header class="problem-header">
         <div class="problem-meta">
-          <span class="difficulty">Easy</span>
+          <span class="difficulty">Fácil</span>
           <span>≈ 10 min</span>
           <span>ROOT + C++</span>
         </div>
-        <h1>Fill a ROOT histogram</h1>
-        <p class="lead">Turn a vector of measurements into the first ROOT object you will use constantly: a TH1D.</p>
+        <h1>Llena un histograma ROOT</h1>
+        <p class="lead">Convierte un vector de mediciones en el primer objeto ROOT que usarás todo el tiempo: un TH1D.</p>
         <div class="chips"><span class="chip">TH1D</span><span class="chip">Fill</span><span class="chip">binning</span><span class="chip">underflow/overflow</span></div>
       </header>
 
       <section>
-        <h2>Problem</h2>
-        <p>Implement TH1D* build_histogram(const std::vector&lt;double&gt;&amp; values). Return a heap-allocated TH1D named h_pt with 10 bins covering [0, 100], with every value filled exactly once.</p>
-        <div class="contract"><span>Implement</span><code>build_histogram(…)</code></div>
+        <h2>Problema</h2>
+        <p>Implementa TH1D* build_histogram(const std::vector&lt;double&gt;&amp; values). Devuelve un TH1D reservado en el heap, llamado h_pt, con 10 bins que cubren [0, 100], llenando cada valor exactamente una vez.</p>
+        <div class="contract"><span>Implementa</span><code>build_histogram(…)</code></div>
       </section>
 
       <section>
-        <h2>Example</h2>
+        <h2>Ejemplo</h2>
         
         <div class="example-box">
-          <div><span>Input</span><code>{10, 20, 30}</code></div>
-          <div><span>Output</span><code>TH1D with 3 entries and mean 20</code></div>
-          <p>Each input value contributes one Fill call.</p>
+          <div><span>Entrada</span><code>{10, 20, 30}</code></div>
+          <div><span>Salida</span><code>TH1D con 3 entradas y media 20</code></div>
+          <p>Cada valor de entrada aporta una llamada a Fill.</p>
         </div>
       </section>
 
       <section>
-        <h2>Requirements</h2>
-        <ul><li>Use exactly 10 bins from 0 to 100.</li><li>Name the histogram h_pt.</li><li>Fill each input value exactly once.</li><li>Return a pointer created with new TH1D(...).</li></ul>
+        <h2>Requisitos</h2>
+        <ul><li>Usa exactamente 10 bins de 0 a 100.</li><li>Nombra el histograma h_pt.</li><li>Llena cada valor de entrada exactamente una vez.</li><li>Devuelve un puntero creado con new TH1D(...).</li></ul>
       </section>
 
       <section>
-        <h2>What this practices</h2>
-        <p>Create a ROOT histogram with an explicit binning and fill it once for every input value.</p>
+        <h2>Qué practicas</h2>
+        <p>Crear un histograma de ROOT con un binning explícito y llenarlo una vez por cada valor de entrada.</p>
       </section>
 
       <section>
-        <h2>References</h2>
+        <h2>Referencias</h2>
         <ul class="resource-list"><li><a href="https://root.cern.ch/doc/master/classTH1.html" target="_blank" rel="noopener">TH1 — ROOT reference</a></li><li><a href="https://en.cppreference.com/w/cpp/container/vector" target="_blank" rel="noopener">std::vector — cppreference</a></li></ul>
       </section>
 
       <section class="start-panel">
         <div>
-          <h2>Start in Jupyter</h2>
-          <p>Open your local Jupyter and paste the command below. The button tries to copy it for you.</p>
+          <h2>Empieza en Jupyter</h2>
+          <p>Abre tu Jupyter local y pega el comando de abajo. El botón intenta copiarlo.</p>
           <pre><code>import root_kata as rk
 rk.start(&quot;cpp-root-histogram&quot;)</code></pre>
         </div>
-        <a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab" target="_blank" rel="noopener" data-command="import root_kata as rk
-rk.start(&quot;cpp-root-histogram&quot;)">Open in Jupyter</a>
+        <a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-histogram.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-histogram&quot;)">Abrir en Jupyter</a>
       </section>
-
-      <p class="source-link"><a href="cpp-root-histogram.md">Markdown problem source</a></p>
     </article>
   </main>
-  <footer class="site-footer">Unofficial educational prototype · no accounts · runs on your machine</footer>
-  <script src="../site.js" defer></script>
+  <footer class="site-footer">Prototipo educativo no oficial · sin cuentas · corre en tu máquina</footer>
+  <script src="problems/site.js" defer></script>
 </body>
 </html>

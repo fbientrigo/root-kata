@@ -64,9 +64,12 @@ def root_config_flags() -> tuple[list[str], list[str]] | None:
     return cflags, libs
 
 
-def _result(status: str, summary: str, **extra: Any) -> dict[str, Any]:
+def _result(status: str, summary: str, *, sid: str | None = None, params: dict[str, Any] | None = None,
+            **extra: Any) -> dict[str, Any]:
+    """`summary` is the canonical English text; `sid`+`params` localize it at display time."""
     base = {"status": status, "passed": status == "passed", "summary": summary, "cases": [],
-            "stdout": "", "stderr": "", "first_error": None, "work_dir": None}
+            "stdout": "", "stderr": "", "first_error": None, "work_dir": None,
+            "_sid": sid, "_params": params or {}}
     base.update(extra)
     return base
 
@@ -106,7 +109,7 @@ def run_cpp(exercise_id: str, solution_path: Path, *, timeout_seconds: float = 1
 
     cxx = _which_compiler()
     if cxx is None:
-        return _result("runtime_missing", "No C++ compiler found (tried $CXX, g++, clang++). Install one and re-run doctor().", work_dir=str(wd))
+        return _result("runtime_missing", "No C++ compiler found (tried $CXX, g++, clang++). Install one and re-run doctor().", sid="sum.no_compiler", work_dir=str(wd))
 
     needs_root = "ROOT" in metadata.get("requires", [])
     cflags: list[str] = ["-std=c++17"]
@@ -114,7 +117,7 @@ def run_cpp(exercise_id: str, solution_path: Path, *, timeout_seconds: float = 1
     if needs_root:
         flags = root_config_flags()
         if flags is None:
-            return _result("runtime_missing", "root-config not found on PATH. Source ROOT (e.g. `source /path/to/root/bin/thisroot.sh`) before starting Jupyter.", work_dir=str(wd))
+            return _result("runtime_missing", "root-config not found on PATH. Source ROOT (e.g. `source /path/to/root/bin/thisroot.sh`) before starting Jupyter.", sid="sum.no_root_config", work_dir=str(wd))
         cflags, libs = flags
 
     harness = exercise_dir / metadata["harness"]
@@ -129,7 +132,7 @@ def run_cpp(exercise_id: str, solution_path: Path, *, timeout_seconds: float = 1
     try:
         build = subprocess.run(cmd, capture_output=True, text=True, cwd=str(wd), timeout=120)
     except subprocess.TimeoutExpired:
-        return _result("compile_error", "Compiler did not finish within 120 s", work_dir=str(wd))
+        return _result("compile_error", "Compiler did not finish within 120 s", sid="sum.compile_timeout", params={"seconds": 120}, work_dir=str(wd))
     build_ms = round((time.perf_counter() - t0) * 1000)
     (wd / "build.log").write_text("$ " + shlex.join(cmd) + "\n\n" + build.stdout + build.stderr)
 
@@ -139,7 +142,12 @@ def run_cpp(exercise_id: str, solution_path: Path, *, timeout_seconds: float = 1
         if err:
             where = f"{err['file']}:{err['line']}"
             summary = f"Compilation failed at {where}: {err['message']}"
-        return _result("compile_error", summary, first_error=err, stderr=build.stderr[-4000:],
+        sid = None; params: dict[str, Any] = {}
+        if err:
+            sid = "sum.compile_failed_at"; params = {"where": f"{err['file']}:{err['line']}", "msg": err["message"]}
+        else:
+            sid = "sum.compile_failed"
+        return _result("compile_error", summary, sid=sid, params=params, first_error=err, stderr=build.stderr[-4000:],
                        work_dir=str(wd), build_ms=build_ms)
 
     t0 = time.perf_counter()
@@ -148,14 +156,20 @@ def run_cpp(exercise_id: str, solution_path: Path, *, timeout_seconds: float = 1
     except subprocess.TimeoutExpired as exc:
         (wd / "run.log").write_text((exc.stdout or "") if isinstance(exc.stdout, str) else "")
         return _result("runtime_error", f"Your program ran longer than {timeout_seconds:g} s (infinite loop?)",
-                       work_dir=str(wd), build_ms=build_ms)
+                       sid="sum.run_timeout", params={"seconds": f"{timeout_seconds:g}"}, work_dir=str(wd), build_ms=build_ms)
     run_ms = round((time.perf_counter() - t0) * 1000)
     (wd / "run.log").write_text("$ ./harness\n\n--- stdout ---\n" + run.stdout + "\n--- stderr ---\n" + run.stderr)
 
     if run.returncode != 0:
-        reason = _signal_name(run.returncode) if run.returncode < 0 else f"exit code {run.returncode}"
-        hint = " (segfault: probably an out-of-range index, a null pointer, or an uninitialised histogram)" if reason == "SIGSEGV" else ""
-        return _result("runtime_error", f"Your program crashed: {reason}{hint}", stderr=run.stderr[-4000:],
+        crashed = run.returncode < 0
+        signal_name = _signal_name(run.returncode) if crashed else None
+        if crashed:
+            summary = f"Your program crashed: {signal_name}"; sid = "sum.crashed_signal"
+            params = {"signal": signal_name}
+        else:
+            summary = f"Your program crashed: exit code {run.returncode}"; sid = "sum.crashed_exit"
+            params = {"code": run.returncode}
+        return _result("runtime_error", summary, sid=sid, params=params, stderr=run.stderr[-4000:],
                        stdout=run.stdout[-4000:], work_dir=str(wd), build_ms=build_ms, run_ms=run_ms)
 
     lines = run.stdout.rstrip("\n").splitlines()
@@ -165,7 +179,7 @@ def run_cpp(exercise_id: str, solution_path: Path, *, timeout_seconds: float = 1
             raise ValueError
     except (ValueError, json.JSONDecodeError):
         return _result("harness_error", "The harness did not produce JSON on its last stdout line. Check run.log (did you print something after rk::done()?).",
-                       stdout=run.stdout[-4000:], stderr=run.stderr[-4000:], work_dir=str(wd))
+                       sid="sum.harness_no_json", stdout=run.stdout[-4000:], stderr=run.stderr[-4000:], work_dir=str(wd))
     student_stdout = "\n".join(lines[:-1])
 
     validator_path = exercise_dir / metadata["validator"]
@@ -176,5 +190,6 @@ def run_cpp(exercise_id: str, solution_path: Path, *, timeout_seconds: float = 1
     cases = [c.run() for c in mod.grade(results)]
     n_pass = sum(c["passed"] for c in cases)
     status = "passed" if cases and n_pass == len(cases) else "failed"
-    return _result(status, f"{n_pass}/{len(cases)} tests passed", cases=cases, stdout=student_stdout[-4000:],
+    return _result(status, f"{n_pass}/{len(cases)} tests passed", sid="sum.tests_passed", params={"n": n_pass, "m": len(cases)},
+                   cases=cases, stdout=student_stdout[-4000:],
                    stderr=run.stderr[-4000:], work_dir=str(wd), build_ms=build_ms, run_ms=run_ms)

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Read a small problem, open it in Jupyter, edit one function, run the visible tests. No account and no cloud runner.">
+  <title>Katas · ROOT Kata</title>
+  <link rel="stylesheet" href="en/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="en/index.html">ROOT Kata</a>
+    <span>short C++/ROOT practice in Jupyter</span>
+    <nav class="lang-switch" aria-label="Language"><a href="../index.html" lang="es" hreflang="es">ES</a></nav>
+  </header>
+  
+  <main class="home">
+    <section class="hero">
+      <p class="eyebrow">3-step starter track</p>
+      <h1>Practice the operations you will actually reuse.</h1>
+      <p>Read a small problem, open it in Jupyter, edit one function, run the visible tests. No account and no cloud runner.</p>
+      <div class="flow" aria-label="Learning path"><span>1 · accumulate</span><span aria-hidden="true">→</span><span>2 · select</span><span aria-hidden="true">→</span><span>3 · histogram</span></div>
+    </section>
+
+    <section class="kata-grid" aria-label="Katas">
+      
+      <article class="kata-card">
+        <div class="card-topline">
+          <span class="step">1</span>
+          <span class="difficulty">Easy</span>
+          <span class="runtime">C++</span>
+        </div>
+        <h2>Sum positive values</h2>
+        <p>Warm up with the loop + condition + accumulator pattern used throughout data analysis.</p>
+        <div class="chips"><span class="chip">std::vector</span><span class="chip">range-for</span><span class="chip">if</span><span class="chip">accumulator</span></div>
+        <div class="card-meta">≈ 5 min · C++ warm-up</div>
+        <div class="card-actions">
+          <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-sum-positive.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-sum-positive&quot;)">Open in Jupyter</a>
+          <a class="button secondary" href="problems/cpp-sum-positive.html">Read problem</a>
+        </div>
+      </article>
+      <article class="kata-card">
+        <div class="card-topline">
+          <span class="step">2</span>
+          <span class="difficulty">Easy</span>
+          <span class="runtime">C++</span>
+        </div>
+        <h2>Count values above a cut</h2>
+        <p>Practice the core analysis operation: apply a threshold and count what survives.</p>
+        <div class="chips"><span class="chip">std::vector</span><span class="chip">function arguments</span><span class="chip">strict comparison</span><span class="chip">selection</span></div>
+        <div class="card-meta">≈ 7 min · C++ selections</div>
+        <div class="card-actions">
+          <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-count-above.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-count-above&quot;)">Open in Jupyter</a>
+          <a class="button secondary" href="problems/cpp-count-above.html">Read problem</a>
+        </div>
+      </article>
+      <article class="kata-card">
+        <div class="card-topline">
+          <span class="step">3</span>
+          <span class="difficulty">Easy</span>
+          <span class="runtime">ROOT</span>
+        </div>
+        <h2>Fill a ROOT histogram</h2>
+        <p>Turn a vector of measurements into the first ROOT object you will use constantly: a TH1D.</p>
+        <div class="chips"><span class="chip">TH1D</span><span class="chip">Fill</span><span class="chip">binning</span><span class="chip">underflow/overflow</span></div>
+        <div class="card-meta">≈ 10 min · ROOT basics</div>
+        <div class="card-actions">
+          <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-histogram.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-histogram&quot;)">Open in Jupyter</a>
+          <a class="button secondary" href="problems/cpp-root-histogram.html">Read problem</a>
+        </div>
+      </article>
+    </section>
+
+    <aside class="local-note"><strong>Open in Jupyter</strong><span>The button opens the kata notebook at <code>127.0.0.1:8888</code> (needs <code>root-kata lab</code> running) and tries to copy the command.</span></aside>
+  </main>
+  <footer class="site-footer">Unofficial educational prototype · no accounts · runs on your machine</footer>
+  <script src="en/site.js" defer></script>
+</body>
+</html>

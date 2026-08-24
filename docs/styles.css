@@ -19,6 +19,8 @@ code, pre { font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mon
 .site-header { min-height: 58px; padding: 0 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; background: var(--surface); }
 .site-header .brand { color: var(--text); font-weight: 800; text-decoration: none; letter-spacing: -.02em; }
 .site-header span { color: var(--muted); font-size: .9rem; }
+.site-header .lang-switch { margin-left: auto; font-size: .82rem; font-weight: 700; letter-spacing: .04em; }
+.site-header .lang-switch a { color: var(--muted); text-decoration: none; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); }
 .site-footer { max-width: 1080px; margin: 44px auto 0; padding: 22px 24px 32px; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--border); }
 .home, .problem-layout { width: min(1080px, calc(100% - 32px)); margin: 0 auto; }
 .hero { max-width: 760px; padding: 54px 0 32px; }

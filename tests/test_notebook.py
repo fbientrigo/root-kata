@@ -8,8 +8,11 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+EN = {"ROOT_KATA_LANG": "en"}
+ES = {"ROOT_KATA_LANG": "es"}
+
 import root_kata.notebook as nb
-from root_kata.catalog import get_exercise
+from root_kata.catalog import get_exercise, localized
 
 
 class NotebookUxTests(unittest.TestCase):
@@ -20,20 +23,34 @@ class NotebookUxTests(unittest.TestCase):
         self.assertTrue(cell.endswith("\n"))
 
     def test_statement_card_has_problem_constraints_example_and_run_instruction(self):
-        meta, _ = get_exercise("cpp-sum-positive")
-        card = nb._statement_html(meta, "cpp-sum-positive", cell_ready=True)
-        self.assertIn("Sum positive values", card)
-        self.assertIn("Must handle", card)
-        self.assertIn("Example", card)
-        self.assertIn("Shift", card)
-        self.assertNotIn("rk.check", card)
+        with mock.patch.dict(os.environ, EN):
+            meta, _ = get_exercise("cpp-sum-positive")
+            card = nb._statement_html(localized(meta), "cpp-sum-positive", cell_ready=True)
+            self.assertIn("Sum positive values", card)
+            self.assertIn("Requirements", card)
+            self.assertIn("Example", card)
+            self.assertIn("Shift", card)
+            self.assertNotIn("rk.check", card)
+
+    def test_statement_card_is_translated_in_spanish_with_stable_technical_terms(self):
+        with mock.patch.dict(os.environ, ES):
+            meta, _ = get_exercise("cpp-sum-positive")
+            card = nb._statement_html(localized(meta), "cpp-sum-positive", cell_ready=True)
+            self.assertIn("Suma valores positivos", card)
+            self.assertIn("Requisitos", card)
+            self.assertIn("Ejemplo", card)
+            self.assertIn("Fácil", card)
+            # technical API names are never translated
+            self.assertIn("std::vector", card)
+            self.assertNotIn("Sum positive values", card)
 
     def test_started_card_has_file_fallback_when_cell_insertion_is_unavailable(self):
-        meta, _ = get_exercise("cpp-sum-positive")
-        card = nb._statement_html(meta, "cpp-sum-positive", cell_ready=False)
-        self.assertIn("solution.cpp", card)
-        self.assertIn("rk.check", card)
-        self.assertNotIn("Start here", card)
+        with mock.patch.dict(os.environ, EN):
+            meta, _ = get_exercise("cpp-sum-positive")
+            card = nb._statement_html(localized(meta), "cpp-sum-positive", cell_ready=False)
+            self.assertIn("solution.cpp", card)
+            self.assertIn("rk.check", card)
+            self.assertNotIn("Start here", card)
 
     def test_failure_card_prioritises_first_action_and_optional_hint(self):
         meta, _ = get_exercise("cpp-sum-positive")
@@ -46,10 +63,36 @@ class NotebookUxTests(unittest.TestCase):
             ],
             "new_badges": [],
         }
-        card = nb._format_html(result, meta)
+        with mock.patch.dict(os.environ, EN):
+            card = nb._format_html(result, meta)
         self.assertIn("Start with the first failing case", card)
         self.assertIn("Expected <code>8</code>; got <code>6</code>", card)
         self.assertIn("Need a hint?", card)
+
+    def test_failure_card_is_translated_in_spanish(self):
+        meta, _ = get_exercise("cpp-sum-positive")
+        result = {
+            "status": "failed",
+            "summary": "3/4 tests passed",
+            "_sid": "sum.tests_passed",
+            "_params": {"n": 3, "m": 4},
+            "cases": [
+                {"name": "mixed signs", "passed": False, "message": "", "expected": 8, "actual": 6},
+                {"name": "empty input", "passed": True},
+            ],
+            "new_badges": ["first_kata"],
+        }
+        with mock.patch.dict(os.environ, ES):
+            card = nb._format_html(result, localized(meta))
+        self.assertIn("Pruebas", card)
+        self.assertIn("3/4 pruebas superadas", card)
+        self.assertIn("Se esperaba <code>8</code>; se obtuvo <code>6</code>", card)
+        self.assertIn("¿Necesitas una pista?", card)
+        self.assertIn("signos mixtos", card)
+        self.assertIn("entrada vacía", card)
+        self.assertIn("Primer kata", card)
+        self.assertNotIn("Need a hint?", card)
+        self.assertNotIn("First Kata", card)
 
     def test_failure_card_shows_semantic_test_progress(self):
         meta, _ = get_exercise("cpp-sum-positive")
@@ -64,10 +107,11 @@ class NotebookUxTests(unittest.TestCase):
             ],
             "new_badges": [],
         }
-        card = nb._format_html(result, meta)
+        with mock.patch.dict(os.environ, EN):
+            card = nb._format_html(result, meta)
         self.assertIn('<progress value="3" max="4"', card)
         self.assertIn("3 / 4", card)
-        self.assertIn('aria-label="Tests passed"', card)
+        self.assertIn(">Tests</span>", card)
 
     def test_progress_primitive_clamps_counts_and_is_reusable(self):
         bar = nb._progress_html(9, 4, label="Lesson steps")

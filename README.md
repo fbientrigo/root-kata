@@ -43,6 +43,19 @@ root-kata lab
 
 Eso arranca JupyterLab en `http://127.0.0.1:8888/lab` sin abrir navegador desde la terminal. Mantén esa terminal abierta mientras trabajas.
 
+## Idioma
+
+ROOT Kata está en **español** por defecto, con inglés disponible como primer-class:
+
+```bash
+root-kata config --lang en   # cambia la interfaz a inglés
+root-kata config             # muestra el idioma actual
+```
+
+Para pruebas puntuales, `ROOT_KATA_LANG=en root-kata ...` tiene prioridad sobre la configuración.
+
+La preferencia vive en `~/.root-kata/config.json`. El progreso (`~/.root-kata/progress.json`) nunca depende del idioma: guarda identificadores estables (ids de ejercicio e insignias), así que cambiar de idioma no duplica insignias ni katas resueltos. Las insignias antiguas que usaban nombres en inglés se migran automáticamente a ids.
+
 ## Abrir los ejercicios
 
 Catálogo web temporal:
@@ -124,6 +137,7 @@ Desde terminal:
 root-kata lab
 root-kata doctor
 root-kata list
+root-kata config --lang es|en
 root-kata start cpp-sum-positive
 root-kata check cpp-sum-positive
 root-kata progress
