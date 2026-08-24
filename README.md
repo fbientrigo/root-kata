@@ -14,13 +14,16 @@ ROOT Kata busca que practicar ROOT se parezca a resolver un problema pequeño en
 4. ejecutas la celda con `Shift+Enter`;
 5. ves cuántos tests pasan y corriges lo que falla.
 
-La ruta inicial tiene solo tres ejercicios:
+La ruta inicial empieza desde cero y tiene seis ejercicios:
 
-1. **Sum positive values** — loop + condición + acumulador.
-2. **Count values above a cut** — selección con un threshold estricto.
-3. **Fill a ROOT histogram** — creación y llenado de un `TH1D`.
+1. **Hola, mundo** — `std::cout` y validación de que todo el entorno funciona.
+2. **Lee un valor de un arreglo** — acceso con `[]` a un arreglo fijo.
+3. **Imprime un arreglo** — conecta valores almacenados con la salida del programa.
+4. **Suma valores positivos** — bucle + condición + acumulador sobre `std::vector`.
+5. **Cuenta valores sobre un corte** — selección con un umbral estricto.
+6. **Llena un histograma ROOT** — creación y llenado de un `TH1D`.
 
-La progresión es intencionalmente pequeña: **acumular → seleccionar → histogramar**.
+Los tres primeros son **Introductorios** y no requieren conocer `std::vector`. Sirven tanto para quien nunca programó en C++ como para comprobar rápidamente que instalación, compilación, Jupyter y tests funcionan antes de entrar a ROOT.
 
 ## Instalación
 
@@ -45,7 +48,7 @@ Eso arranca JupyterLab en `http://127.0.0.1:8888/lab` sin abrir navegador desde 
 
 ## Idioma
 
-ROOT Kata está en **español** por defecto, con inglés disponible como primer-class:
+ROOT Kata está en **español** por defecto, con inglés disponible como idioma completo:
 
 ```bash
 root-kata config --lang en   # cambia la interfaz a inglés
@@ -76,7 +79,7 @@ Si el botón no puede abrir Jupyter, copia el comando mostrado:
 
 ```python
 import root_kata as rk
-rk.start("cpp-sum-positive")
+rk.start("cpp-hello-world")
 ```
 
 Pégalo en una celda de Python y ejecuta `Shift+Enter`.
@@ -84,30 +87,18 @@ Pégalo en una celda de Python y ejecuta `Shift+Enter`.
 `rk.start(...)` muestra el enunciado e inserta debajo una celda editable con el starter C++:
 
 ```cpp
-%%kata cpp-sum-positive
-#include <vector>
+%%kata cpp-hello-world
+#include <iostream>
 
-double sum_positive(const std::vector<double>& values) {
-    // TODO
-    return 0;
+void say_hello() {
 }
 ```
 
-Edita esa misma celda y vuelve a ejecutar `Shift+Enter`. ROOT Kata guarda la solución, compila C++ real, ejecuta los tests visibles y muestra el progreso:
-
-```text
-Tests passed                              3 / 4
-████████████████████████████░░░░░░░░░
-
-✓ empty input
-✕ mixed signs — expected 8, got 6
-✓ all negative
-✓ all positive
-```
+Edita esa misma celda y vuelve a ejecutar `Shift+Enter`. ROOT Kata guarda la solución, compila C++ real, ejecuta los tests visibles y muestra el progreso.
 
 Cuando todos pasan, el kata queda resuelto localmente.
 
-## Si `Open in Jupyter` no funciona
+## Si `Abrir en Jupyter` no funciona
 
 La web pública no controla tu Jupyter local. El botón presupone que Jupyter está corriendo en el puerto `8888`:
 
@@ -127,16 +118,16 @@ python -m pip install -e .            # siempre `python -m pip`, nunca un `pip` 
 root-kata doctor
 ```
 
-La regla importante es simple: **ROOT, Python, JupyterLab y ROOT Kata deben vivir en el mismo entorno**. Un `pip install` sin el `python -m` puede instalar ROOT Kata en otro Python (por ejemplo, uno de usuario) mientras `import root_kata` falla dentro del entorno. `root-kata doctor` detecta exactamente ese desajuste.
+La regla importante es simple: **ROOT, Python, JupyterLab y ROOT Kata deben vivir en el mismo entorno**. Un `pip install` sin el `python -m` puede instalar ROOT Kata en otro Python mientras `import root_kata` falla dentro del entorno. `root-kata doctor` detecta exactamente ese desajuste.
 
 ## Comandos útiles
 
 Desde Jupyter:
 
 ```python
-rk.show("cpp-sum-positive")
-rk.tests("cpp-sum-positive")
-rk.hint("cpp-sum-positive")
+rk.show("cpp-hello-world")
+rk.tests("cpp-hello-world")
+rk.hint("cpp-hello-world")
 rk.progress()
 rk.export()
 ```
@@ -148,8 +139,8 @@ root-kata lab
 root-kata doctor
 root-kata list
 root-kata config --lang es|en
-root-kata start cpp-sum-positive
-root-kata check cpp-sum-positive
+root-kata start cpp-hello-world
+root-kata check cpp-hello-world
 root-kata progress
 ```
 
@@ -160,7 +151,7 @@ solution.cpp del alumno
         +
 harness.cpp del ejercicio
         ↓
-g++ + root-config
+g++ + root-config cuando corresponde
         ↓
 ejecutable local
         ↓
@@ -199,11 +190,11 @@ python scripts/build_pages.py
 El paquete Python no tiene dependencias runtime adicionales:
 
 ```bash
-pip install -e .
+python -m pip install -e .
 python -m unittest discover -s tests -v
 ```
 
-Los tests que requieren ROOT se omiten automáticamente cuando `root-config` o PyROOT no están disponibles. El workflow de CI comprueba el motor portable y que `docs/` esté sincronizado con sus fuentes.
+Los tests que requieren ROOT se omiten automáticamente cuando `root-config` o PyROOT no están disponibles. El workflow de CI comprueba el motor portable y que la web pueda generarse desde sus fuentes.
 
 ## GitHub Pages
 
