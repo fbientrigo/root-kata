@@ -30,7 +30,6 @@ class ProgressMigrationTests(unittest.TestCase):
     def test_legacy_badge_names_map_to_stable_ids(self):
         data = self._run({"First Kata": "2026-01-01T00:00:00", "Histogrammer": "2026-01-02T00:00:00"})
         self.assertEqual(set(data["badges"]), {"first_kata", "first_root_histogram"})
-        # timestamps preserved
         self.assertEqual(data["badges"]["first_kata"], "2026-01-01T00:00:00")
 
     def test_retired_badges_are_dropped(self):
@@ -40,24 +39,33 @@ class ProgressMigrationTests(unittest.TestCase):
     def test_solving_is_language_independent_and_earns_stable_ids(self):
         with tempfile.TemporaryDirectory() as t, mock.patch.dict(os.environ, {"ROOT_KATA_HOME": t}):
             for lang in ("es", "en"):
-                new = progress.record("cpp-sum-positive", {"passed": True})
+                progress.record("cpp-hello-world", {"passed": True})
                 data = progress.load()
-                self.assertTrue(data["solved"]["cpp-sum-positive"])
+                self.assertTrue(data["solved"]["cpp-hello-world"])
                 self.assertIn("first_kata", data["badges"])
                 self.assertNotIn("Primer kata", json.dumps(data))
                 self.assertNotIn("First Kata", json.dumps(data))
-            # second solve in another language does not duplicate anything
             self.assertEqual(progress.load()["badges"]["first_kata"].count("T"), 1)
 
     def test_first_attempt_no_longer_grants_a_badge(self):
         with tempfile.TemporaryDirectory() as t, mock.patch.dict(os.environ, {"ROOT_KATA_HOME": t}):
-            progress.record("cpp-sum-positive", {"passed": True})
+            progress.record("cpp-hello-world", {"passed": True})
             self.assertNotIn("Clean Shot", progress.load()["badges"])
 
     def test_basics_complete_requires_all_exercises(self):
+        ids = (
+            "cpp-hello-world",
+            "cpp-array-index",
+            "cpp-array-print",
+            "cpp-sum-positive",
+            "cpp-count-above",
+            "cpp-root-histogram",
+        )
         with tempfile.TemporaryDirectory() as t, mock.patch.dict(os.environ, {"ROOT_KATA_HOME": t}):
-            for eid in ("cpp-sum-positive", "cpp-count-above", "cpp-root-histogram"):
+            for eid in ids[:-1]:
                 progress.record(eid, {"passed": True})
+            self.assertNotIn("basics_complete", progress.load()["badges"])
+            progress.record(ids[-1], {"passed": True})
             self.assertIn("basics_complete", progress.load()["badges"])
 
 
