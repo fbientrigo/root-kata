@@ -4,7 +4,7 @@
   "title": "Fill a ROOT histogram",
   "track": "ROOT basics",
   "difficulty": "Easy",
-  "order": 3,
+  "order": 6,
   "published": true,
   "estimated_minutes": 10,
   "summary": "Turn a vector of measurements into the first ROOT object you will use constantly: a TH1D.",
