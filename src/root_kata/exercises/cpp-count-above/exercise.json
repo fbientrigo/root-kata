@@ -1,0 +1,12 @@
+{
+  "id":"cpp-count-above","kind":"cpp","title":"Count values above a cut","track":"C++ selections","difficulty":"Easy","order":2,"published":true,"estimated_minutes":7,"badge":"Cut Maker",
+  "topics":["std::vector","function arguments","strict comparison","selection"],
+  "learning_goal":"Translate a numerical selection into a precise C++ condition and count the values that survive it.",
+  "summary":"Practice the core analysis operation: apply a threshold and count what survives.",
+  "description":"Implement int count_above(const std::vector<double>& values, double threshold). Count values strictly greater than threshold.",
+  "requirements":["Use a strict > comparison: a value equal to the threshold does not pass.","Return 0 for an empty vector.","Do not modify the input vector."],
+  "examples":[{"input":"values = {20, 35, 50, 35}, threshold = 35","output":"1","explanation":"Only 50 is strictly greater than 35."}],
+  "hints":["Start the counter at 0 and increment only when value > threshold.","The threshold is already a function argument; do not hard-code it."],
+  "entrypoint":"count_above","starter":"solution.cpp","harness":"harness.cpp","validator":"validator.py","requires":[],
+  "resources":[{"label":"Range-based for loop — cppreference","url":"https://en.cppreference.com/w/cpp/language/range-for"},{"label":"std::vector — cppreference","url":"https://en.cppreference.com/w/cpp/container/vector"}],"problem_markdown":"problem.md"
+}

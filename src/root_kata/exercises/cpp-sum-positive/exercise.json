@@ -1,0 +1,14 @@
+{
+  "id": "cpp-sum-positive", "kind": "cpp", "title": "Sum positive values", "track": "C++ warm-up", "difficulty": "Easy", "badge": "First Compile",
+  "summary": "Warm up with the loop + condition + accumulator pattern used throughout data analysis.",
+  "description": "Implement double sum_positive(const std::vector<double>& values). Return the sum of values strictly greater than zero.",
+  "requirements": ["Return 0 for an empty vector.", "Ignore zero and negative values.", "Do not modify the input vector."],
+  "examples": [{"input": "{-2, 3, 0, 5}", "output": "8", "explanation": "Only 3 and 5 are strictly positive."}],
+  "hints": ["Start an accumulator at 0.", "A range-for loop plus one if statement is enough."],
+  "entrypoint": "sum_positive", "starter": "solution.cpp", "harness": "harness.cpp", "validator": "validator.py", "requires": [],
+  "order": 1, "published": true, "estimated_minutes": 5,
+  "topics": ["std::vector", "range-for", "if", "accumulator"],
+  "learning_goal": "Traverse a vector, make a decision for each value, and accumulate a numeric result.",
+  "resources": [{"label": "std::vector — cppreference", "url": "https://en.cppreference.com/w/cpp/container/vector"}, {"label": "Range-based for loop — cppreference", "url": "https://en.cppreference.com/w/cpp/language/range-for"}],
+  "problem_markdown": "problem.md"
+}

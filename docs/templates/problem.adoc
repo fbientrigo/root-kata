@@ -1,0 +1,48 @@
+= {Problem title}
+:root-kata-id: kata-id
+:difficulty: Easy
+:track: C++ warm-up
+:estimated-time: 5 minutes
+
+== Problem
+
+Describe one concrete task in learner language. State the exact function contract close to the top.
+
+[source,cpp]
+----
+return_type function_name(arguments);
+----
+
+Explain any domain meaning needed to make the code purposeful. Avoid API trivia that is not required to solve the kata.
+
+== Example
+
+[source,text]
+----
+Input:  ...
+Output: ...
+----
+
+Explain *why* the example produces that output when the reason is not obvious.
+
+== Requirements
+
+* One observable requirement per bullet.
+* Include boundary semantics explicitly (`>`, `>=`, empty input, bin edges, etc.).
+* Keep hidden assumptions out of the grader.
+
+== What this practices
+
+One short paragraph connecting the coding operation to the analysis mental model.
+
+== References
+
+* https://example.org[Authoritative reference]
+
+== Start in Jupyter
+
+[source,python]
+----
+import root_kata as rk
+rk.start("{root-kata-id}")
+----

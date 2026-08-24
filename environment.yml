@@ -1,0 +1,8 @@
+name: root-kata
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - root=6.40.02
+  - jupyterlab
+  - pip

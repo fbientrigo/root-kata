@@ -1,0 +1,11 @@
+{
+  "id":"cpp-root-histogram","kind":"cpp","title":"Fill a ROOT histogram","track":"ROOT basics","difficulty":"Easy","badge":"Histogrammer",
+  "summary":"Turn a vector of measurements into the first ROOT object you will use constantly: a TH1D.",
+  "description":"Implement TH1D* build_histogram(const std::vector<double>& values). Return a heap-allocated TH1D named h_pt with 10 bins covering [0, 100], with every value filled exactly once.",
+  "requirements":["Use exactly 10 bins from 0 to 100.","Name the histogram h_pt.","Fill each input value exactly once.","Return a pointer created with new TH1D(...)."],
+  "examples":[{"input":"{10, 20, 30}","output":"TH1D with 3 entries and mean 20","explanation":"Each input value contributes one Fill call."}],
+  "hints":["The constructor shape is TH1D(name, title, nbins, xlow, xup).","After constructing the histogram, loop over values and call Fill(value)."],
+  "entrypoint":"build_histogram","starter":"solution.cpp","harness":"harness.cpp","validator":"validator.py","requires":["ROOT"],"order":3,"published":true,"estimated_minutes":10,
+  "topics":["TH1D","Fill","binning","underflow/overflow"],"learning_goal":"Create a ROOT histogram with an explicit binning and fill it once for every input value.",
+  "resources":[{"label":"TH1 — ROOT reference","url":"https://root.cern.ch/doc/master/classTH1.html"},{"label":"std::vector — cppreference","url":"https://en.cppreference.com/w/cpp/container/vector"}],"problem_markdown":"problem.md"
+}

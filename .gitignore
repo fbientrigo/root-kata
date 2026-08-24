@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+.root-kata-env/
+.pytest_cache/
+.DS_Store
+*.egg-info/
+dist/
+build/
+kata/
+.root-kata/
+root-kata-progress.json
