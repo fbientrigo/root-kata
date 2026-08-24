@@ -58,11 +58,21 @@ La preferencia vive en `~/.root-kata/config.json`. El progreso (`~/.root-kata/pr
 
 ## Abrir los ejercicios
 
-Catálogo web temporal:
+Catálogo web:
 
 **https://fbientrigo.github.io/root-kata/**
 
-Elige un problema y pulsa **Open in Jupyter**. La página abre Jupyter local en `127.0.0.1:8888` e intenta copiar un comando como:
+La web muestra tu progreso local (se guarda en el navegador), el catálogo de katas y un botón **Abrir en Jupyter** por ejercicio que abre directamente el cuaderno de ese kata en `127.0.0.1:8888`. Requiere `root-kata lab` corriendo.
+
+El flujo completo:
+
+1. abre el catálogo y elige un kata;
+2. pulsa **Abrir en Jupyter** — se abre exactamente ese cuaderno;
+3. ejecuta la celda con `Shift+Enter`: aparece el enunciado y debajo una celda editable;
+4. edita la celda y vuelve a ejecutar `Shift+Enter`;
+5. al resolver, pulsa **Continuar →** para registrar el progreso en la web del catálogo.
+
+Si el botón no puede abrir Jupyter, copia el comando mostrado:
 
 ```python
 import root_kata as rk
@@ -197,9 +207,7 @@ Los tests que requieren ROOT se omiten automáticamente cuando `root-config` o P
 
 ## GitHub Pages
 
-La web de `docs/` es HTML/CSS/JavaScript estático, sin framework, CDN, backend, login ni analytics.
-
-El workflow `pages.yml` publica `docs/` mediante GitHub Pages. Para un repositorio nuevo puede ser necesario seleccionar una sola vez **Settings → Pages → Source → GitHub Actions**.
+La web de `docs/` es HTML/CSS/JavaScript estático, sin framework, CDN, backend, login ni analytics. Se genera con `python scripts/build_pages.py` (español en la raíz, inglés bajo `en/`) y se publica mediante el workflow `pages.yml` (Source: **GitHub Actions**). El progreso mostrado en la web vive solo en el `localStorage` de tu navegador; se actualiza con el botón **Continuar →** del cuaderno al resolver un kata.
 
 ## Principios del proyecto
 

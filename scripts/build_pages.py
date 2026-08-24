@@ -38,6 +38,10 @@ UI = {
         "hero_title": "Practica las operaciones que vas a reutilizar.",
         "hero_text": "Lee un problema pequeño, ábrelo en Jupyter, completa una función y ejecuta las pruebas visibles. Sin cuentas y sin nube.",
         "flow": ["1 · acumular", "2 · seleccionar", "3 · histogramar"],
+        "your_progress": "Tu progreso",
+        "completed": "Completado",
+        "view_problem": "Ver problema",
+        "exercises": "Ejercicios",
         "footer": "Prototipo educativo no oficial · sin cuentas · corre en tu máquina",
     },
     "en": {
@@ -62,6 +66,10 @@ UI = {
         "hero_title": "Practice the operations you will actually reuse.",
         "hero_text": "Read a small problem, open it in Jupyter, edit one function, run the visible tests. No account and no cloud runner.",
         "flow": ["1 · accumulate", "2 · select", "3 · histogram"],
+        "your_progress": "Your progress",
+        "completed": "Completed",
+        "view_problem": "View problem",
+        "exercises": "Exercises",
         "footer": "Unofficial educational prototype · no accounts · runs on your machine",
     },
 }
@@ -135,42 +143,49 @@ def shell(*, lang: str, title: str, body: str, description: str, prefix: str = "
 '''
 
 
-def kata_card(meta_view: dict, lang: str) -> str:
+def kata_row(meta_view: dict, lang: str) -> str:
     eid = meta_view["id"]; ui = UI[lang]
-    runtime = "ROOT" if meta_view.get("requires") else "C++"
     return f'''
-      <article class="kata-card">
-        <div class="card-topline">
-          <span class="step">{esc(meta_view.get('order', ''))}</span>
-          <span class="difficulty">{esc(meta_view['difficulty_label'])}</span>
-          <span class="runtime">{runtime}</span>
+      <article class="kata-row" data-eid="{esc(eid)}">
+        <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
+        <div class="row-body">
+          <div class="row-topline"><span class="difficulty">{esc(meta_view['difficulty_label'])}</span><span aria-hidden="true">·</span><span>{esc(ui['minutes'].format(n=meta_view.get('estimated_minutes', '?')))}</span></div>
+          <h2>{esc(meta_view['title'])}</h2>
+          <p>{esc(meta_view['summary'])}</p>
+          <div class="chips">{chips(meta_view.get('topics', []))}</div>
         </div>
-        <h2>{esc(meta_view['title'])}</h2>
-        <p>{esc(meta_view['summary'])}</p>
-        <div class="chips">{chips(meta_view.get('topics', [])[:4])}</div>
-        <div class="card-meta">{esc(ui['minutes'].format(n=meta_view.get('estimated_minutes', '?')))} · {esc(meta_view['track'])}</div>
-        <div class="card-actions">
+        <div class="row-actions">
           <a class="button primary jupyter-link" href="{esc(notebook_url(eid))}" target="_blank" rel="noopener" data-command="{esc(jupyter_command(eid))}">{esc(ui['open_in_jupyter'])}</a>
-          <a class="button secondary" href="problems/{esc(eid)}.html">{esc(ui['read_problem'])}</a>
+          <a class="button secondary problem-link" href="problems/{esc(eid)}.html">{esc(ui['view_problem'])}</a>
+          <span class="completed-label" hidden>{esc(ui['completed'])}</span>
         </div>
       </article>'''
 
 
 def build_index(exercises: list[tuple[dict, Path]], lang: str) -> None:
     ui = UI[lang]; prefix = "" if lang == "es" else "en/"
-    cards = "".join(kata_card(view(meta, lang), lang) for meta, _ in exercises)
+    rows = "".join(kata_row(view(meta, lang), lang) for meta, _ in exercises)
     flow = f'<span>{ui["flow"][0]}</span><span aria-hidden="true">→</span><span>{ui["flow"][1]}</span><span aria-hidden="true">→</span><span>{ui["flow"][2]}</span>'
+    total = len(exercises)
     body = f'''
   <main class="home">
     <section class="hero">
-      <p class="eyebrow">{esc(ui["hero_eyebrow"])}</p>
       <h1>{esc(ui["hero_title"])}</h1>
       <p>{esc(ui["hero_text"])}</p>
       <div class="flow" aria-label="Learning path">{flow}</div>
     </section>
 
-    <section class="kata-grid" aria-label="Katas">
-      {cards}
+    <section class="progress-panel" data-total="{total}" aria-labelledby="progress-title">
+      <h2 id="progress-title">{esc(ui["your_progress"])}</h2>
+      <div class="progress-row">
+        <progress id="overall-progress" value="0" max="{total}" aria-hidden="true"></progress>
+        <span id="progress-count" role="status" aria-live="polite">0 / {total}</span>
+      </div>
+      <ul id="badge-list" class="badge-list"></ul>
+    </section>
+
+    <section class="kata-list" aria-label="{esc(ui["exercises"])}">
+      {rows}
     </section>
 
     <aside class="local-note">{ui["local_note"]}</aside>

@@ -7,6 +7,8 @@ from . import i18n
 from .catalog import case_label, message_label
 from .notebook_ui import _summary, progress_html
 
+PAGES_URL = "https://fbientrigo.github.io/root-kata/"
+
 
 def format_html(r: dict[str, Any], meta: dict[str, Any]) -> str:
     status = r.get("status", "")
@@ -75,6 +77,17 @@ def format_html(r: dict[str, Any], meta: dict[str, Any]) -> str:
     badges = "".join('<span style="display:inline-block;margin:.35rem .35rem 0 0;padding:.2rem .48rem;border:1px solid rgba(127,127,127,.25);border-radius:999px;">🏅 '
                      + html.escape(i18n.t(f"badge.{b}.name") if b in known else str(b)) + "</span>"
                      for b in r.get("new_badges", []))
+    continue_block = ""
+    if status == "passed" and r.get("exercise_id"):
+        exercise_id = str(r["exercise_id"])
+        params = [f"solved={exercise_id}"]
+        if r.get("new_badges"):
+            params.append("badge=" + ",".join(str(b) for b in r["new_badges"]))
+        url = PAGES_URL + "?" + "&".join(params)
+        continue_block = (f'<div style="margin-top:.85rem;"><a class="rk-continue" href="{html.escape(url, quote=True)}" '
+                          f'style="display:inline-block;padding:.5rem 1.1rem;border-radius:10px;background:{accent};color:#fff;'
+                          f'font-weight:700;text-decoration:none;">{html.escape(i18n.t("continue"))}</a>'
+                          f'<div style="margin-top:.4rem;opacity:.75;font-size:.88rem;">{html.escape(i18n.t("continue_help"))}</div></div>')
     return (f'<section role="status" aria-live="polite" style="max-width:860px;border:1px solid rgba(127,127,127,.25);border-left:5px solid {accent};border-radius:12px;padding:1rem 1.15rem;margin:.35rem 0 1rem;line-height:1.45;">'
             f'<header style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;"><div><span style="font-size:.78rem;text-transform:uppercase;letter-spacing:.055em;font-weight:700;">{label}</span><h3 style="font-size:1.1rem;margin:.2rem 0;">{summary}</h3></div>{timing}</header>'
-            f'<div style="margin:.5rem 0 .2rem;">{next_text}</div>{first_error}{test_progress}{case_block}{extras}{badges}</section>')
+            f'<div style="margin:.5rem 0 .2rem;">{next_text}</div>{first_error}{test_progress}{case_block}{extras}{badges}{continue_block}</section>')

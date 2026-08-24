@@ -148,3 +148,31 @@ class NotebookUxTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ContinueLinkTests(unittest.TestCase):
+    def test_passed_result_offers_one_obvious_next_action(self):
+        meta, _ = get_exercise("cpp-sum-positive")
+        result = {
+            "status": "passed",
+            "summary": "4/4 tests passed",
+            "_sid": "sum.tests_passed",
+            "_params": {"n": 4, "m": 4},
+            "cases": [{"name": "all", "passed": True}],
+            "new_badges": ["first_kata"],
+            "exercise_id": "cpp-sum-positive",
+        }
+        with mock.patch.dict(os.environ, ES):
+            card = nb._format_html(result, localized(meta))
+        self.assertIn("Continuar →", card)
+        self.assertIn("https://fbientrigo.github.io/root-kata/?solved=cpp-sum-positive&amp;badge=first_kata", card)
+        self.assertIn("Primer kata", card)
+
+    def test_failed_result_has_no_continue_action(self):
+        meta, _ = get_exercise("cpp-sum-positive")
+        result = {"status": "failed", "summary": "0/4 tests passed",
+                  "_sid": "sum.tests_passed", "_params": {"n": 0, "m": 4},
+                  "cases": [{"name": "x", "passed": False, "message": ""}], "new_badges": []}
+        with mock.patch.dict(os.environ, EN):
+            card = nb._format_html(result, meta)
+        self.assertNotIn("Continue →", card)
