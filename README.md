@@ -6,7 +6,7 @@
 
 ## Qué es
 
-ROOT Kata busca que practicar ROOT se parezca a resolver un problema pequeño en LeetCode/HackerRank, pero sin cuentas, servidores ni infraestructura extra:
+ROOT Kata busca que practicar ROOT se parezca a resolver un problema pequeño en programación competitiva, pero sin cuentas, servidores ni infraestructura extra:
 
 1. lees un problema breve;
 2. lo abres en Jupyter;
