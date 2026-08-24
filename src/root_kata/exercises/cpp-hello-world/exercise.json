@@ -1,0 +1,58 @@
+{
+  "id": "cpp-hello-world",
+  "kind": "cpp",
+  "title": "Hello, world",
+  "track": "C++ first steps",
+  "difficulty": "Introductory",
+  "order": 1,
+  "published": true,
+  "estimated_minutes": 2,
+  "summary": "Run the smallest possible C++ kata and verify that your local setup works.",
+  "description": "Implement void say_hello(). Print exactly Hello, world! followed by a newline using std::cout.",
+  "requirements": [
+    "Use std::cout.",
+    "Print exactly Hello, world!",
+    "End the line with a newline or std::endl."
+  ],
+  "examples": [
+    {"input": "(no input)", "output": "Hello, world!", "explanation": "The function only writes one line to standard output."}
+  ],
+  "hints": [
+    "Inside the function, std::cout << \"Hello, world!\" << std::endl; is enough."
+  ],
+  "entrypoint": "say_hello",
+  "starter": "solution.cpp",
+  "harness": "harness.cpp",
+  "validator": "validator.py",
+  "requires": [],
+  "topics": ["std::cout", "function", "string literal"],
+  "learning_goal": "Write one line of C++ output and confirm the full ROOT Kata compile/run/test loop works.",
+  "resources": [
+    {"label": "std::cout — cppreference", "url": "https://en.cppreference.com/w/cpp/io/cout"}
+  ],
+  "es": {
+    "title": "Hola, mundo",
+    "track": "Primeros pasos en C++",
+    "difficulty": "Introductorio",
+    "summary": "Ejecuta el kata de C++ más pequeño posible y comprueba que tu instalación funciona.",
+    "description": "Implementa void say_hello(). Imprime exactamente Hello, world! seguido de un salto de línea usando std::cout.",
+    "requirements": [
+      "Usa std::cout.",
+      "Imprime exactamente Hello, world!",
+      "Termina la línea con un salto de línea o std::endl."
+    ],
+    "examples": [
+      {"input": "(sin entrada)", "explanation": "La función solo escribe una línea en la salida estándar."}
+    ],
+    "hints": [
+      "Dentro de la función basta con std::cout << \"Hello, world!\" << std::endl;."
+    ],
+    "topics": ["std::cout", "función", "literal de texto"],
+    "learning_goal": "Escribir una línea de salida en C++ y comprobar que funciona el ciclo completo compilar → ejecutar → probar de ROOT Kata.",
+    "cases": {
+      "prints something": "imprime algo",
+      "exact output": "salida exacta"
+    },
+    "messages": {}
+  }
+}
