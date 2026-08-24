@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Build the zero-dependency GitHub Pages catalog from exercise metadata."""
+"""Build the zero-dependency GitHub Pages catalog from exercise metadata.
+
+Spanish is the primary language (docs/index.html); English lives under
+docs/en/. Both are fully generated, static, and share one stylesheet/script.
+"""
 from __future__ import annotations
 
 import html
@@ -10,7 +14,57 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EXERCISES = ROOT / "src" / "root_kata" / "exercises"
 DOCS = ROOT / "docs"
-PROBLEMS = DOCS / "problems"
+
+UI = {
+    "es": {
+        "tagline": "práctica corta de C++/ROOT en Jupyter",
+        "all_katas": "← Todos los katas",
+        "open_in_jupyter": "Abrir en Jupyter",
+        "read_problem": "Leer problema",
+        "problem": "Problema",
+        "example": "Ejemplo",
+        "input": "Entrada",
+        "output": "Salida",
+        "requirements": "Requisitos",
+        "practices": "Qué practicas",
+        "references": "Referencias",
+        "implement": "Implementa",
+        "start_title": "Empieza en Jupyter",
+        "start_help": "Abre tu Jupyter local y pega el comando de abajo. El botón intenta copiarlo.",
+        "easy": "Fácil",
+        "minutes": "≈ {n} min",
+        "local_note": "<strong>Abrir en Jupyter</strong><span>El botón abre el cuaderno del kata en <code>127.0.0.1:8888</code> (requiere <code>root-kata lab</code> corriendo) e intenta copiar el comando.</span>",
+        "hero_eyebrow": "Ruta inicial de 3 katas",
+        "hero_title": "Practica las operaciones que vas a reutilizar.",
+        "hero_text": "Lee un problema pequeño, ábrelo en Jupyter, completa una función y ejecuta las pruebas visibles. Sin cuentas y sin nube.",
+        "flow": ["1 · acumular", "2 · seleccionar", "3 · histogramar"],
+        "footer": "Prototipo educativo no oficial · sin cuentas · corre en tu máquina",
+    },
+    "en": {
+        "tagline": "short C++/ROOT practice in Jupyter",
+        "all_katas": "← All katas",
+        "open_in_jupyter": "Open in Jupyter",
+        "read_problem": "Read problem",
+        "problem": "Problem",
+        "example": "Example",
+        "input": "Input",
+        "output": "Output",
+        "requirements": "Requirements",
+        "practices": "What this practices",
+        "references": "References",
+        "implement": "Implement",
+        "start_title": "Start in Jupyter",
+        "start_help": "Open your local Jupyter and paste the command below. The button tries to copy it for you.",
+        "easy": "Easy",
+        "minutes": "≈ {n} min",
+        "local_note": "<strong>Open in Jupyter</strong><span>The button opens the kata notebook at <code>127.0.0.1:8888</code> (needs <code>root-kata lab</code> running) and tries to copy the command.</span>",
+        "hero_eyebrow": "3-step starter track",
+        "hero_title": "Practice the operations you will actually reuse.",
+        "hero_text": "Read a small problem, open it in Jupyter, edit one function, run the visible tests. No account and no cloud runner.",
+        "flow": ["1 · accumulate", "2 · select", "3 · histogram"],
+        "footer": "Unofficial educational prototype · no accounts · runs on your machine",
+    },
+}
 
 
 def esc(value: object) -> str:
@@ -27,6 +81,22 @@ def load_exercises() -> list[tuple[dict, Path]]:
     return sorted(rows, key=lambda row: (row[0].get("order", 999), row[0]["title"]))
 
 
+def view(meta: dict, lang: str) -> dict:
+    """Exercise metadata overlaid with the requested display language."""
+    out = dict(meta)
+    overlay = meta.get(lang)
+    if lang != "en" and isinstance(overlay, dict):
+        for field in ("title", "track", "summary", "description", "topics", "learning_goal"):
+            if field in overlay:
+                out[field] = overlay[field]
+        if "requirements" in overlay:
+            out["requirements"] = overlay["requirements"]
+        if "examples" in overlay:
+            out["examples"] = [{**base, **extra} for base, extra in zip(meta.get("examples", []), overlay["examples"])]
+    out["difficulty_label"] = UI[lang]["easy"] if str(meta.get("difficulty", "")).lower() == "easy" else meta.get("difficulty", "")
+    return out
+
+
 def chips(values: list[str]) -> str:
     return "".join(f'<span class="chip">{esc(v)}</span>' for v in values)
 
@@ -35,161 +105,173 @@ def jupyter_command(exercise_id: str) -> str:
     return f'import root_kata as rk\nrk.start("{exercise_id}")'
 
 
-def shell(*, title: str, body: str, description: str) -> str:
+def notebook_url(exercise_id: str) -> str:
+    return f"http://127.0.0.1:8888/lab/tree/notebooks/{exercise_id}.ipynb"
+
+
+def shell(*, lang: str, title: str, body: str, description: str, prefix: str = "", switch_href: str = "index.html") -> str:
+    ui = UI[lang]
+    other = "es" if lang == "en" else "en"
     return f'''<!doctype html>
-<html lang="en">
+<html lang="{lang}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="{esc(description)}">
   <title>{esc(title)} · ROOT Kata</title>
-  <link rel="stylesheet" href="{('../' if title != 'Katas' else '')}styles.css">
+  <link rel="stylesheet" href="{prefix}styles.css">
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="{('../' if title != 'Katas' else '')}index.html">ROOT Kata</a>
-    <span>short C++/ROOT practice in Jupyter</span>
+    <a class="brand" href="{prefix}index.html">ROOT Kata</a>
+    <span>{esc(ui["tagline"])}</span>
+    <nav class="lang-switch" aria-label="Language"><a href="{switch_href}" lang="{other}" hreflang="{other}">{other.upper()}</a></nav>
   </header>
   {body}
-  <footer class="site-footer">Unofficial educational prototype · no accounts · runs on your machine</footer>
-  <script src="{('../' if title != 'Katas' else '')}site.js" defer></script>
+  <footer class="site-footer">{ui["footer"]}</footer>
+  <script src="{prefix}site.js" defer></script>
 </body>
 </html>
 '''
 
 
-def build_index(exercises: list[tuple[dict, Path]]) -> None:
-    cards = []
-    for meta, _ in exercises:
-        eid = meta["id"]
-        runtime = "ROOT" if meta.get("requires") else "C++"
-        cards.append(f'''
+def kata_card(meta_view: dict, lang: str) -> str:
+    eid = meta_view["id"]; ui = UI[lang]
+    runtime = "ROOT" if meta_view.get("requires") else "C++"
+    return f'''
       <article class="kata-card">
         <div class="card-topline">
-          <span class="step">{esc(meta.get('order', ''))}</span>
-          <span class="difficulty">{esc(meta['difficulty'])}</span>
+          <span class="step">{esc(meta_view.get('order', ''))}</span>
+          <span class="difficulty">{esc(meta_view['difficulty_label'])}</span>
           <span class="runtime">{runtime}</span>
         </div>
-        <h2>{esc(meta['title'])}</h2>
-        <p>{esc(meta['summary'])}</p>
-        <div class="chips">{chips(meta.get('topics', [])[:4])}</div>
-        <div class="card-meta">≈ {esc(meta.get('estimated_minutes', '?'))} min · {esc(meta['track'])}</div>
+        <h2>{esc(meta_view['title'])}</h2>
+        <p>{esc(meta_view['summary'])}</p>
+        <div class="chips">{chips(meta_view.get('topics', [])[:4])}</div>
+        <div class="card-meta">{esc(ui['minutes'].format(n=meta_view.get('estimated_minutes', '?')))} · {esc(meta_view['track'])}</div>
         <div class="card-actions">
-          <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab" target="_blank" rel="noopener" data-command="{esc(jupyter_command(eid))}">Open in Jupyter</a>
-          <a class="button secondary" href="problems/{esc(eid)}.html">Read problem</a>
+          <a class="button primary jupyter-link" href="{esc(notebook_url(eid))}" target="_blank" rel="noopener" data-command="{esc(jupyter_command(eid))}">{esc(ui['open_in_jupyter'])}</a>
+          <a class="button secondary" href="problems/{esc(eid)}.html">{esc(ui['read_problem'])}</a>
         </div>
-      </article>''')
+      </article>'''
 
+
+def build_index(exercises: list[tuple[dict, Path]], lang: str) -> None:
+    ui = UI[lang]; prefix = "" if lang == "es" else "en/"
+    cards = "".join(kata_card(view(meta, lang), lang) for meta, _ in exercises)
+    flow = f'<span>{ui["flow"][0]}</span><span aria-hidden="true">→</span><span>{ui["flow"][1]}</span><span aria-hidden="true">→</span><span>{ui["flow"][2]}</span>'
     body = f'''
   <main class="home">
     <section class="hero">
-      <p class="eyebrow">3-step starter track</p>
-      <h1>Practice the operations you will actually reuse.</h1>
-      <p>Read a small problem, open it in Jupyter, edit one function, run the visible tests. No account and no cloud runner.</p>
-      <div class="flow" aria-label="Learning path">
-        <span>1 · accumulate</span><span aria-hidden="true">→</span><span>2 · select</span><span aria-hidden="true">→</span><span>3 · histogram</span>
-      </div>
+      <p class="eyebrow">{esc(ui["hero_eyebrow"])}</p>
+      <h1>{esc(ui["hero_title"])}</h1>
+      <p>{esc(ui["hero_text"])}</p>
+      <div class="flow" aria-label="Learning path">{flow}</div>
     </section>
 
     <section class="kata-grid" aria-label="Katas">
-      {''.join(cards)}
+      {cards}
     </section>
 
-    <aside class="local-note">
-      <strong>Open in Jupyter</strong>
-      <span>The button opens <code>127.0.0.1:8888/lab</code> and copies the kata command when your browser allows it. Jupyter must already be running locally.</span>
-    </aside>
+    <aside class="local-note">{ui["local_note"]}</aside>
   </main>'''
-    (DOCS / "index.html").write_text(shell(title="Katas", body=body, description="Three short ROOT Kata exercises that open in local Jupyter."), encoding="utf-8")
+    target = DOCS / prefix if lang != "es" else DOCS
+    target.mkdir(parents=True, exist_ok=True)
+    switch = "en/index.html" if lang == "es" else "../index.html"
+    (target / "index.html").write_text(shell(lang=lang, title="Katas", body=body,
+                                             description=ui["hero_text"], prefix=prefix, switch_href=switch), encoding="utf-8")
 
 
-def build_problem(meta: dict, directory: Path) -> None:
-    eid = meta["id"]
+def build_problem(meta: dict, directory: Path, lang: str) -> None:
+    eid = meta["id"]; ui = UI[lang]; v = view(meta, lang)
+    prefix = "" if lang == "es" else "en/"
     examples = []
-    for item in meta.get("examples", []):
+    for item in v.get("examples", []):
         explanation = f'<p>{esc(item["explanation"])}</p>' if item.get("explanation") else ""
         examples.append(f'''
         <div class="example-box">
-          <div><span>Input</span><code>{esc(item['input'])}</code></div>
-          <div><span>Output</span><code>{esc(item['output'])}</code></div>
+          <div><span>{esc(ui["input"])}</span><code>{esc(item['input'])}</code></div>
+          <div><span>{esc(ui["output"])}</span><code>{esc(item['output'])}</code></div>
           {explanation}
         </div>''')
-    requirements = "".join(f"<li>{esc(x)}</li>" for x in meta.get("requirements", []))
+    requirements = "".join(f"<li>{esc(x)}</li>" for x in v.get("requirements", []))
     resources = "".join(
         f'<li><a href="{esc(item["url"])}" target="_blank" rel="noopener">{esc(item["label"])}</a></li>'
-        for item in meta.get("resources", [])
+        for item in v.get("resources", [])
     )
-    runtime = "ROOT + C++" if meta.get("requires") else "C++17"
+    runtime = "ROOT + C++" if v.get("requires") else "C++17"
     command = jupyter_command(eid)
     body = f'''
   <main class="problem-layout">
-    <a class="back-link" href="../index.html">← All katas</a>
+    <a class="back-link" href="{prefix}index.html">{esc(ui["all_katas"])}</a>
     <article class="problem">
       <header class="problem-header">
         <div class="problem-meta">
-          <span class="difficulty">{esc(meta['difficulty'])}</span>
-          <span>≈ {esc(meta.get('estimated_minutes', '?'))} min</span>
+          <span class="difficulty">{esc(v['difficulty_label'])}</span>
+          <span>{esc(ui['minutes'].format(n=v.get('estimated_minutes', '?')))}</span>
           <span>{runtime}</span>
         </div>
-        <h1>{esc(meta['title'])}</h1>
-        <p class="lead">{esc(meta['summary'])}</p>
-        <div class="chips">{chips(meta.get('topics', []))}</div>
+        <h1>{esc(v['title'])}</h1>
+        <p class="lead">{esc(v['summary'])}</p>
+        <div class="chips">{chips(v.get('topics', []))}</div>
       </header>
 
       <section>
-        <h2>Problem</h2>
-        <p>{esc(meta['description'])}</p>
-        <div class="contract"><span>Implement</span><code>{esc(meta['entrypoint'])}(…)</code></div>
+        <h2>{esc(ui["problem"])}</h2>
+        <p>{esc(v['description'])}</p>
+        <div class="contract"><span>{esc(ui["implement"])}</span><code>{esc(v['entrypoint'])}(…)</code></div>
       </section>
 
       <section>
-        <h2>Example</h2>
+        <h2>{esc(ui["example"])}</h2>
         {''.join(examples)}
       </section>
 
       <section>
-        <h2>Requirements</h2>
+        <h2>{esc(ui["requirements"])}</h2>
         <ul>{requirements}</ul>
       </section>
 
       <section>
-        <h2>What this practices</h2>
-        <p>{esc(meta.get('learning_goal', ''))}</p>
+        <h2>{esc(ui["practices"])}</h2>
+        <p>{esc(v.get('learning_goal', ''))}</p>
       </section>
 
       <section>
-        <h2>References</h2>
+        <h2>{esc(ui["references"])}</h2>
         <ul class="resource-list">{resources}</ul>
       </section>
 
       <section class="start-panel">
         <div>
-          <h2>Start in Jupyter</h2>
-          <p>Open your local Jupyter and paste the command below. The button tries to copy it for you.</p>
+          <h2>{esc(ui["start_title"])}</h2>
+          <p>{esc(ui["start_help"])}</p>
           <pre><code>{esc(command)}</code></pre>
         </div>
-        <a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab" target="_blank" rel="noopener" data-command="{esc(command)}">Open in Jupyter</a>
+        <a class="button primary large jupyter-link" href="{esc(notebook_url(eid))}" target="_blank" rel="noopener" data-command="{esc(command)}">{esc(ui["open_in_jupyter"])}</a>
       </section>
-
-      <p class="source-link"><a href="{esc(eid)}.md">Markdown problem source</a></p>
     </article>
   </main>'''
-    (PROBLEMS / f"{eid}.html").write_text(shell(title=meta["title"], body=body, description=meta["summary"]), encoding="utf-8")
+    target = DOCS / prefix / "problems"
+    target.mkdir(parents=True, exist_ok=True)
+    switch = f"../en/problems/{eid}.html" if lang == "es" else f"../../problems/{eid}.html"
+    (target / f"{eid}.html").write_text(shell(lang=lang, title=v["title"], body=body,
+                                              description=v["summary"], prefix=prefix + "problems/", switch_href=switch), encoding="utf-8")
     source = directory / meta.get("problem_markdown", "problem.md")
     if source.is_file():
-        shutil.copyfile(source, PROBLEMS / f"{eid}.md")
+        shutil.copyfile(source, target / f"{eid}.md")
 
 
 def main() -> None:
-    DOCS.mkdir(exist_ok=True)
-    PROBLEMS.mkdir(exist_ok=True)
-    for old in PROBLEMS.glob("cpp-*.html"):
-        old.unlink()
+    for stale_dir in (DOCS / "problems", DOCS / "en"):
+        if stale_dir.exists():
+            shutil.rmtree(stale_dir)
     exercises = load_exercises()
-    build_index(exercises)
-    for meta, directory in exercises:
-        build_problem(meta, directory)
-    print(f"Built {len(exercises)} public kata pages in {DOCS}")
+    for lang in ("es", "en"):
+        build_index(exercises, lang)
+        for meta, directory in exercises:
+            build_problem(meta, directory, lang)
+    print(f"Built {len(exercises)} public katas in ES + EN under {DOCS}")
 
 
 if __name__ == "__main__":
