@@ -1,0 +1,57 @@
+{
+  "id": "cpp-array-index",
+  "kind": "cpp",
+  "title": "Read from an array",
+  "track": "C++ first steps",
+  "difficulty": "Introductory",
+  "order": 2,
+  "published": true,
+  "estimated_minutes": 3,
+  "summary": "Use [] once: read one value from a fixed C++ array.",
+  "description": "Implement int second_value(). The array is already created for you; return its second element.",
+  "requirements": [
+    "Use the array already present in the starter.",
+    "Return the second element.",
+    "Do not change the values in the array."
+  ],
+  "examples": [
+    {"input": "{10, 20, 30}", "output": "20", "explanation": "C++ array indices start at 0, so the second element is values[1]."}
+  ],
+  "hints": [
+    "The first element is values[0]. What index is the second element?"
+  ],
+  "entrypoint": "second_value",
+  "starter": "solution.cpp",
+  "harness": "harness.cpp",
+  "validator": "validator.py",
+  "requires": [],
+  "topics": ["C++ array", "index []", "return"],
+  "learning_goal": "Read a value from a fixed-size C++ array using an index.",
+  "resources": [
+    {"label": "Built-in arrays — cppreference", "url": "https://en.cppreference.com/w/cpp/language/array"}
+  ],
+  "es": {
+    "title": "Lee un valor de un arreglo",
+    "track": "Primeros pasos en C++",
+    "difficulty": "Introductorio",
+    "summary": "Usa [] una sola vez: lee un valor de un arreglo fijo de C++.",
+    "description": "Implementa int second_value(). El arreglo ya está creado; devuelve su segundo elemento.",
+    "requirements": [
+      "Usa el arreglo que ya aparece en el starter.",
+      "Devuelve el segundo elemento.",
+      "No cambies los valores del arreglo."
+    ],
+    "examples": [
+      {"explanation": "Los índices de un arreglo en C++ comienzan en 0, así que el segundo elemento es values[1]."}
+    ],
+    "hints": [
+      "El primer elemento es values[0]. ¿Qué índice corresponde al segundo?"
+    ],
+    "topics": ["arreglo C++", "índice []", "return"],
+    "learning_goal": "Leer un valor de un arreglo de tamaño fijo usando un índice.",
+    "cases": {
+      "second value": "segundo valor"
+    },
+    "messages": {}
+  }
+}
