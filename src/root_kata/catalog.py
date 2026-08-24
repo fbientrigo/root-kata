@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 from . import i18n
 REQUIRED_FIELDS={"id","title","track","difficulty","summary","description","requirements","entrypoint","starter","validator","requires"}
-LOCALIZED_FIELDS=("title","track","summary","description","requirements","hints","topics","examples","learning_goal")
+LOCALIZED_FIELDS=("title","track","difficulty","summary","description","requirements","hints","topics","examples","learning_goal")
 _DEFAULT_MESSAGE_KEYS={"Values differ":"val.values_differ","Values are not close":"val.not_close","Passed":"val.case_passed"}
 
 def repository_root()->Path:return Path(__file__).resolve().parents[2]
@@ -39,8 +39,8 @@ def exercise_payload(exercise_id:str)->dict[str,Any]:
 def localized(meta:dict[str,Any],lang:str|None=None)->dict[str,Any]:
     """Metadata view with student-facing copy in `lang` (default: active).
 
-    Internal ids (id, difficulty, badge, case names) never change; only the
-    presentation fields are overlaid from the exercise's own `es` object.
+    Internal ids never change; only presentation fields are overlaid from the
+    exercise's own localized object.
     """
     lang=lang or i18n.get_lang(); out=dict(meta); overlay=meta.get(lang)
     if lang!="en" and isinstance(overlay,dict):
