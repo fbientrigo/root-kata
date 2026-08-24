@@ -41,13 +41,27 @@ class GitHubPagesTests(unittest.TestCase):
         en = (ROOT / "docs" / "en" / "problems" / "cpp-sum-positive.html").read_text(encoding="utf-8")
         self.assertIn('href="../../problems/cpp-sum-positive.html"', en)
 
+    def test_nested_pages_reference_shared_assets_and_language_home(self):
+        es_problem = (ROOT / "docs" / "problems" / "cpp-sum-positive.html").read_text(encoding="utf-8")
+        self.assertIn('href="../styles.css"', es_problem)
+        self.assertIn('src="../site.js"', es_problem)
+        self.assertGreaterEqual(es_problem.count('href="../index.html"'), 2)  # brand + back link
+        self.assertNotIn('problems/styles.css', es_problem)
+
+        en_index = (ROOT / "docs" / "en" / "index.html").read_text(encoding="utf-8")
+        self.assertIn('href="../styles.css"', en_index)
+        self.assertIn('src="../site.js"', en_index)
+        self.assertIn('<a class="brand" href="index.html">ROOT Kata</a>', en_index)
+        self.assertNotIn('href="en/styles.css"', en_index)
+
+        en_problem = (ROOT / "docs" / "en" / "problems" / "cpp-sum-positive.html").read_text(encoding="utf-8")
+        self.assertIn('href="../../styles.css"', en_problem)
+        self.assertIn('src="../../site.js"', en_problem)
+        self.assertGreaterEqual(en_problem.count('href="../index.html"'), 2)  # brand + back link
+
     def test_authoring_templates_exist(self):
         self.assertTrue((ROOT / "docs" / "templates" / "problem.adoc").is_file())
         self.assertTrue((ROOT / "docs" / "templates" / "problem.md").is_file())
-
-
-if __name__ == "__main__":
-    unittest.main()
 
 
 class DashboardTests(unittest.TestCase):
@@ -74,3 +88,7 @@ class DashboardTests(unittest.TestCase):
         self.assertIn("absorbParams", js)
         self.assertIn("root-kata:solved", js)
         self.assertIn("root-kata:badges", js)
+
+
+if __name__ == "__main__":
+    unittest.main()
