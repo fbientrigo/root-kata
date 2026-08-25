@@ -20,13 +20,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
-from .catalog import list_exercises
+from .catalog import STARTER_PATH_IDS, list_exercises
 
 # (stable id, description-id, predicate(solved_ids, exercises))
 BADGES: list[tuple[str, str, Callable[[set[str], list[dict[str, Any]]], bool]]] = [
     ("first_kata", "badge.first_kata.desc", lambda solved, ex: len(solved) >= 1),
     ("first_root_histogram", "badge.first_root_histogram.desc", lambda solved, ex: "cpp-root-histogram" in solved),
-    ("basics_complete", "badge.basics_complete.desc", lambda solved, ex: bool(ex) and {e["id"] for e in ex} <= solved),
+    ("basics_complete", "badge.basics_complete.desc", lambda solved, _ex: set(STARTER_PATH_IDS) <= solved),
 ]
 
 # Migration: pre-i18n progress files used English display names as badge keys.
