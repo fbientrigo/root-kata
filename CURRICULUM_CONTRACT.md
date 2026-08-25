@@ -4,6 +4,16 @@ This file is the durable contract for adding curriculum, including autonomous ag
 
 The implementation should stay small. Curriculum growth must not require new runtime architecture.
 
+## Authoritative syllabus
+
+`curriculum/plan.json` is the authoritative ordered syllabus and implementation queue.
+
+Routine autonomous workers **execute the plan; they do not redesign it**.
+
+A routine worker must not invent a new topic, reorder units, broaden a competency, change transfer level, or skip a blocked earlier unit merely because another exercise looks easier to implement. Syllabus changes require a deliberate reviewer/design task with evidence.
+
+`AGENTS.md` is the short operational entry point for future agents.
+
 ## Learning model
 
 Use source courses as evidence of **competencies**, not as files to split mechanically.
@@ -61,11 +71,15 @@ Every new exercise must include a `curriculum` object in `exercise.json`:
 
 The catalog validates this contract. Unknown prerequisite IDs and unknown transfer levels fail tests.
 
+For planned exercises, copy curriculum meaning from the matching unit in `curriculum/plan.json`; do not silently substitute a different competency.
+
 ## Source policy
 
 Primary curriculum source:
 
 `fbientrigo/root-student-course`
+
+The current syllabus was distilled from the source course baseline recorded in `curriculum/plan.json`.
 
 For ROOT behavior, authoritative ROOT documentation outranks inference when the source lesson is ambiguous or version-sensitive.
 
@@ -75,7 +89,7 @@ Record the source concept that motivated the kata, then implement the smallest e
 
 ## Candidate quality gate
 
-Reject a candidate when its main difficulty is:
+When a reviewer/design task proposes a syllabus change, reject a candidate when its main difficulty is:
 
 - memorizing syntax;
 - copying boilerplate;
@@ -86,11 +100,15 @@ Reject a candidate when its main difficulty is:
 
 Prefer candidates where a wrong mental model produces visible, interpretable feedback.
 
+Routine implementation workers should not reopen this candidate-selection process for already planned units.
+
 ## Prerequisites
 
 `curriculum.prerequisites` contains stable ROOT Kata exercise IDs.
 
-Prerequisites must already exist in the repository. Keep them minimal: list what the learner genuinely needs, not every earlier exercise.
+Prerequisites must already exist in the repository when the exercise is published. Keep them minimal: list what the learner genuinely needs, not every earlier exercise.
+
+`curriculum/plan.json` may reference target exercise IDs from earlier planned units because those units are expected to be implemented first. This is why the plan is strictly ordered.
 
 Do not build a generalized dependency system unless the product later demonstrates a need for one.
 
@@ -105,26 +123,31 @@ python -m unittest discover -s tests -v
 
 GitHub CI intentionally does **not** install CERN ROOT.
 
-For a kata whose behavior depends on ROOT, the author/agent must additionally run the relevant reference solution and integration tests in a real ROOT Kata environment before marking a milestone ready for review.
+For a kata whose behavior depends on ROOT, the author/agent must additionally run the relevant reference solution and integration tests in a real ROOT Kata environment before marking the corresponding plan unit `implemented` or marking a milestone ready for review.
 
 A passing no-ROOT CI is necessary but not sufficient evidence for new ROOT behavior.
 
 ## Autonomous work unit
 
-A recurring worker should advance **one coherent slice of the current curriculum milestone per run**.
+A recurring worker should advance **one planned unit of the current curriculum milestone per run**, unless that unit explicitly names a small batch of target exercises.
 
-A milestone branch may span several related source lessons/classes. Do not force one notebook or one daily run into its own PR.
+A milestone branch may span several related source lessons/classes and many autonomous runs. Do not force one notebook or one daily run into its own PR.
 
-Each run should:
+Each routine run should:
 
-1. inspect the current branch and this contract;
-2. inspect the relevant source material;
-3. identify the next observable competency;
-4. reject weak candidate exercises before coding;
-5. implement a small coherent batch using the existing kata format;
-6. run the repository gate;
-7. run real-ROOT validation when required and available;
-8. commit a concise handoff/state for the next run.
+1. read `AGENTS.md` and `curriculum/plan.json`;
+2. find `current_milestone`;
+3. select the first `planned` unit in listed order whose prerequisites are already implemented;
+4. stop and report evidence if an earlier unit is `blocked`;
+5. inspect only the source material needed for that planned unit;
+6. implement the unit's named `target_exercises` using the existing kata format;
+7. run the repository gate;
+8. run real-ROOT validation when `requires_real_root` is true;
+9. only after verification, mark that unit `implemented` in `curriculum/plan.json` and commit code plus state change together.
+
+The worker must not change `current_milestone` merely because it finished one unit.
+
+When all intended units in the active milestone are implemented, leave the milestone for independent review. A reviewer may then move the milestone to `review`, approve/fix the accumulated work, and advance the plan deliberately.
 
 Open a PR when the branch reaches a meaningful learner-facing milestone, not because a fixed number of days or source files has elapsed.
 
@@ -142,6 +165,8 @@ Periodic independent review should check:
 - accidental implementation complexity.
 
 A rejection should produce concrete feedback, followed by a bounded repair loop and re-verification.
+
+A reviewer may propose edits to `curriculum/plan.json`, but should preserve the distinction between evidence-backed syllabus design and routine implementation.
 
 ## Non-goals
 
