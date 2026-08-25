@@ -4,32 +4,34 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_IDS = [
-    "cpp-array-index",
-    "cpp-array-print",
-    "cpp-count-above",
-    "cpp-hello-world",
-    "cpp-root-histogram",
-    "cpp-sum-positive",
-]
+sys.path.insert(0, str(ROOT / "src"))
+
+from root_kata.catalog import list_exercises
+
+
+def public_ids():
+    return [item["id"] for item in list_exercises()]
+
+
+def setUpModule():
+    # Pages tests must never depend on checked-in generated HTML or test order.
+    subprocess.run([sys.executable, str(ROOT / "scripts" / "build_pages.py")], check=True, cwd=ROOT)
 
 
 class GitHubPagesTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        subprocess.run([sys.executable, str(ROOT / "scripts" / "build_pages.py")], check=True, cwd=ROOT)
-
-    def test_pages_publish_exactly_six_katas_per_language(self):
+    def test_pages_publish_current_catalog_per_language(self):
+        expected = sorted(public_ids())
         for problems_dir in (ROOT / "docs" / "problems", ROOT / "docs" / "en" / "problems"):
-            pages = sorted(problems_dir.glob("cpp-*.html"))
-            self.assertEqual([p.stem for p in pages], EXPECTED_IDS)
+            pages = sorted(p.stem for p in problems_dir.glob("*.html"))
+            self.assertEqual(pages, expected)
 
     def test_spanish_is_primary_and_english_is_nested(self):
         self.assertTrue((ROOT / "docs" / "index.html").is_file())
         html_es = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
         html_en = (ROOT / "docs" / "en" / "index.html").read_text(encoding="utf-8")
-        self.assertEqual(html_es.count("Abrir en Jupyter"), 7)  # 6 rows + local note
-        self.assertEqual(html_en.count("Open in Jupyter"), 7)
+        expected_actions = len(public_ids()) + 1  # one button per kata + local note
+        self.assertEqual(html_es.count("Abrir en Jupyter"), expected_actions)
+        self.assertEqual(html_en.count("Open in Jupyter"), expected_actions)
         self.assertNotIn("/api/", html_es)
         self.assertIn('lang="es"', html_es)
         self.assertIn('lang="en"', html_en)
@@ -88,18 +90,18 @@ class DashboardTests(unittest.TestCase):
         self.assertIn('id="overall-progress"', html)
         self.assertIn('id="progress-count"', html)
         self.assertIn('id="badge-list"', html)
-        self.assertEqual(html.count('class="kata-row"'), 6)
+        self.assertEqual(html.count('class="kata-row"'), len(public_ids()))
         self.assertIn("Tu progreso", html)
 
-    def test_rows_carry_stable_ids_for_localstorage_rendering(self):
+    def test_rows_carry_catalog_ids_for_localstorage_rendering(self):
         html = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
-        for eid in ("cpp-hello-world", "cpp-array-index", "cpp-array-print", "cpp-sum-positive", "cpp-count-above", "cpp-root-histogram"):
+        for eid in public_ids():
             self.assertIn(f'data-eid="{eid}"', html)
 
     def test_english_dashboard_mirrors_spanish(self):
         html = (ROOT / "docs" / "en" / "index.html").read_text(encoding="utf-8")
         self.assertIn("Your progress", html)
-        self.assertEqual(html.count('class="kata-row"'), 6)
+        self.assertEqual(html.count('class="kata-row"'), len(public_ids()))
 
     def test_site_js_absorbs_progress_params(self):
         js = (ROOT / "docs" / "site.js").read_text(encoding="utf-8")
