@@ -7,11 +7,12 @@ This file is the short operational entry point for future coding and curriculum 
 For routine curriculum work, read only what you need:
 
 1. `AGENTS.md` — product and execution constraints.
-2. `curriculum/plan.json` — **authoritative syllabus and next work item**.
-3. `CURRICULUM_CONTRACT.md` — authoring and pedagogy rules.
-4. The files for the exercise/engine area you are changing.
+2. `curriculum/plan.json` — macro syllabus and `current_milestone`.
+3. `curriculum/triads/<current-milestone>.csv` — **authoritative exercise-level queue**.
+4. `CURRICULUM_CONTRACT.md` — authoring and pedagogy rules.
+5. The files for the exercise/engine area you are changing.
 
-Do not re-read the whole repository or redesign the course before implementing a planned unit.
+Do not re-read the whole repository or redesign the course before implementing the next planned exercise.
 
 ## Product mission
 
@@ -26,6 +27,18 @@ Teaching default:
 **Manipulate → Observe → Predict → Code**
 
 A learner should frequently have to decide, inspect, predict, compare or explain. Do not turn a planned kata into API trivia.
+
+## Curriculum shape: use → limitation → integration
+
+High-value concepts are normally revisited as a learning triad:
+
+1. `normal` — ordinary useful use;
+2. `limitation` — a boundary, semantic trap, failure mode or misleading assumption;
+3. `integration` — the concept combined with something already learned in a practical analysis task.
+
+The goal is not three similar exercises. The learner should first make the tool work, then understand where the naive mental model breaks, then transfer the idea into a richer context.
+
+The exact triads are already planned in `curriculum/triads/`. Routine workers do not invent them.
 
 ## Current architecture
 
@@ -53,37 +66,57 @@ Local progress is stored in `~/.root-kata/progress.json`. Stable exercise and ba
 
 For curriculum meaning:
 
-1. `curriculum/plan.json` decides **what to implement and in what order**.
-2. `CURRICULUM_CONTRACT.md` decides **how a good kata is designed**.
-3. `fbientrigo/root-student-course` is the primary source-course evidence.
-4. Authoritative ROOT documentation decides ROOT behavior when facts are uncertain or version-sensitive.
+1. `curriculum/plan.json` decides milestone order and current milestone.
+2. The matching `curriculum/triads/*.csv` decides the exact next exercise, role, competency and acceptance evidence.
+3. `CURRICULUM_CONTRACT.md` decides how a good kata is implemented.
+4. `fbientrigo/root-student-course` is the primary source-course evidence.
+5. Authoritative ROOT documentation decides ROOT behavior when facts are uncertain or version-sensitive.
 
 The source course is largely Python-oriented. ROOT Kata's current core is C++/ROOT. Extract the competency; do not translate notebook code line by line.
 
 ## Routine autonomous curriculum worker
 
-A routine recurring worker is an **executor, not a syllabus designer**.
+A recurring worker is an **executor, not a syllabus designer**.
 
 Algorithm:
 
-1. Read `curriculum/plan.json`.
-2. Find `current_milestone`.
-3. In listed order, select the first unit with `status: "planned"` whose prerequisites are already implemented.
-4. If an earlier unit is `blocked`, do not skip it. Report the blocker and stop.
-5. Implement exactly the unit's `target_exercises` and stated competency. Small implementation choices are yours; curriculum scope is not.
-6. Reuse the existing catalog, runner, harness, validator, localization, progress and page-generation patterns.
-7. Run the lightweight repository gate:
+1. Read `curriculum/plan.json` and find `current_milestone`.
+2. Open only `curriculum/triads/<current-milestone>.csv`.
+3. Scan rows from top to bottom.
+4. Select the first row with `status=planned` whose `prerequisites` are already implemented.
+5. If an earlier row is `blocked`, do not skip it. Report the blocker and stop.
+6. Implement exactly that row's `exercise_id`, `competency`, learning `role` and `acceptance` contract.
+7. Reuse the existing catalog, runner, harness, validator, localization, progress and page-generation patterns.
+8. Run the lightweight repository gate:
 
    ```bash
    python scripts/build_pages.py
    python -m unittest discover -s tests -v
    ```
 
-8. If the unit has `requires_real_root: true`, also run its reference solution/integration path in an environment with CERN ROOT before marking it implemented.
-9. Only after verification, change that unit's status from `planned` to `implemented` in `curriculum/plan.json` and commit the implementation plus status change together.
-10. Leave the branch in a reproducible state for the next run.
+9. If `requires_real_root=true`, also run the reference solution/integration path in an environment with CERN ROOT.
+10. Only after verification change that CSV row from `planned` to `implemented` and commit the exercise plus state change together.
+11. Leave the branch reproducible for the next run.
 
-Do **not** invent new syllabus items, reorder milestones, broaden target competencies or change transfer levels during a routine run. If the plan appears wrong, leave evidence for the reviewer instead.
+Do **not** invent syllabus items, reorder themes, change `normal/limitation/integration`, broaden competencies or substitute a different exercise during a routine run. If the plan appears wrong, leave evidence for the reviewer.
+
+## What each learning role must feel like
+
+### normal
+
+The learner should successfully perform the common operation and observe its direct effect. Keep accidental difficulty low.
+
+### limitation
+
+Do not make this merely a harder input. Expose a real boundary or misconception: under/overflow, wrong key, missing branch, cut boundary, eager execution, object-mask mismatch, output schema, model mismatch, unsafe shared state, etc.
+
+The learner should be able to answer **why** the ordinary approach failed.
+
+### integration
+
+Combine the concept with an already-mastered idea: selection + histogram, TTree + RDataFrame, mask + derived pT + histogram, Snapshot + reopen + second analysis, cutflow + distribution, helper + MT pipeline, or two-sample comparison.
+
+Increase transfer distance, not boilerplate.
 
 ## Branch and PR lifecycle
 
@@ -91,23 +124,24 @@ Use a curriculum branch for the active milestone, conceptually:
 
 `curriculum/<milestone-id>`
 
-Several autonomous runs may accumulate on that branch.
+Several autonomous runs may accumulate on that branch. A milestone is not a PR merely because a day or source notebook ended.
 
-A milestone is not a PR merely because a day or notebook ended. When all intended units are implemented and coherent, move the milestone to review and request independent review. Open/merge a PR at a meaningful learner-facing milestone.
+When all intended rows for the active milestone are implemented and coherent, leave the milestone for independent review. Open/merge a PR at a meaningful learner-facing milestone.
 
 ## Reviewer role
 
 A reviewer may challenge the plan when evidence warrants it. Check:
 
 - progression and prerequisite accuracy;
-- duplicated/trivial exercises;
-- transfer level;
+- whether each triad actually changes the learner's mental model;
+- duplicated or cosmetic exercises;
+- transfer distance;
 - ROOT correctness;
 - deterministic tests and causal feedback;
 - provenance;
 - accidental C++ or infrastructure complexity.
 
-A syllabus change is a deliberate review/design action, not something the daily implementation worker does opportunistically.
+A weak triad may be merged or redesigned by a deliberate reviewer/design task. Routine workers do not do that opportunistically.
 
 ## Verification boundary
 
