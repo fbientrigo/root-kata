@@ -52,21 +52,22 @@ class ProgressMigrationTests(unittest.TestCase):
             progress.record("cpp-hello-world", {"passed": True})
             self.assertNotIn("Clean Shot", progress.load()["badges"])
 
-    def test_basics_complete_requires_all_exercises(self):
-        ids = (
-            "cpp-hello-world",
-            "cpp-array-index",
-            "cpp-array-print",
-            "cpp-sum-positive",
-            "cpp-count-above",
-            "cpp-root-histogram",
-        )
+    def test_basics_complete_requires_starter_path(self):
+        ids = progress.STARTER_PATH_IDS
         with tempfile.TemporaryDirectory() as t, mock.patch.dict(os.environ, {"ROOT_KATA_HOME": t}):
             for eid in ids[:-1]:
                 progress.record(eid, {"passed": True})
             self.assertNotIn("basics_complete", progress.load()["badges"])
             progress.record(ids[-1], {"passed": True})
             self.assertIn("basics_complete", progress.load()["badges"])
+
+    def test_future_catalog_growth_does_not_move_basics_goalpost(self):
+        catalog = [{"id": eid} for eid in progress.STARTER_PATH_IDS] + [{"id": "future-rdataframe-kata"}]
+        with tempfile.TemporaryDirectory() as t, mock.patch.dict(os.environ, {"ROOT_KATA_HOME": t}), mock.patch.object(progress, "list_exercises", return_value=catalog):
+            for eid in progress.STARTER_PATH_IDS:
+                progress.record(eid, {"passed": True})
+            self.assertIn("basics_complete", progress.load()["badges"])
+            self.assertNotIn("future-rdataframe-kata", progress.load()["solved"])
 
 
 if __name__ == "__main__":
