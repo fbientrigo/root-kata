@@ -23,8 +23,10 @@ jobs:
       - name: Install package
         run: python -m pip install -e .
 
+      # CI intentionally stays lightweight: CERN ROOT is validated in the full
+      # local development environment. ROOT-dependent tests skip when unavailable.
+      - name: Generate static pages
+        run: python scripts/build_pages.py
+
       - name: Run tests
         run: python -m unittest discover -s tests -v
-
-      - name: Smoke-test static page generation
-        run: python scripts/build_pages.py
