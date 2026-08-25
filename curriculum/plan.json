@@ -1,0 +1,464 @@
+{
+  "version": 1,
+  "purpose": "Authoritative implementation queue for ROOT Kata curriculum agents. Agents execute this plan; they do not redesign the syllabus during routine runs.",
+  "source_baseline": {
+    "repository": "fbientrigo/root-student-course",
+    "ref": "e44966c18c2c3b47f13a49a8fc507e3f3849db64"
+  },
+  "current_milestone": "m1-histograms-modeling",
+  "unit_statuses": ["implemented", "planned", "blocked", "deferred"],
+  "milestone_statuses": ["implemented", "active", "planned", "review", "deferred"],
+  "selection_rule": "Within current_milestone, implement the first planned unit in listed order whose prerequisites are already implemented. Never skip a blocked earlier unit or invent a replacement without reviewer feedback.",
+  "milestones": [
+    {
+      "id": "m0-starter-path",
+      "title": "C++ entry and first ROOT object",
+      "status": "implemented",
+      "learning_outcome": "A newcomer can run real C++, inspect simple values, apply a cut, and fill a first TH1D.",
+      "implemented_exercises": [
+        "cpp-hello-world",
+        "cpp-array-index",
+        "cpp-array-print",
+        "cpp-sum-positive",
+        "cpp-count-above",
+        "cpp-root-histogram"
+      ],
+      "units": []
+    },
+    {
+      "id": "m1-histograms-modeling",
+      "title": "Histogram literacy, graphs, functions and fitting",
+      "status": "active",
+      "learning_outcome": "The learner stops treating a histogram as a picture and can reason about binning, bin contents, overflow, simple ROOT functions, graphs and fit results.",
+      "source_paths": [
+        "course/notebooks/core/01-histograms-and-graphs.ipynb",
+        "course/exercises/core/fitting-exercise.ipynb"
+      ],
+      "units": [
+        {
+          "id": "hist-inspect-bins",
+          "status": "planned",
+          "target_exercises": ["cpp-root-histogram-inspect"],
+          "competency": "Inspect entries, bin contents and summary statistics of a TH1D instead of judging it only by its drawing.",
+          "prerequisites": ["cpp-root-histogram"],
+          "transfer_level": "basic",
+          "source": {"path": "course/notebooks/core/01-histograms-and-graphs.ipynb", "concept": "histogram contents and statistics"},
+          "acceptance": "Visible tests distinguish entries from selected bin contents and verify at least one bin-level observation.",
+          "requires_real_root": true
+        },
+        {
+          "id": "hist-range-underflow",
+          "status": "planned",
+          "target_exercises": ["cpp-root-histogram-range"],
+          "competency": "Choose or diagnose a histogram range by reasoning about underflow and overflow.",
+          "prerequisites": ["cpp-root-histogram-inspect"],
+          "transfer_level": "applied",
+          "source": {"path": "course/notebooks/core/01-histograms-and-graphs.ipynb", "concept": "underflow, overflow and histogram range"},
+          "acceptance": "A wrong range produces observable under/overflow behavior and the correct solution preserves the intended sample representation.",
+          "requires_real_root": true
+        },
+        {
+          "id": "hist-fill-vs-set",
+          "status": "planned",
+          "target_exercises": ["cpp-root-histogram-fill-vs-set"],
+          "competency": "Distinguish adding observations with Fill from manually changing bin contents with SetBinContent.",
+          "prerequisites": ["cpp-root-histogram-inspect"],
+          "transfer_level": "applied",
+          "source": {"path": "course/notebooks/core/01-histograms-and-graphs.ipynb", "concept": "Fill versus SetBinContent"},
+          "acceptance": "Tests expose the semantic difference through entries and bin contents rather than API-name trivia.",
+          "requires_real_root": true
+        },
+        {
+          "id": "graph-points",
+          "status": "planned",
+          "target_exercises": ["cpp-root-tgraph-points"],
+          "competency": "Represent paired measurements with TGraph and inspect point coordinates.",
+          "prerequisites": ["cpp-root-histogram"],
+          "transfer_level": "basic",
+          "source": {"path": "course/notebooks/core/01-histograms-and-graphs.ipynb", "concept": "ROOT graphs"},
+          "acceptance": "The graph contains the intended ordered pairs and tests validate points, not cosmetic drawing settings.",
+          "requires_real_root": true
+        },
+        {
+          "id": "tf1-evaluate",
+          "status": "planned",
+          "target_exercises": ["cpp-root-tf1-evaluate"],
+          "competency": "Represent a mathematical model with TF1 and reason about its parameters and evaluation.",
+          "prerequisites": ["cpp-root-histogram-inspect"],
+          "transfer_level": "basic",
+          "source": {"path": "course/notebooks/core/01-histograms-and-graphs.ipynb", "concept": "TF1 functions and parameters"},
+          "acceptance": "Tests verify model behavior at selected x values and parameter changes.",
+          "requires_real_root": true
+        },
+        {
+          "id": "fit-simple-peak",
+          "status": "planned",
+          "target_exercises": ["cpp-root-fit-gaussian"],
+          "competency": "Fit a simple peaked distribution and interpret fitted location and width as model results.",
+          "prerequisites": ["cpp-root-tf1-evaluate", "cpp-root-histogram-inspect"],
+          "transfer_level": "applied",
+          "source": {"path": "course/notebooks/core/01-histograms-and-graphs.ipynb", "concept": "histogram fitting"},
+          "acceptance": "A deterministic sample yields fit parameters in justified tolerances and feedback points to model/data mismatch rather than syntax.",
+          "requires_real_root": true
+        },
+        {
+          "id": "fit-signal-background-transfer",
+          "status": "planned",
+          "target_exercises": ["cpp-root-fit-peak-background"],
+          "competency": "Recognize when a composite peak-plus-background model is needed and configure a multi-parameter fit.",
+          "prerequisites": ["cpp-root-fit-gaussian"],
+          "transfer_level": "transfer",
+          "source": {"path": "course/exercises/core/fitting-exercise.ipynb", "concept": "Lorentzian peak over quadratic background"},
+          "acceptance": "The learner constructs the intended composite model and obtains a fit that recovers the salient peak behavior within deterministic tolerances.",
+          "requires_real_root": true
+        }
+      ]
+    },
+    {
+      "id": "m2-files-datasets",
+      "title": "ROOT files and the event-dataset mental model",
+      "status": "planned",
+      "learning_outcome": "The learner can persist and retrieve ROOT objects and understands a TTree as a columnar event dataset rather than a mysterious file object.",
+      "source_paths": ["course/notebooks/core/02-tfile-read-write-ttree.ipynb"],
+      "units": [
+        {
+          "id": "tfile-write-object",
+          "status": "planned",
+          "target_exercises": ["cpp-root-tfile-write-histogram"],
+          "competency": "Write a named ROOT object to a TFile and close the file cleanly.",
+          "prerequisites": ["cpp-root-histogram-inspect"],
+          "transfer_level": "basic",
+          "source": {"path": "course/notebooks/core/02-tfile-read-write-ttree.ipynb", "concept": "TFile creation and object persistence"},
+          "acceptance": "A produced ROOT file can be reopened and contains the expected object with preserved contents.",
+          "requires_real_root": true
+        },
+        {
+          "id": "tfile-read-object",
+          "status": "planned",
+          "target_exercises": ["cpp-root-tfile-read-object"],
+          "competency": "Retrieve a ROOT object by name and verify what was actually stored.",
+          "prerequisites": ["cpp-root-tfile-write-histogram"],
+          "transfer_level": "applied",
+          "source": {"path": "course/notebooks/core/02-tfile-read-write-ttree.ipynb", "concept": "TFile Get and object names"},
+          "acceptance": "Tests include a correct key and a diagnostic case where the requested object name is wrong or absent.",
+          "requires_real_root": true
+        },
+        {
+          "id": "tree-inspect-dataset",
+          "status": "planned",
+          "target_exercises": ["cpp-root-tree-inspect"],
+          "competency": "Inspect a TTree's entry count and available branches to connect event rows with dataset columns.",
+          "prerequisites": ["cpp-root-tfile-read-object"],
+          "transfer_level": "applied",
+          "source": {"path": "course/notebooks/core/02-tfile-read-write-ttree.ipynb", "concept": "TTree, TBranch and columnar event data"},
+          "acceptance": "The learner identifies entries and branches from a small bundled deterministic ROOT file without writing a manual branch loop.",
+          "requires_real_root": true
+        }
+      ]
+    },
+    {
+      "id": "m3-rdataframe-essentials",
+      "title": "RDataFrame analysis essentials",
+      "status": "planned",
+      "learning_outcome": "The learner can express a small analysis as query, Define, Filter and actions, and understands lazy execution well enough to avoid accidental repeated event loops.",
+      "source_paths": [
+        "course/notebooks/core/03-rdataframe-basics.ipynb",
+        "course/exercises/core/rdataframe-basics.ipynb"
+      ],
+      "units": [
+        {
+          "id": "rdf-inspect-columns",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rdf-columns"],
+          "competency": "Construct an RDataFrame from a tree and inspect available columns before writing analysis expressions.",
+          "prerequisites": ["cpp-root-tree-inspect"],
+          "transfer_level": "basic",
+          "source": {"path": "course/notebooks/core/03-rdataframe-basics.ipynb", "concept": "RDataFrame construction and GetColumnNames"},
+          "acceptance": "Tests verify the expected dataset and columns are discovered from the supplied file.",
+          "requires_real_root": true
+        },
+        {
+          "id": "rdf-define",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rdf-define"],
+          "competency": "Create a derived column from existing quantities with Define.",
+          "prerequisites": ["cpp-root-rdf-columns"],
+          "transfer_level": "basic",
+          "source": {"path": "course/notebooks/core/03-rdataframe-basics.ipynb", "concept": "Define transformations"},
+          "acceptance": "The derived column has expected values on a deterministic sample and is used by a downstream action.",
+          "requires_real_root": true
+        },
+        {
+          "id": "rdf-filter",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rdf-filter"],
+          "competency": "Apply a physically meaningful numerical selection with Filter and reason about which rows survive.",
+          "prerequisites": ["cpp-root-rdf-define", "cpp-count-above"],
+          "transfer_level": "applied",
+          "source": {"path": "course/notebooks/core/03-rdataframe-basics.ipynb", "concept": "Filter transformations"},
+          "acceptance": "Boundary cases make an incorrect >= versus > choice visibly fail.",
+          "requires_real_root": true
+        },
+        {
+          "id": "rdf-actions",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rdf-actions"],
+          "competency": "Use Count and Mean as actions on the transformed dataset and distinguish transformations from results.",
+          "prerequisites": ["cpp-root-rdf-filter"],
+          "transfer_level": "applied",
+          "source": {"path": "course/notebooks/core/03-rdataframe-basics.ipynb", "concept": "Count, Mean and action results"},
+          "acceptance": "Tests verify both surviving row count and an aggregate derived from the same filtered node.",
+          "requires_real_root": true
+        },
+        {
+          "id": "rdf-histogram",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rdf-histo1d"],
+          "competency": "Book a Histo1D from a dataframe column with intentional binning.",
+          "prerequisites": ["cpp-root-rdf-filter", "cpp-root-histogram-range"],
+          "transfer_level": "applied",
+          "source": {"path": "course/notebooks/core/03-rdataframe-basics.ipynb", "concept": "Histo1D actions"},
+          "acceptance": "The result histogram reflects the selected dataset and expected binning, entries and integral semantics.",
+          "requires_real_root": true
+        },
+        {
+          "id": "rdf-lazy-execution",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rdf-book-before-run"],
+          "competency": "Book multiple actions before dereferencing results so one event loop can produce them together.",
+          "prerequisites": ["cpp-root-rdf-actions", "cpp-root-rdf-histo1d"],
+          "transfer_level": "transfer",
+          "source": {"path": "course/notebooks/core/03-rdataframe-basics.ipynb", "concept": "lazy execution and GetNRuns"},
+          "acceptance": "A deliberately eager implementation causes more runs than the target implementation; tests expose the run-count consequence.",
+          "requires_real_root": true
+        },
+        {
+          "id": "rdf-pipeline-transfer",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rdf-pipeline"],
+          "competency": "Recognize and compose the required Define, Filter and actions for a small unfamiliar analysis question.",
+          "prerequisites": ["cpp-root-rdf-book-before-run"],
+          "transfer_level": "challenge",
+          "source": {"path": "course/exercises/core/rdataframe-basics.ipynb", "concept": "end-to-end RDataFrame basics exercise"},
+          "acceptance": "The exercise asks for an analysis outcome rather than naming every API call; visible tests verify derived quantities, selection and result together.",
+          "requires_real_root": true
+        }
+      ]
+    },
+    {
+      "id": "m4-rvec-object-selection",
+      "title": "Collections and object-level selections",
+      "status": "planned",
+      "learning_outcome": "The learner can reason about per-event collections, vectorized quantities and masks, then turn selected objects into analysis distributions.",
+      "source_paths": [
+        "course/notebooks/core/04-rdataframe-collections.ipynb",
+        "course/exercises/core/rdataframe-collections.ipynb"
+      ],
+      "units": [
+        {
+          "id": "rvec-elementwise",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rvec-elementwise"],
+          "competency": "Use RVec element-wise arithmetic and understand that vector operations preserve object correspondence.",
+          "prerequisites": ["cpp-root-rdf-define"],
+          "transfer_level": "basic",
+          "source": {"path": "course/notebooks/core/04-rdataframe-collections.ipynb", "concept": "RVec vectorized operations"},
+          "acceptance": "Tests compare derived vector values for multiple events including an empty collection.",
+          "requires_real_root": true
+        },
+        {
+          "id": "rvec-mask",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rvec-mask"],
+          "competency": "Build a boolean RVec mask and select only objects satisfying a condition.",
+          "prerequisites": ["cpp-root-rvec-elementwise", "cpp-count-above"],
+          "transfer_level": "applied",
+          "source": {"path": "course/notebooks/core/04-rdataframe-collections.ipynb", "concept": "RVec masks and object selection"},
+          "acceptance": "Boundary and empty-collection cases verify that selected objects correspond exactly to the mask.",
+          "requires_real_root": true
+        },
+        {
+          "id": "rvec-derived-pt",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rvec-selected-pt"],
+          "competency": "Derive transverse momentum from px and py and apply an independent object-quality mask before histogramming.",
+          "prerequisites": ["cpp-root-rvec-mask"],
+          "transfer_level": "transfer",
+          "source": {"path": "course/notebooks/core/04-rdataframe-collections.ipynb", "concept": "sqrt(px*px + py*py)[E>100]"},
+          "acceptance": "Tests ensure the learner does not confuse the quantity being computed with the quantity used for object selection.",
+          "requires_real_root": true
+        },
+        {
+          "id": "object-selection-distribution",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rdf-object-selection-histogram"],
+          "competency": "Turn selected object collections into an RDataFrame histogram and interpret the resulting distribution.",
+          "prerequisites": ["cpp-root-rvec-selected-pt", "cpp-root-rdf-histo1d"],
+          "transfer_level": "challenge",
+          "source": {"path": "course/exercises/core/rdataframe-collections.ipynb", "concept": "collection selection to histogram"},
+          "acceptance": "An end-to-end deterministic sample verifies object mask, derived quantity and histogram contents together.",
+          "requires_real_root": true
+        }
+      ]
+    },
+    {
+      "id": "m5-analysis-workflows",
+      "title": "Reusable analysis workflows and performance habits",
+      "status": "planned",
+      "learning_outcome": "The learner can persist processed datasets, inspect cutflow, reuse C++ helpers and make informed choices about ROOT's execution model.",
+      "source_paths": [
+        "course/notebooks/core/05-rdataframe-features.ipynb",
+        "course/notebooks/core/06-rdataframe-advanced.ipynb"
+      ],
+      "units": [
+        {
+          "id": "rdf-snapshot",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rdf-snapshot"],
+          "competency": "Persist only the intended processed columns with Snapshot and reopen the result.",
+          "prerequisites": ["cpp-root-rdf-pipeline", "cpp-root-tfile-read-object"],
+          "transfer_level": "applied",
+          "source": {"path": "course/notebooks/core/05-rdataframe-features.ipynb", "concept": "Snapshot processed data"},
+          "acceptance": "The output file contains the expected tree, row count and selected columns, without unintended columns.",
+          "requires_real_root": true
+        },
+        {
+          "id": "rdf-cutflow",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rdf-cutflow"],
+          "competency": "Name sequential filters and use Report to reason about selection efficiency through a cutflow.",
+          "prerequisites": ["cpp-root-rdf-pipeline"],
+          "transfer_level": "applied",
+          "source": {"path": "course/notebooks/core/05-rdataframe-features.ipynb", "concept": "named filters and Report"},
+          "acceptance": "Visible tests verify per-cut all/pass counts and expose a badly ordered or incorrect cut.",
+          "requires_real_root": true
+        },
+        {
+          "id": "rdf-cpp-helper",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rdf-cpp-helper"],
+          "competency": "Move a nontrivial reusable calculation into a small C++ helper and call it from Define.",
+          "prerequisites": ["cpp-root-rdf-define"],
+          "transfer_level": "applied",
+          "source": {"path": "course/notebooks/core/05-rdataframe-features.ipynb", "concept": "C++ functions inside RDataFrame workflows"},
+          "acceptance": "The helper is pure, tested independently, and its derived column matches expected values.",
+          "requires_real_root": true
+        },
+        {
+          "id": "rdf-implicit-mt-reasoning",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rdf-thread-safe-helper"],
+          "competency": "Recognize why user code executed by implicit multithreading must avoid unsafe shared mutable state.",
+          "prerequisites": ["cpp-root-rdf-cpp-helper"],
+          "transfer_level": "transfer",
+          "source": {"path": "course/notebooks/core/05-rdataframe-features.ipynb", "concept": "EnableImplicitMT and thread-safe user functions"},
+          "acceptance": "The exercise rewards a deterministic pure implementation; it must not depend on flaky timing or race reproduction.",
+          "requires_real_root": true
+        },
+        {
+          "id": "rdf-redefine",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rdf-redefine"],
+          "competency": "Use Redefine intentionally when the semantic meaning of an existing column is preserved but its values must change.",
+          "prerequisites": ["cpp-root-rdf-define"],
+          "transfer_level": "applied",
+          "source": {"path": "course/notebooks/core/06-rdataframe-advanced.ipynb", "concept": "Redefine column values"},
+          "acceptance": "Tests verify the downstream analysis sees the redefined values under the original column name.",
+          "requires_real_root": true
+        },
+        {
+          "id": "rdf-rungraphs",
+          "status": "planned",
+          "target_exercises": ["cpp-root-rdf-rungraphs"],
+          "competency": "Run independent RDataFrame result graphs together when an analysis has multiple samples.",
+          "prerequisites": ["cpp-root-rdf-book-before-run"],
+          "transfer_level": "transfer",
+          "source": {"path": "course/notebooks/core/06-rdataframe-advanced.ipynb", "concept": "multiple concurrent RDataFrame runs with RunGraphs"},
+          "acceptance": "Two deterministic sample graphs produce their expected independent results without serial result dereferencing before RunGraphs.",
+          "requires_real_root": true
+        }
+      ]
+    },
+    {
+      "id": "m6-analysis-transfer",
+      "title": "Independent ROOT analysis transfer",
+      "status": "planned",
+      "learning_outcome": "The learner can recognize which familiar ROOT operations solve a compact analysis problem without being told the API sequence.",
+      "source_paths": [
+        "course/notebooks/core/02-tfile-read-write-ttree.ipynb",
+        "course/notebooks/core/03-rdataframe-basics.ipynb",
+        "course/notebooks/core/04-rdataframe-collections.ipynb",
+        "course/notebooks/core/05-rdataframe-features.ipynb"
+      ],
+      "units": [
+        {
+          "id": "analysis-transfer-single-sample",
+          "status": "planned",
+          "target_exercises": ["cpp-root-analysis-mini"],
+          "competency": "Inspect an unfamiliar small ROOT dataset, derive one useful quantity, apply a selection and produce an interpretable histogram plus cutflow.",
+          "prerequisites": ["cpp-root-rdf-cutflow", "cpp-root-rdf-object-selection-histogram"],
+          "transfer_level": "challenge",
+          "source": {"path": "course/notebooks/core/03-rdataframe-basics.ipynb", "concept": "complete data-flow analysis"},
+          "acceptance": "The prompt states the scientific/data goal but does not prescribe the exact ROOT operation sequence; tests validate the final selection and outputs.",
+          "requires_real_root": true
+        },
+        {
+          "id": "analysis-debugging-transfer",
+          "status": "planned",
+          "target_exercises": ["cpp-root-analysis-debug"],
+          "competency": "Diagnose a plausible analysis whose result is wrong because of a cut boundary, histogram range or eager RDataFrame execution choice.",
+          "prerequisites": ["cpp-root-analysis-mini", "cpp-root-rdf-book-before-run", "cpp-root-histogram-range"],
+          "transfer_level": "challenge",
+          "source": {"path": "course/notebooks/core/03-rdataframe-basics.ipynb", "concept": "data-flow and repeated-run pitfalls"},
+          "acceptance": "The learner must identify the causal defect from observable output rather than merely fill in missing syntax.",
+          "requires_real_root": true
+        }
+      ]
+    },
+    {
+      "id": "mx-deferred-extensions",
+      "title": "Optional ecosystem extensions",
+      "status": "deferred",
+      "learning_outcome": "Not part of the autonomous core queue until a product need justifies them.",
+      "source_paths": [
+        "course/notebooks/core/01-histograms-and-graphs.ipynb",
+        "course/notebooks/core/06-rdataframe-advanced.ipynb"
+      ],
+      "units": [
+        {
+          "id": "python-uhi",
+          "status": "deferred",
+          "target_exercises": [],
+          "competency": "Python Unified Histogram Interface interoperability.",
+          "prerequisites": [],
+          "transfer_level": "applied",
+          "source": {"path": "course/notebooks/core/01-histograms-and-graphs.ipynb", "concept": "UHI and Python plotting interoperability"},
+          "acceptance": "Deferred because ROOT Kata's current core is C++/ROOT and this source section is Python-specific.",
+          "requires_real_root": true
+        },
+        {
+          "id": "numpy-rdf-interop",
+          "status": "deferred",
+          "target_exercises": [],
+          "competency": "Create/export RDataFrame datasets through NumPy interoperability.",
+          "prerequisites": [],
+          "transfer_level": "applied",
+          "source": {"path": "course/notebooks/core/06-rdataframe-advanced.ipynb", "concept": "FromNumpy and AsNumpy"},
+          "acceptance": "Deferred until Python interoperability is a learner goal for ROOT Kata.",
+          "requires_real_root": true
+        },
+        {
+          "id": "distributed-rdf",
+          "status": "deferred",
+          "target_exercises": [],
+          "competency": "Execute RDataFrame through Dask/Spark backends.",
+          "prerequisites": [],
+          "transfer_level": "challenge",
+          "source": {"path": "course/notebooks/core/06-rdataframe-advanced.ipynb", "concept": "distributed RDataFrame"},
+          "acceptance": "Deferred because distributed infrastructure is outside the current portable 80/20 learner path.",
+          "requires_real_root": true
+        }
+      ]
+    }
+  ]
+}
