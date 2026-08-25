@@ -32,6 +32,17 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual(localized(hello, "es")["difficulty"], "Introductorio")
         self.assertEqual(localized(hello, "en")["difficulty"], "Introductory")
 
+    def test_histogram_preview_metadata_is_accepted_and_localized(self):
+        from root_kata.catalog import get_exercise
+        meta, _ = get_exercise("cpp-root-histogram")
+        self.assertEqual(localized(meta, "en")["preview"], {"file": "preview.png", "alt": "Histogram produced by your code"})
+        self.assertEqual(localized(meta, "es")["preview"], {"file": "preview.png", "alt": "Histograma generado por tu código"})
+
+    def test_exercises_without_preview_metadata_remain_valid(self):
+        from root_kata.catalog import get_exercise
+        meta, _ = get_exercise("cpp-sum-positive")
+        self.assertNotIn("preview", meta)
+
 
 if __name__ == "__main__":
     unittest.main()

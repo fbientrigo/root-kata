@@ -99,6 +99,8 @@ def format_text(r: dict[str, Any]) -> str:
         out += ["", i18n.t("stderr_tail"), *("    " + l for l in str(r["stderr"]).strip().splitlines()[-8:])]
     if r.get("stdout"):
         out += ["", i18n.t("your_output") + ":", *("    " + l for l in str(r["stdout"]).strip().splitlines()[-8:])]
+    if r.get("preview"):
+        out += ["", i18n.t("preview_saved_text", path=r["preview"]["path"])]
     if r.get("work_dir"):
         out += ["", i18n.t("logs_reproduce_text", work=r["work_dir"])]
     from .progress import BADGES

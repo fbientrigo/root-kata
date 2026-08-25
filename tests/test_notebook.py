@@ -146,6 +146,54 @@ class NotebookUxTests(unittest.TestCase):
         self.assertTrue(callable(rk.export))
 
 
+class ResultPreviewTests(unittest.TestCase):
+    def _meta_with_preview(self):
+        meta, _ = get_exercise("cpp-sum-positive")
+        return {**meta, "preview": {"file": "preview.png", "alt": "Your histogram"}}
+
+    def test_result_with_valid_preview_renders_image_with_alt_text(self):
+        meta = self._meta_with_preview()
+        with tempfile.TemporaryDirectory() as t:
+            png = Path(t) / "preview.png"
+            png.write_bytes(b"fake-png-bytes")
+            result = {"status": "passed", "summary": "1/1 tests passed",
+                      "cases": [{"name": "ok", "passed": True}], "new_badges": [],
+                      "preview": {"path": str(png)}}
+            with mock.patch.dict(os.environ, EN):
+                card = nb._format_html(result, meta)
+        self.assertIn("data:image/png;base64,", card)
+        self.assertIn('alt="Your histogram"', card)
+
+    def test_failed_result_still_renders_the_preview(self):
+        meta = self._meta_with_preview()
+        with tempfile.TemporaryDirectory() as t:
+            png = Path(t) / "preview.png"
+            png.write_bytes(b"fake-png-bytes")
+            result = {"status": "failed", "summary": "0/1 tests passed",
+                      "cases": [{"name": "ok", "passed": False, "message": "nope"}], "new_badges": [],
+                      "preview": {"path": str(png)}}
+            with mock.patch.dict(os.environ, EN):
+                card = nb._format_html(result, meta)
+        self.assertIn("data:image/png;base64,", card)
+
+    def test_result_without_preview_key_is_unchanged(self):
+        meta, _ = get_exercise("cpp-sum-positive")
+        result = {"status": "passed", "summary": "1/1 tests passed",
+                  "cases": [{"name": "ok", "passed": True}], "new_badges": []}
+        with mock.patch.dict(os.environ, EN):
+            card = nb._format_html(result, meta)
+        self.assertNotIn("data:image/png;base64,", card)
+
+    def test_missing_preview_file_does_not_crash_the_renderer(self):
+        meta = self._meta_with_preview()
+        result = {"status": "passed", "summary": "1/1 tests passed",
+                  "cases": [{"name": "ok", "passed": True}], "new_badges": [],
+                  "preview": {"path": "/nonexistent/preview.png"}}
+        with mock.patch.dict(os.environ, EN):
+            card = nb._format_html(result, meta)  # must not raise
+        self.assertNotIn("data:image/png;base64,", card)
+
+
 if __name__ == "__main__":
     unittest.main()
 

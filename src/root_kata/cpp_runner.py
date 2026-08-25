@@ -107,6 +107,11 @@ def run_cpp(exercise_id: str, solution_path: Path, *, timeout_seconds: float = 1
     wd.mkdir(parents=True, exist_ok=True)
     solution_path = Path(solution_path).resolve()
 
+    preview_cfg = metadata.get("preview")
+    preview_name = Path(preview_cfg["file"]).name if isinstance(preview_cfg, dict) and preview_cfg.get("file") else None
+    if preview_name:
+        (wd / preview_name).unlink(missing_ok=True)  # never let a stale preview survive this attempt
+
     cxx = _which_compiler()
     if cxx is None:
         return _result("runtime_missing", "No C++ compiler found (tried $CXX, g++, clang++). Install one and re-run doctor().", sid="sum.no_compiler", work_dir=str(wd))
@@ -190,6 +195,11 @@ def run_cpp(exercise_id: str, solution_path: Path, *, timeout_seconds: float = 1
     cases = [c.run() for c in mod.grade(results)]
     n_pass = sum(c["passed"] for c in cases)
     status = "passed" if cases and n_pass == len(cases) else "failed"
-    return _result(status, f"{n_pass}/{len(cases)} tests passed", sid="sum.tests_passed", params={"n": n_pass, "m": len(cases)},
-                   cases=cases, stdout=student_stdout[-4000:],
-                   stderr=run.stderr[-4000:], work_dir=str(wd), build_ms=build_ms, run_ms=run_ms)
+    result = _result(status, f"{n_pass}/{len(cases)} tests passed", sid="sum.tests_passed", params={"n": n_pass, "m": len(cases)},
+                      cases=cases, stdout=student_stdout[-4000:],
+                      stderr=run.stderr[-4000:], work_dir=str(wd), build_ms=build_ms, run_ms=run_ms)
+    if preview_name:
+        artifact = wd / preview_name
+        if artifact.is_file() and artifact.stat().st_size > 0:
+            result["preview"] = {"path": str(artifact)}
+    return result

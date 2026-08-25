@@ -55,6 +55,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "harness_signature_note": "Lo reportó el banco de pruebas: revisa que la firma de tu función coincida exactamente con la del enunciado.",
         "expected_got": "Se esperaba <code>{expected}</code>; se obtuvo <code>{actual}</code>.",
         "tests_label": "Pruebas",
+        "preview_alt_default": "Histograma generado por tu código",
         "your_output": "Tu salida",
         "reproduce_outside_jupyter": "Reproducir fuera de Jupyter",
         "logs_line": "Registros: {build} · {run}",
@@ -65,6 +66,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         # plain-text result formatter
         "harness_signature_note_text": "(el error está en el banco de pruebas: normalmente la firma de tu función difiere de la pedida)",
         "stderr_tail": "stderr (final):",
+        "preview_saved_text": "  vista previa: {path}",
         "logs_reproduce_text": "  registros: {work}/build.log, run.log   ·   reproducir: sh {work}/compile.sh",
         "expected_got_text": "   esperaba {expected}, obtuvo {actual}",
         # notebook API
@@ -183,6 +185,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "harness_signature_note": "The harness reported this. Check that your function signature exactly matches the problem statement.",
         "expected_got": "Expected <code>{expected}</code>; got <code>{actual}</code>.",
         "tests_label": "Tests",
+        "preview_alt_default": "Histogram produced by your code",
         "your_output": "Your output",
         "reproduce_outside_jupyter": "Reproduce outside Jupyter",
         "logs_line": "Logs: {build} · {run}",
@@ -192,6 +195,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "continue_help": "Your progress will also be reflected on the local catalog page.",
         "harness_signature_note_text": "(the error is in the harness, which usually means your function signature differs from the one requested)",
         "stderr_tail": "stderr (tail):",
+        "preview_saved_text": "  preview: {path}",
         "logs_reproduce_text": "  logs: {work}/build.log, run.log   ·   reproduce: sh {work}/compile.sh",
         "expected_got_text": "   expected {expected}, got {actual}",
         "no_solution_yet": "No solution yet. Run rk.start('{exercise_id}') first (it creates {path}).",

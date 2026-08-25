@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 from . import i18n
 REQUIRED_FIELDS={"id","title","track","difficulty","summary","description","requirements","entrypoint","starter","validator","requires"}
-LOCALIZED_FIELDS=("title","track","difficulty","summary","description","requirements","hints","topics","examples","learning_goal")
+LOCALIZED_FIELDS=("title","track","difficulty","summary","description","requirements","hints","topics","examples","learning_goal","preview")
 _DEFAULT_MESSAGE_KEYS={"Values differ":"val.values_differ","Values are not close":"val.not_close","Passed":"val.case_passed"}
 
 def repository_root()->Path:return Path(__file__).resolve().parents[2]

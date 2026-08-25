@@ -27,6 +27,7 @@
   "harness": "harness.cpp",
   "validator": "validator.py",
   "requires": ["ROOT"],
+  "preview": {"file": "preview.png", "alt": "Histogram produced by your code"},
   "topics": ["TH1D", "Fill", "binning", "underflow/overflow"],
   "learning_goal": "Create a ROOT histogram with an explicit binning and fill it once for every input value.",
   "resources": [
@@ -53,6 +54,7 @@
       "Después de construir el histograma, recorre values y llama a Fill(value)."
     ],
     "learning_goal": "Crear un histograma de ROOT con un binning explícito y llenarlo una vez por cada valor de entrada.",
+    "preview": {"file": "preview.png", "alt": "Histograma generado por tu código"},
     "cases": {
       "ROOT object and binning": "Objeto ROOT y binning",
       "fills input values": "llena los valores de entrada",

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import base64
 import html
+from pathlib import Path
 from typing import Any
 
 from . import i18n
@@ -26,6 +28,17 @@ def format_html(r: dict[str, Any], meta: dict[str, Any]) -> str:
                    "runtime_error": "next.runtime_error", "solution_error": "next.solution_error",
                    "timeout": "next.timeout"}.get(status)
     next_text = html.escape(i18n.t(next_action) if next_action else i18n.t("next.default"))
+    preview_block = ""
+    preview = r.get("preview")
+    if preview and preview.get("path"):
+        try:
+            data = base64.b64encode(Path(preview["path"]).read_bytes()).decode("ascii")
+        except OSError:
+            data = None
+        if data:
+            alt = html.escape(str((meta.get("preview") or {}).get("alt") or i18n.t("preview_alt_default")))
+            preview_block = (f'<div style="margin:.7rem 0;"><img src="data:image/png;base64,{data}" alt="{alt}" '
+                             f'style="max-width:100%;display:block;border-radius:10px;border:1px solid rgba(127,127,127,.22);"/></div>')
     timing = ""
     if r.get("build_ms") is not None:
         bits = [f"compile {r['build_ms']} ms"]
@@ -90,4 +103,4 @@ def format_html(r: dict[str, Any], meta: dict[str, Any]) -> str:
                           f'<div style="margin-top:.4rem;opacity:.75;font-size:.88rem;">{html.escape(i18n.t("continue_help"))}</div></div>')
     return (f'<section role="status" aria-live="polite" style="max-width:860px;border:1px solid rgba(127,127,127,.25);border-left:5px solid {accent};border-radius:12px;padding:1rem 1.15rem;margin:.35rem 0 1rem;line-height:1.45;">'
             f'<header style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;"><div><span style="font-size:.78rem;text-transform:uppercase;letter-spacing:.055em;font-weight:700;">{label}</span><h3 style="font-size:1.1rem;margin:.2rem 0;">{summary}</h3></div>{timing}</header>'
-            f'<div style="margin:.5rem 0 .2rem;">{next_text}</div>{first_error}{test_progress}{case_block}{extras}{badges}{continue_block}</section>')
+            f'<div style="margin:.5rem 0 .2rem;">{next_text}</div>{preview_block}{first_error}{test_progress}{case_block}{extras}{badges}{continue_block}</section>')
