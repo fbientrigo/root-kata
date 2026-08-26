@@ -20,7 +20,10 @@ _STRINGS: dict[str, dict[str, str]] = {
     # ---------------------------------------------------------------- Spanish
     "es": {
         # generic labels
+        "difficulty.introductory": "Introductorio",
         "difficulty.easy": "Fácil",
+        "difficulty.intermediate": "Intermedio",
+        "difficulty.hard": "Difícil",
         "kind.cpp": "C++",
         "kind.python": "Python",
         "minutes_estimate": "≈{n} min",
@@ -152,7 +155,10 @@ _STRINGS: dict[str, dict[str, str]] = {
     },
     # --------------------------------------------------------------- English
     "en": {
+        "difficulty.introductory": "Introductory",
         "difficulty.easy": "Easy",
+        "difficulty.intermediate": "Intermediate",
+        "difficulty.hard": "Hard",
         "kind.cpp": "C++",
         "kind.python": "Python",
         "minutes_estimate": "≈{n} min",

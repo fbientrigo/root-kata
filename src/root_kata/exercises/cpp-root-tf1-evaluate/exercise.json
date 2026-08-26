@@ -1,0 +1,105 @@
+{
+  "id": "cpp-root-tf1-evaluate",
+  "kind": "cpp",
+  "title": "Turn a formula into a ROOT model",
+  "track": "ROOT functions",
+  "difficulty": "Intermediate",
+  "order": 10,
+  "published": true,
+  "estimated_minutes": 10,
+  "summary": "Build a parameterized TF1 and observe how changing one parameter changes the model.",
+  "description": "Implement TF1* build_linear_model(double intercept, double slope). Build f(x) = intercept + slope*x on the domain [0,10], store intercept in parameter 0 and slope in parameter 1, and name the function calibration_model.",
+  "requirements": [
+    "Name the TF1 calibration_model.",
+    "Use the model [0] + [1]*x on the domain [0,10].",
+    "Set parameter 0 to the intercept argument.",
+    "Set parameter 1 to the slope argument."
+  ],
+  "examples": [
+    {
+      "input": "intercept=2, slope=3",
+      "output": "f(0)=2, f(2)=8",
+      "explanation": "The parameters carry the model state; changing the slope changes later evaluations."
+    }
+  ],
+  "hints": [
+    "TF1 formulas can refer to parameters as [0], [1], ...",
+    "Use SetParameter or SetParameters after constructing the function."
+  ],
+  "entrypoint": "build_linear_model",
+  "starter": "solution.cpp",
+  "harness": "harness.cpp",
+  "validator": "validator.py",
+  "requires": [
+    "ROOT"
+  ],
+  "topics": [
+    "TF1",
+    "parameters",
+    "Eval",
+    "SetParameter",
+    "model"
+  ],
+  "learning_goal": "Connect a mathematical model, its parameter values, and the numerical predictions produced by TF1.",
+  "resources": [
+    {
+      "label": "TF1 — ROOT reference",
+      "url": "https://root.cern.ch/doc/master/classTF1.html"
+    }
+  ],
+  "problem_markdown": "problem.md",
+  "curriculum": {
+    "role": "normal",
+    "competency": "Represent a mathematical model with TF1, set parameters and evaluate it at selected x values.",
+    "prerequisites": [
+      "cpp-root-histogram-inspect"
+    ],
+    "transfer_level": "basic",
+    "misconception": "A TF1 formula alone contains the numerical parameter values needed to make predictions.",
+    "observable_success": "The learner creates the intended parameterized function and its evaluations respond correctly when a parameter changes.",
+    "acceptance": "Tests verify model values before and after a parameter change.",
+    "source": {
+      "repository": "fbientrigo/root-student-course",
+      "path": "course/notebooks/core/01-histograms-and-graphs.ipynb",
+      "concept": "TF1 functions and parameters"
+    }
+  },
+  "es": {
+    "title": "Convierte una fórmula en un modelo ROOT",
+    "track": "Funciones ROOT",
+    "difficulty": "Intermedio",
+    "summary": "Construye una TF1 parametrizada y observa cómo cambiar un parámetro modifica el modelo.",
+    "description": "Implementa TF1* build_linear_model(double intercept, double slope). Construye f(x) = intercept + slope*x en el dominio [0,10], guarda intercept en el parámetro 0 y slope en el parámetro 1, y nombra la función calibration_model.",
+    "requirements": [
+      "Nombra la TF1 calibration_model.",
+      "Usa el modelo [0] + [1]*x en el dominio [0,10].",
+      "Asigna al parámetro 0 el argumento intercept.",
+      "Asigna al parámetro 1 el argumento slope."
+    ],
+    "examples": [
+      {
+        "output": "f(0)=2, f(2)=8",
+        "explanation": "Los parámetros contienen el estado del modelo; cambiar la pendiente modifica las evaluaciones posteriores."
+      }
+    ],
+    "hints": [
+      "Las fórmulas de TF1 pueden referirse a parámetros como [0], [1], ...",
+      "Usa SetParameter o SetParameters después de construir la función."
+    ],
+    "learning_goal": "Conectar un modelo matemático, sus parámetros y las predicciones numéricas producidas por TF1.",
+    "cases": {
+      "model definition": "definición del modelo",
+      "parameter change affects prediction": "cambiar un parámetro cambia la predicción"
+    },
+    "messages": {
+      "Model must be returned": "Se debe devolver un modelo",
+      "TF1 name is wrong": "El nombre de la TF1 es incorrecto",
+      "TF1 should have two parameters": "La TF1 debe tener dos parámetros",
+      "Model range is wrong": "El rango del modelo es incorrecto",
+      "Intercept parameter is wrong": "El parámetro intercept es incorrecto",
+      "Slope parameter is wrong": "El parámetro slope es incorrecto",
+      "Model evaluation is wrong": "La evaluación del modelo es incorrecta",
+      "Changing the slope should change the prediction": "Cambiar la pendiente debe cambiar la predicción"
+    }
+  }
+}

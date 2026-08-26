@@ -1,0 +1,107 @@
+{
+  "id": "cpp-root-histogram-selected-sample",
+  "kind": "cpp",
+  "title": "Turn a selection into a distribution",
+  "track": "ROOT analysis",
+  "difficulty": "Hard",
+  "order": 11,
+  "published": true,
+  "estimated_minutes": 15,
+  "summary": "Combine a strict numerical cut with histogram filling, then distinguish selected entries from visible entries.",
+  "description": "Implement TH1D* build_selected_histogram(const std::vector<double>& values, double threshold). Keep only values strictly greater than threshold and fill them into h_selected with 5 bins covering [0,150].",
+  "requirements": [
+    "Create h_selected with 5 bins covering [0,150].",
+    "Apply the strict condition value > threshold.",
+    "Fill each surviving value exactly once and reject every non-survivor.",
+    "Do not discard selected values merely because they fall in underflow or overflow."
+  ],
+  "examples": [
+    {
+      "input": "values={20,50,50.1,80,120}, threshold=50",
+      "output": "3 entries",
+      "explanation": "The boundary value 50 does not survive a strict > 50 cut."
+    }
+  ],
+  "hints": [
+    "Decide whether a value survives before calling Fill.",
+    "GetEntries counts selected fills even when a selected value lands outside the visible histogram range."
+  ],
+  "entrypoint": "build_selected_histogram",
+  "starter": "solution.cpp",
+  "harness": "harness.cpp",
+  "validator": "validator.py",
+  "requires": [
+    "ROOT"
+  ],
+  "topics": [
+    "selection",
+    "TH1D",
+    "strict cut",
+    "overflow",
+    "integration"
+  ],
+  "learning_goal": "Compose a numerical selection and a histogram while keeping selection semantics separate from histogram range semantics.",
+  "resources": [
+    {
+      "label": "TH1 — ROOT reference",
+      "url": "https://root.cern.ch/doc/master/classTH1.html"
+    }
+  ],
+  "problem_markdown": "problem.md",
+  "curriculum": {
+    "role": "integration",
+    "competency": "Apply a numerical selection to a sample, fill only surviving values, and inspect how the selection changed the histogram.",
+    "prerequisites": [
+      "cpp-root-histogram-range",
+      "cpp-count-above"
+    ],
+    "transfer_level": "transfer",
+    "misconception": "Histogram visibility and selection are the same decision, so an out-of-range selected value should be dropped before Fill.",
+    "observable_success": "The histogram entries match the strict selection while its integral and overflow independently describe where selected values landed.",
+    "acceptance": "Tests jointly verify which values survive, histogram entries, range behavior and selected bin contents.",
+    "source": {
+      "repository": "fbientrigo/root-student-course",
+      "path": "course/notebooks/core/01-histograms-and-graphs.ipynb",
+      "concept": "histogram filling and inspection"
+    }
+  },
+  "es": {
+    "title": "Convierte una selección en una distribución",
+    "track": "Análisis ROOT",
+    "difficulty": "Difícil",
+    "summary": "Combina un corte numérico estricto con el llenado de un histograma y distingue entradas seleccionadas de entradas visibles.",
+    "description": "Implementa TH1D* build_selected_histogram(const std::vector<double>& values, double threshold). Conserva solo los valores estrictamente mayores que threshold y llénalos en h_selected con 5 bins que cubren [0,150].",
+    "requirements": [
+      "Crea h_selected con 5 bins que cubren [0,150].",
+      "Aplica la condición estricta value > threshold.",
+      "Llena cada valor que sobrevive exactamente una vez y rechaza los demás.",
+      "No descartes valores seleccionados solo porque caigan en underflow u overflow."
+    ],
+    "examples": [
+      {
+        "output": "3 entradas",
+        "explanation": "El valor de borde 50 no sobrevive a un corte estricto > 50."
+      }
+    ],
+    "hints": [
+      "Decide si el valor sobrevive antes de llamar a Fill.",
+      "GetEntries cuenta los Fill seleccionados incluso cuando un valor seleccionado cae fuera del rango visible."
+    ],
+    "learning_goal": "Componer una selección numérica y un histograma manteniendo separadas la semántica del corte y la del rango.",
+    "cases": {
+      "strict selection": "selección estricta",
+      "selection versus visible range": "selección frente a rango visible"
+    },
+    "messages": {
+      "Histogram must be returned": "Se debe devolver un histograma",
+      "Histogram name is wrong": "El nombre del histograma es incorrecto",
+      "Histogram binning is wrong": "El binning del histograma es incorrecto",
+      "Strict cut should keep exactly three values": "El corte estricto debe conservar exactamente tres valores",
+      "All three selected values should be visible": "Los tres valores seleccionados deben ser visibles",
+      "Boundary value must not survive a strict cut": "El valor de borde no debe sobrevivir a un corte estricto",
+      "Selected overflow value must still count as an entry": "Un valor seleccionado en overflow debe seguir contando como entrada",
+      "Only one selected value should be visible": "Solo un valor seleccionado debe ser visible",
+      "The out-of-range selected value should land in overflow": "El valor seleccionado fuera de rango debe caer en overflow"
+    }
+  }
+}

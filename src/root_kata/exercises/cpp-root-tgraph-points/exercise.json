@@ -1,0 +1,100 @@
+{
+  "id": "cpp-root-tgraph-points",
+  "kind": "cpp",
+  "title": "Preserve paired measurements with TGraph",
+  "track": "ROOT graphs",
+  "difficulty": "Intermediate",
+  "order": 9,
+  "published": true,
+  "estimated_minutes": 10,
+  "summary": "Represent measured x-y pairs without turning their x coordinates into implicit bin numbers.",
+  "description": "Implement TGraph* build_graph(const std::vector<double>& x, const std::vector<double>& y). The two vectors have equal length. Preserve each ordered pair and its input order.",
+  "requirements": [
+    "Return a TGraph containing exactly one point per input pair.",
+    "Use the supplied x values as x coordinates.",
+    "Use the supplied y values as y coordinates.",
+    "Preserve the order of the measurements."
+  ],
+  "examples": [
+    {
+      "input": "x={0,1.5,4}, y={2,3.5,3}",
+      "output": "(0,2), (1.5,3.5), (4,3)",
+      "explanation": "A graph stores paired coordinates; the point index is not a replacement for x."
+    }
+  ],
+  "hints": [
+    "TGraph can be constructed from a point count plus x and y arrays.",
+    "std::vector::data() exposes the contiguous values expected by the constructor."
+  ],
+  "entrypoint": "build_graph",
+  "starter": "solution.cpp",
+  "harness": "harness.cpp",
+  "validator": "validator.py",
+  "requires": [
+    "ROOT"
+  ],
+  "topics": [
+    "TGraph",
+    "paired data",
+    "GetPoint",
+    "coordinates"
+  ],
+  "learning_goal": "Choose TGraph for paired measurements and preserve the actual x-y correspondence.",
+  "resources": [
+    {
+      "label": "TGraph — ROOT reference",
+      "url": "https://root.cern.ch/doc/master/classTGraph.html"
+    }
+  ],
+  "problem_markdown": "problem.md",
+  "curriculum": {
+    "role": "normal",
+    "competency": "Represent paired measurements with TGraph and inspect point coordinates.",
+    "prerequisites": [
+      "cpp-root-histogram"
+    ],
+    "transfer_level": "basic",
+    "misconception": "A graph can replace measured x coordinates with equally spaced point indices without changing the data.",
+    "observable_success": "The learner creates a TGraph whose point count, coordinates, and order exactly match the supplied paired measurements.",
+    "acceptance": "The graph contains the intended ordered pairs and tests validate coordinates rather than cosmetic drawing settings.",
+    "source": {
+      "repository": "fbientrigo/root-student-course",
+      "path": "course/notebooks/core/01-histograms-and-graphs.ipynb",
+      "concept": "ROOT graphs"
+    }
+  },
+  "es": {
+    "title": "Conserva mediciones pareadas con TGraph",
+    "track": "Gráficos ROOT",
+    "difficulty": "Intermedio",
+    "summary": "Representa pares medidos x-y sin convertir sus coordenadas x en números de punto implícitos.",
+    "description": "Implementa TGraph* build_graph(const std::vector<double>& x, const std::vector<double>& y). Los dos vectores tienen igual longitud. Conserva cada par ordenado y su orden de entrada.",
+    "requirements": [
+      "Devuelve un TGraph con exactamente un punto por cada par de entrada.",
+      "Usa los valores x entregados como coordenadas x.",
+      "Usa los valores y entregados como coordenadas y.",
+      "Conserva el orden de las mediciones."
+    ],
+    "examples": [
+      {
+        "output": "(0,2), (1.5,3.5), (4,3)",
+        "explanation": "Un gráfico almacena coordenadas pareadas; el índice del punto no reemplaza a x."
+      }
+    ],
+    "hints": [
+      "TGraph puede construirse con el número de puntos y los arreglos x e y.",
+      "std::vector::data() expone los valores contiguos que espera el constructor."
+    ],
+    "learning_goal": "Elegir TGraph para mediciones pareadas y conservar la correspondencia x-y real.",
+    "cases": {
+      "point count": "cantidad de puntos",
+      "paired coordinates": "coordenadas pareadas"
+    },
+    "messages": {
+      "Graph must be returned": "Se debe devolver un gráfico",
+      "Graph has the wrong number of points": "El gráfico tiene una cantidad incorrecta de puntos",
+      "x coordinate differs": "La coordenada x es incorrecta",
+      "y coordinate differs": "La coordenada y es incorrecta"
+    }
+  }
+}

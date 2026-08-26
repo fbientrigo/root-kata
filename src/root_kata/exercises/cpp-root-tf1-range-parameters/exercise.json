@@ -1,0 +1,103 @@
+{
+  "id": "cpp-root-tf1-range-parameters",
+  "kind": "cpp",
+  "title": "Diagnose a plausible but wrong TF1",
+  "track": "ROOT functions",
+  "difficulty": "Hard",
+  "order": 12,
+  "published": true,
+  "estimated_minutes": 15,
+  "summary": "Repair a decay model whose formula is valid but whose parameter mapping and domain make its predictions misleading.",
+  "description": "Repair TF1* build_decay_model(double amplitude, double tau). It must represent A*exp(-x/tau) on the analysis domain [0,10], with amplitude in parameter 0 and tau in parameter 1.",
+  "requirements": [
+    "Name the function decay_model.",
+    "Use [0]*exp(-x/[1]) for A*exp(-x/tau).",
+    "Use the intended model domain [0,10].",
+    "Map amplitude to parameter 0 and tau to parameter 1."
+  ],
+  "examples": [
+    {
+      "input": "amplitude=12, tau=2",
+      "output": "f(0)=12, f(4)=12*exp(-2)",
+      "explanation": "The same formula gives the wrong interpretation if the parameters are swapped or the intended model range is misconfigured."
+    }
+  ],
+  "hints": [
+    "The argument order of SetParameters follows parameter indices [0], [1], ...",
+    "A TF1 range records the domain where the model is intended to be used; Eval itself can still be called at another x."
+  ],
+  "entrypoint": "build_decay_model",
+  "starter": "solution.cpp",
+  "harness": "harness.cpp",
+  "validator": "validator.py",
+  "requires": [
+    "ROOT"
+  ],
+  "topics": [
+    "TF1",
+    "model range",
+    "parameters",
+    "diagnosis",
+    "exponential"
+  ],
+  "learning_goal": "Diagnose model configuration separately from formula syntax by checking parameter meaning, range, and numerical predictions.",
+  "resources": [
+    {
+      "label": "TF1 — ROOT reference",
+      "url": "https://root.cern.ch/doc/master/classTF1.html"
+    }
+  ],
+  "problem_markdown": "problem.md",
+  "curriculum": {
+    "role": "limitation",
+    "competency": "Diagnose a TF1 whose range or parameter configuration makes an otherwise valid model inappropriate for the requested domain.",
+    "prerequisites": [
+      "cpp-root-tf1-evaluate"
+    ],
+    "transfer_level": "applied",
+    "misconception": "If a TF1 formula is syntactically correct, its parameter mapping and configured domain cannot change the model's interpretation.",
+    "observable_success": "The learner repairs both parameter mapping and domain and obtains the expected decay predictions.",
+    "acceptance": "Tests include points inside and outside the intended modeling region and expose a parameter/range choice that changes interpretation.",
+    "source": {
+      "repository": "fbientrigo/root-student-course",
+      "path": "course/notebooks/core/01-histograms-and-graphs.ipynb",
+      "concept": "TF1 range and parameters"
+    }
+  },
+  "es": {
+    "title": "Diagnostica una TF1 plausible pero incorrecta",
+    "track": "Funciones ROOT",
+    "difficulty": "Difícil",
+    "summary": "Repara un modelo de decaimiento cuya fórmula es válida, pero cuyo mapeo de parámetros y dominio vuelven engañosas sus predicciones.",
+    "description": "Repara TF1* build_decay_model(double amplitude, double tau). Debe representar A*exp(-x/tau) en el dominio de análisis [0,10], con amplitude en el parámetro 0 y tau en el parámetro 1.",
+    "requirements": [
+      "Nombra la función decay_model.",
+      "Usa [0]*exp(-x/[1]) para A*exp(-x/tau).",
+      "Usa el dominio previsto del modelo [0,10].",
+      "Mapea amplitude al parámetro 0 y tau al parámetro 1."
+    ],
+    "examples": [
+      {
+        "output": "f(0)=12, f(4)=12*exp(-2)",
+        "explanation": "La misma fórmula puede interpretarse mal si los parámetros están intercambiados o el rango previsto está mal configurado."
+      }
+    ],
+    "hints": [
+      "El orden de argumentos de SetParameters sigue los índices [0], [1], ...",
+      "El rango de una TF1 registra el dominio donde se pretende usar el modelo; Eval puede llamarse igualmente en otro x."
+    ],
+    "learning_goal": "Diagnosticar la configuración del modelo por separado de la sintaxis de la fórmula, comprobando significado de parámetros, rango y predicciones.",
+    "cases": {
+      "parameter meaning": "significado de parámetros",
+      "model domain and prediction": "dominio y predicción del modelo"
+    },
+    "messages": {
+      "Model must be returned": "Se debe devolver un modelo",
+      "TF1 name is wrong": "El nombre de la TF1 es incorrecto",
+      "Amplitude parameter is wrong": "El parámetro amplitude es incorrecto",
+      "Tau parameter is wrong": "El parámetro tau es incorrecto",
+      "Model range is wrong": "El rango del modelo es incorrecto",
+      "Decay prediction is wrong": "La predicción del decaimiento es incorrecta"
+    }
+  }
+}
