@@ -1,0 +1,81 @@
+{
+  "id": "cpp-root-histogram-inspect",
+  "kind": "cpp",
+  "title": "Inspect a ROOT histogram",
+  "track": "ROOT basics",
+  "difficulty": "Easy",
+  "order": 7,
+  "published": true,
+  "estimated_minutes": 10,
+  "summary": "Read what a TH1D actually contains: total entries, a chosen bin, and summary statistics.",
+  "description": "Implement HistogramInspection inspect_histogram(const TH1D& hist, int bin). Read the histogram without modifying it and return its total entries, the content of the requested ROOT bin, mean, and standard deviation.",
+  "requirements": [
+    "Do not fill, reset, or otherwise modify the histogram.",
+    "Return GetEntries() as entries.",
+    "Return GetBinContent(bin) for the requested ROOT bin number.",
+    "Return the histogram mean and standard deviation from ROOT's histogram statistics."
+  ],
+  "examples": [
+    {"input": "5 filled observations; requested bin contains 2", "output": "entries = 5, bin_content = 2", "explanation": "Entries count observations; a bin content counts only observations represented by that bin."}
+  ],
+  "hints": [
+    "A histogram is data, not only a drawing. Inspect it through TH1D methods.",
+    "ROOT's visible x-axis bins are numbered starting at 1."
+  ],
+  "entrypoint": "inspect_histogram",
+  "starter": "solution.cpp",
+  "harness": "harness.cpp",
+  "validator": "validator.py",
+  "requires": ["ROOT"],
+  "topics": ["TH1D", "GetEntries", "GetBinContent", "GetMean", "GetStdDev"],
+  "learning_goal": "Distinguish total histogram entries from individual bin contents and inspect numerical summary statistics directly.",
+  "resources": [
+    {"label": "TH1 — ROOT reference", "url": "https://root.cern.ch/doc/master/classTH1.html"}
+  ],
+  "problem_markdown": "problem.md",
+  "curriculum": {
+    "role": "normal",
+    "competency": "Inspect entries, bin contents and summary statistics of a TH1D instead of judging it only by its drawing.",
+    "prerequisites": ["cpp-root-histogram"],
+    "transfer_level": "basic",
+    "misconception": "The histogram's total entries and the content of one visible bin are the same quantity.",
+    "observable_success": "The learner reports the total entries, requested bin content, mean, and standard deviation from a deterministic TH1D without modifying it.",
+    "acceptance": "Visible tests distinguish entries from selected bin contents and verify at least one bin-level observation.",
+    "source": {
+      "repository": "fbientrigo/root-student-course",
+      "path": "course/notebooks/core/01-histograms-and-graphs.ipynb",
+      "concept": "histogram contents and statistics"
+    }
+  },
+  "es": {
+    "title": "Inspecciona un histograma ROOT",
+    "track": "Fundamentos ROOT",
+    "summary": "Lee lo que realmente contiene un TH1D: entradas totales, un bin elegido y estadísticas resumen.",
+    "description": "Implementa HistogramInspection inspect_histogram(const TH1D& hist, int bin). Lee el histograma sin modificarlo y devuelve sus entradas totales, el contenido del bin ROOT solicitado, la media y la desviación estándar.",
+    "requirements": [
+      "No llenes, reinicies ni modifiques el histograma.",
+      "Devuelve GetEntries() como entries.",
+      "Devuelve GetBinContent(bin) para el número de bin ROOT solicitado.",
+      "Devuelve la media y la desviación estándar de las estadísticas del histograma."
+    ],
+    "examples": [
+      {"output": "entries = 5, bin_content = 2", "explanation": "Entries cuenta observaciones; el contenido de un bin cuenta solo las observaciones representadas por ese bin."}
+    ],
+    "hints": [
+      "Un histograma son datos, no solo un dibujo. Inspecciónalo mediante métodos de TH1D.",
+      "Los bins visibles del eje x en ROOT se numeran desde 1."
+    ],
+    "learning_goal": "Distinguir las entradas totales de un histograma del contenido de bins individuales e inspeccionar directamente sus estadísticas numéricas.",
+    "cases": {
+      "entries versus bin contents": "entradas frente a contenido de bins",
+      "summary statistics": "estadísticas resumen"
+    },
+    "messages": {
+      "Expected 5 total entries": "Se esperaban 5 entradas totales",
+      "Expected 2 entries in ROOT bin 2": "Se esperaban 2 entradas en el bin ROOT 2",
+      "Expected an empty ROOT bin 3": "Se esperaba que el bin ROOT 3 estuviera vacío",
+      "Histogram mean does not match the filled observations": "La media del histograma no coincide con las observaciones llenadas",
+      "Histogram standard deviation does not match the filled observations": "La desviación estándar del histograma no coincide con las observaciones llenadas"
+    }
+  }
+}
