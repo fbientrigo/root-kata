@@ -180,7 +180,7 @@ def kata_row(meta_view: dict, lang: str) -> str:
     eid = meta_view["id"]
     ui = UI[lang]
     return f'''
-      <article class="kata-row" data-eid="{esc(eid)}" data-difficulty="{esc(meta_view[\'difficulty_key\'])}">
+      <article class="kata-row" data-eid="{esc(eid)}" data-difficulty="{esc(meta_view['difficulty_key'])}">
         <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
         <div class="row-body">
           <div class="row-topline"><span class="difficulty">{esc(meta_view['difficulty_label'])}</span><span aria-hidden="true">·</span><span>{esc(ui['minutes'].format(n=meta_view.get('estimated_minutes', '?')))}</span></div>
