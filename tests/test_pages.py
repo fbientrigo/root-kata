@@ -109,6 +109,19 @@ class DashboardTests(unittest.TestCase):
         self.assertIn("root-kata:solved", js)
         self.assertIn("root-kata:badges", js)
 
+    def test_dashboard_filters_by_difficulty(self):
+        html = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+        self.assertIn('id="difficulty-filter"', html)
+        self.assertIn('value="intermediate"', html)
+        self.assertIn('value="hard"', html)
+        self.assertEqual(html.count('data-difficulty="intermediate"'), 3)
+        self.assertEqual(html.count('data-difficulty="hard"'), 3)
+
+        js = (ROOT / "docs" / "site.js").read_text(encoding="utf-8")
+        self.assertIn("renderDifficultyFilter", js)
+        self.assertIn("row.dataset.difficulty", js)
+        self.assertIn("row.hidden = !show", js)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -89,7 +89,12 @@ h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.35rem); line-height: 1.02; letter-
 .badge-list { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; }
 .badge-pill { padding: .18rem .6rem; border: 1px solid var(--border); border-radius: 999px; font-size: .85rem; background: var(--surface-2); }
 
-.kata-list { max-width: 760px; margin: 26px auto 0; display: grid; gap: 12px; }
+.catalog-tools { max-width: 760px; margin: 26px auto 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.catalog-tools label { font-size: .9rem; font-weight: 750; }
+.catalog-tools select { min-height: 42px; padding: 8px 34px 8px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--text); font: inherit; }
+.catalog-tools select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+#filter-count { margin-left: auto; color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
+.kata-list { max-width: 760px; margin: 12px auto 0; display: grid; gap: 12px; }
 .kata-row { display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto; gap: 4px 14px; padding: 18px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; align-items: start; }
 .row-status { font-size: 1.15rem; line-height: 1.4; color: var(--muted); }
 .kata-row.solved .row-status { color: var(--ok); font-weight: 800; }
@@ -102,6 +107,7 @@ h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.35rem); line-height: 1.02; letter-
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .button.emphasised, .problem-link.emphasised { border-color: var(--accent); color: var(--accent); }
 @media (max-width: 640px) {
+  #filter-count { width: 100%; margin-left: 0; }
   .kata-row { grid-template-columns: 1.6rem minmax(0, 1fr); }
   .row-actions { grid-column: 2; justify-self: stretch; flex-direction: row; flex-wrap: wrap; }
 }

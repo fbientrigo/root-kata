@@ -25,6 +25,8 @@ La ruta inicial empieza desde cero y tiene seis ejercicios:
 
 Los tres primeros son **Introductorios** y no requieren conocer `std::vector`. Sirven tanto para quien nunca programó en C++ como para comprobar rápidamente que instalación, compilación, Jupyter y tests funcionan antes de entrar a ROOT.
 
+Además de esa ruta inicial, el catálogo incorpora problemas ROOT de mayor transferencia: diagnóstico de rangos y overflow, datos pareados con `TGraph`, modelos con `TF1`, selección + histograma y un primer ajuste gaussiano. La ampliación añade **3 problemas Intermedios y 3 Difíciles**, y el catálogo web permite filtrar los katas por dificultad.
+
 ## Instalación
 
 Requisito único: **conda** (o `mamba`/`micromamba`). Si no lo tienes, instala [Miniforge](https://github.com/conda-forge/miniforge) y vuelve aquí.

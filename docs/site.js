@@ -5,11 +5,13 @@
       copied: 'Comando del kata copiado. Pégalo en una celda de Jupyter.',
       badges: { first_kata: 'Primer kata', first_root_histogram: 'Primer histograma ROOT', basics_complete: 'Fundamentos completados' },
       completed: 'Completado',
+      showing: (visible, total) => `${visible} de ${total} ejercicios`,
     },
     en: {
       copied: 'Kata command copied. Paste it into a Jupyter cell.',
       badges: { first_kata: 'First Kata', first_root_histogram: 'First ROOT Histogram', basics_complete: 'Basics Complete' },
       completed: 'Completed',
+      showing: (visible, total) => `${visible} of ${total} exercises`,
     },
   };
   const msg = MESSAGES[lang] || MESSAGES.es;
@@ -89,8 +91,28 @@
     });
   };
 
+  const renderDifficultyFilter = () => {
+    const filter = document.getElementById('difficulty-filter');
+    const count = document.getElementById('filter-count');
+    if (!filter) return;
+    const rows = [...document.querySelectorAll('.kata-row')];
+    const apply = () => {
+      const selected = filter.value || 'all';
+      let visible = 0;
+      rows.forEach((row) => {
+        const show = selected === 'all' || row.dataset.difficulty === selected;
+        row.hidden = !show;
+        if (show) visible += 1;
+      });
+      if (count) count.textContent = msg.showing(visible, rows.length);
+    };
+    filter.addEventListener('change', apply);
+    apply();
+  };
+
   absorbParams();
   renderProgress();
+  renderDifficultyFilter();
 
   document.querySelectorAll('.jupyter-link').forEach((link) => {
     link.addEventListener('click', () => {

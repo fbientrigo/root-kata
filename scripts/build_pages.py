@@ -33,6 +33,11 @@ UI = {
         "start_help": "Abre tu Jupyter local y pega el comando de abajo. El botón intenta copiarlo.",
         "easy": "Fácil",
         "introductory": "Introductorio",
+        "intermediate": "Intermedio",
+        "hard": "Difícil",
+        "difficulty_filter": "Dificultad",
+        "all_difficulties": "Todas",
+        "showing": "{visible} de {total} ejercicios",
         "minutes": "≈ {n} min",
         "local_note": "<strong>Abrir en Jupyter</strong><span>El botón abre el cuaderno del kata en <code>127.0.0.1:8888</code> (requiere <code>root-kata lab</code> corriendo) e intenta copiar el comando.</span>",
         "hero_eyebrow": "Ruta inicial desde cero",
@@ -62,6 +67,11 @@ UI = {
         "start_help": "Open your local Jupyter and paste the command below. The button tries to copy it for you.",
         "easy": "Easy",
         "introductory": "Introductory",
+        "intermediate": "Intermediate",
+        "hard": "Hard",
+        "difficulty_filter": "Difficulty",
+        "all_difficulties": "All",
+        "showing": "{visible} of {total} exercises",
         "minutes": "≈ {n} min",
         "local_note": "<strong>Open in Jupyter</strong><span>The button opens the kata notebook at <code>127.0.0.1:8888</code> (needs <code>root-kata lab</code> running) and tries to copy the command.</span>",
         "hero_eyebrow": "Starter path from zero",
@@ -103,14 +113,13 @@ def view(meta: dict, lang: str) -> dict:
             out["requirements"] = overlay["requirements"]
         if "examples" in overlay:
             out["examples"] = [{**base, **extra} for base, extra in zip(meta.get("examples", []), overlay["examples"])]
-    raw_difficulty = str(out.get("difficulty", ""))
-    key = raw_difficulty.lower()
-    if key == "easy":
-        out["difficulty_label"] = UI[lang]["easy"]
-    elif key == "introductory":
-        out["difficulty_label"] = UI[lang]["introductory"]
+    # Filter by the stable English metadata key, even when the visible label is localized.
+    difficulty_key = str(meta.get("difficulty", "")).lower()
+    out["difficulty_key"] = difficulty_key
+    if difficulty_key in {"introductory", "easy", "intermediate", "hard"}:
+        out["difficulty_label"] = UI[lang][difficulty_key]
     else:
-        out["difficulty_label"] = raw_difficulty
+        out["difficulty_label"] = str(out.get("difficulty", ""))
     return out
 
 
@@ -171,7 +180,7 @@ def kata_row(meta_view: dict, lang: str) -> str:
     eid = meta_view["id"]
     ui = UI[lang]
     return f'''
-      <article class="kata-row" data-eid="{esc(eid)}">
+      <article class="kata-row" data-eid="{esc(eid)}" data-difficulty="{esc(meta_view[\'difficulty_key\'])}">
         <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
         <div class="row-body">
           <div class="row-topline"><span class="difficulty">{esc(meta_view['difficulty_label'])}</span><span aria-hidden="true">·</span><span>{esc(ui['minutes'].format(n=meta_view.get('estimated_minutes', '?')))}</span></div>
@@ -194,6 +203,12 @@ def build_index(exercises: list[tuple[dict, Path]], lang: str) -> None:
     rows = "".join(kata_row(view(meta, lang), lang) for meta, _ in exercises)
     flow = f'<span>{ui["flow"][0]}</span><span aria-hidden="true">→</span><span>{ui["flow"][1]}</span><span aria-hidden="true">→</span><span>{ui["flow"][2]}</span>'
     total = len(exercises)
+    present_difficulties = {str(meta.get("difficulty", "")).lower() for meta, _ in exercises}
+    difficulty_options = [f'<option value="all">{esc(ui["all_difficulties"])}</option>']
+    for key in ("introductory", "easy", "intermediate", "hard"):
+        if key in present_difficulties:
+            difficulty_options.append(f'<option value="{key}">{esc(ui[key])}</option>')
+    difficulty_options_html = "".join(difficulty_options)
     body = f'''
   <main class="home">
     <section class="hero">
@@ -210,6 +225,14 @@ def build_index(exercises: list[tuple[dict, Path]], lang: str) -> None:
       </div>
       <ul id="badge-list" class="badge-list"></ul>
     </section>
+
+    <div class="catalog-tools">
+      <label for="difficulty-filter">{esc(ui["difficulty_filter"])}</label>
+      <select id="difficulty-filter">
+        {difficulty_options_html}
+      </select>
+      <span id="filter-count" role="status" aria-live="polite">{esc(ui["showing"].format(visible=total, total=total))}</span>
+    </div>
 
     <section class="kata-list" aria-label="{esc(ui["exercises"])}">
       {rows}
