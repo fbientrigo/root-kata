@@ -1,0 +1,105 @@
+{
+  "id": "cpp-root-histogram-range",
+  "kind": "cpp",
+  "title": "Keep calibration values visible",
+  "track": "ROOT histograms",
+  "difficulty": "Intermediate",
+  "order": 8,
+  "published": true,
+  "estimated_minutes": 12,
+  "summary": "Diagnose a histogram range that silently sends a boundary measurement to overflow.",
+  "description": "Repair TH1D* build_calibration_histogram(const std::vector<double>& values). Calibration measurements span 0 through 100 inclusive and must stay in visible 10-unit bins rather than disappearing into underflow or overflow.",
+  "requirements": [
+    "Name the histogram h_calibration.",
+    "Keep 10-unit-wide visible bins.",
+    "Make the intended 0 through 100 calibration range visible, including the value 100.",
+    "Fill every input value exactly once."
+  ],
+  "examples": [
+    {
+      "input": "{0, 10, ..., 100}",
+      "output": "11 visible entries, overflow = 0",
+      "explanation": "In ROOT the upper histogram edge belongs to overflow, so a [0,100) visible range does not contain x = 100."
+    }
+  ],
+  "hints": [
+    "Inspect bin 0 and bin GetNbinsX()+1: they are underflow and overflow.",
+    "If visible bins must remain 10 units wide, extend the upper edge rather than stretching the bins."
+  ],
+  "entrypoint": "build_calibration_histogram",
+  "starter": "solution.cpp",
+  "harness": "harness.cpp",
+  "validator": "validator.py",
+  "requires": [
+    "ROOT"
+  ],
+  "topics": [
+    "TH1D",
+    "binning",
+    "underflow",
+    "overflow",
+    "GetBinContent"
+  ],
+  "learning_goal": "Use underflow and overflow as evidence that a histogram range does not represent the intended sample.",
+  "resources": [
+    {
+      "label": "TH1 — ROOT reference",
+      "url": "https://root.cern.ch/doc/master/classTH1.html"
+    }
+  ],
+  "problem_markdown": "problem.md",
+  "curriculum": {
+    "role": "limitation",
+    "competency": "Diagnose a histogram whose chosen range hides observations in underflow or overflow.",
+    "prerequisites": [
+      "cpp-root-histogram-inspect"
+    ],
+    "transfer_level": "applied",
+    "misconception": "A value equal to the histogram upper edge is contained in the last visible bin.",
+    "observable_success": "The learner preserves 10-unit bins while making every intended calibration value visible and verifies zero underflow/overflow.",
+    "acceptance": "A deliberately bad range produces observable under/overflow; the learner identifies and corrects the representation problem.",
+    "source": {
+      "repository": "fbientrigo/root-student-course",
+      "path": "course/notebooks/core/01-histograms-and-graphs.ipynb",
+      "concept": "underflow, overflow and histogram range"
+    }
+  },
+  "es": {
+    "title": "Mantén visibles los valores de calibración",
+    "track": "Histogramas ROOT",
+    "difficulty": "Intermedio",
+    "summary": "Diagnostica un rango de histograma que envía silenciosamente una medición de borde al overflow.",
+    "description": "Repara TH1D* build_calibration_histogram(const std::vector<double>& values). Las mediciones de calibración van de 0 a 100 inclusive y deben permanecer en bins visibles de 10 unidades, sin desaparecer en underflow u overflow.",
+    "requirements": [
+      "Nombra el histograma h_calibration.",
+      "Mantén bins visibles de 10 unidades de ancho.",
+      "Haz visible el rango de calibración previsto de 0 a 100, incluido el valor 100.",
+      "Llena cada valor de entrada exactamente una vez."
+    ],
+    "examples": [
+      {
+        "output": "11 entradas visibles, overflow = 0",
+        "explanation": "En ROOT el borde superior del histograma pertenece al overflow, por lo que un rango visible [0,100) no contiene x = 100."
+      }
+    ],
+    "hints": [
+      "Inspecciona el bin 0 y el bin GetNbinsX()+1: son underflow y overflow.",
+      "Si los bins visibles deben seguir midiendo 10 unidades, extiende el borde superior en vez de estirar los bins."
+    ],
+    "learning_goal": "Usar underflow y overflow como evidencia de que el rango de un histograma no representa la muestra prevista.",
+    "cases": {
+      "range keeps boundary visible": "el rango mantiene visible el borde",
+      "fills every measurement": "llena cada medición"
+    },
+    "messages": {
+      "Histogram must be returned": "Se debe devolver un histograma",
+      "Histogram name is wrong": "El nombre del histograma es incorrecto",
+      "Visible bins must stay 10 units wide": "Los bins visibles deben mantener 10 unidades de ancho",
+      "Expected 11 visible bins from 0 to 110": "Se esperaban 11 bins visibles de 0 a 110",
+      "Every calibration value should be filled once": "Cada valor de calibración debe llenarse una vez",
+      "All calibration values should be visible": "Todos los valores de calibración deben ser visibles",
+      "Calibration sample should not underflow": "La muestra de calibración no debe tener underflow",
+      "Calibration sample should not overflow": "La muestra de calibración no debe tener overflow"
+    }
+  }
+}

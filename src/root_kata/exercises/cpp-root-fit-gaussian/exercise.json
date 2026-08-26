@@ -1,0 +1,107 @@
+{
+  "id": "cpp-root-fit-gaussian",
+  "kind": "cpp",
+  "title": "Recover a peak with a Gaussian fit",
+  "track": "ROOT fitting",
+  "difficulty": "Hard",
+  "order": 13,
+  "published": true,
+  "estimated_minutes": 20,
+  "summary": "Fit a deterministic peak and report the fit status, fitted location, and fitted width instead of judging the curve by eye.",
+  "description": "Implement PeakFit fit_peak(TH1D& hist). Fit the supplied peaked histogram with a Gaussian TF1 over x in [2,8], then return the fit status, fitted mean, and positive sigma.",
+  "requirements": [
+    "Use a Gaussian TF1 over the fit range [2,8].",
+    "Fit the supplied histogram rather than replacing its contents.",
+    "Return the fit status so failure is observable.",
+    "Return the fitted Gaussian mean and a positive fitted sigma."
+  ],
+  "examples": [
+    {
+      "input": "deterministic peak centered near 5 with width near 0.8",
+      "output": "status=0, mean≈5, sigma≈0.8",
+      "explanation": "The numerical fit result is the evidence; a visually plausible curve is not enough."
+    }
+  ],
+  "hints": [
+    "For a Gaussian TF1, parameter 1 is the mean and parameter 2 is sigma.",
+    "Use quiet/no-draw fit options so the kata remains deterministic and focused on the fit result."
+  ],
+  "entrypoint": "fit_peak",
+  "starter": "solution.cpp",
+  "harness": "harness.cpp",
+  "validator": "validator.py",
+  "requires": [
+    "ROOT"
+  ],
+  "topics": [
+    "TH1D",
+    "TF1",
+    "Fit",
+    "Gaussian",
+    "fit status",
+    "parameters"
+  ],
+  "learning_goal": "Use a fitted model as a numerical result: check status and interpret location and width from fitted parameters.",
+  "resources": [
+    {
+      "label": "TH1 — ROOT reference",
+      "url": "https://root.cern.ch/doc/master/classTH1.html"
+    },
+    {
+      "label": "ROOT fitting manual",
+      "url": "https://root.cern/manual/fitting/"
+    }
+  ],
+  "problem_markdown": "problem.md",
+  "curriculum": {
+    "role": "integration",
+    "competency": "Fit a deterministic peaked histogram with a simple model and interpret fitted location and width.",
+    "prerequisites": [
+      "cpp-root-tf1-range-parameters",
+      "cpp-root-histogram-inspect"
+    ],
+    "transfer_level": "transfer",
+    "misconception": "A curve that looks close to the histogram is sufficient evidence that the fit succeeded and its parameters are meaningful.",
+    "observable_success": "The learner performs the fit, checks its status, and recovers the deterministic peak mean and width within justified tolerances.",
+    "acceptance": "Fit parameters land in justified deterministic tolerances and feedback refers to model/data behavior rather than syntax.",
+    "source": {
+      "repository": "fbientrigo/root-student-course",
+      "path": "course/notebooks/core/01-histograms-and-graphs.ipynb",
+      "concept": "histogram fitting with ROOT functions"
+    }
+  },
+  "es": {
+    "title": "Recupera un pico con un ajuste gaussiano",
+    "track": "Ajustes ROOT",
+    "difficulty": "Difícil",
+    "summary": "Ajusta un pico determinista y reporta el estado, la posición y el ancho ajustados en vez de juzgar la curva a ojo.",
+    "description": "Implementa PeakFit fit_peak(TH1D& hist). Ajusta el histograma con pico usando una TF1 gaussiana en x dentro de [2,8] y devuelve el estado del ajuste, la media ajustada y un sigma positivo.",
+    "requirements": [
+      "Usa una TF1 gaussiana en el rango de ajuste [2,8].",
+      "Ajusta el histograma entregado en vez de reemplazar su contenido.",
+      "Devuelve el estado del ajuste para que un fallo sea observable.",
+      "Devuelve la media gaussiana ajustada y un sigma ajustado positivo."
+    ],
+    "examples": [
+      {
+        "output": "status=0, mean≈5, sigma≈0.8",
+        "explanation": "El resultado numérico del ajuste es la evidencia; una curva visualmente plausible no basta."
+      }
+    ],
+    "hints": [
+      "Para una TF1 gaussiana, el parámetro 1 es la media y el parámetro 2 es sigma.",
+      "Usa opciones de ajuste silencioso/sin dibujo para mantener el kata enfocado en el resultado."
+    ],
+    "learning_goal": "Usar un modelo ajustado como resultado numérico: comprobar el estado e interpretar posición y ancho desde los parámetros.",
+    "cases": {
+      "fit converges": "el ajuste converge",
+      "recovers peak parameters": "recupera parámetros del pico"
+    },
+    "messages": {
+      "Fit should converge": "El ajuste debe converger",
+      "Fitted mean should recover the peak location": "La media ajustada debe recuperar la posición del pico",
+      "Fitted sigma should recover the peak width": "El sigma ajustado debe recuperar el ancho del pico",
+      "Fitted sigma must be positive": "El sigma ajustado debe ser positivo"
+    }
+  }
+}
