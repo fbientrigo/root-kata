@@ -6,12 +6,18 @@
       badges: { first_kata: 'Primer kata', first_root_histogram: 'Primer histograma ROOT', basics_complete: 'Fundamentos completados' },
       completed: 'Completado',
       showing: (visible, total) => `${visible} de ${total} ejercicios`,
+      practiceHere: 'Practicar aquí',
+      localTitle: 'Servidor local activo',
+      localBody: 'Abre un kata y edita el código directamente en esta página.',
     },
     en: {
       copied: 'Kata command copied. Paste it into a Jupyter cell.',
       badges: { first_kata: 'First Kata', first_root_histogram: 'First ROOT Histogram', basics_complete: 'Basics Complete' },
       completed: 'Completed',
       showing: (visible, total) => `${visible} of ${total} exercises`,
+      practiceHere: 'Practice here',
+      localTitle: 'Local server active',
+      localBody: 'Open a kata and edit the code directly on this page.',
     },
   };
   const msg = MESSAGES[lang] || MESSAGES.es;
@@ -36,7 +42,6 @@
     window.setTimeout(() => toast.remove(), 2600);
   };
 
-  // --- absorb progress carried in the URL (?solved=<id>&badge=<id>), then clean it
   const absorbParams = () => {
     const params = new URLSearchParams(location.search);
     if (!params.has('solved') && !params.has('badge')) return;
@@ -55,7 +60,6 @@
     history.replaceState(null, '', location.pathname + location.hash);
   };
 
-  // --- dashboard rendering
   const renderProgress = () => {
     const panel = document.querySelector('.progress-panel');
     if (!panel) return;
@@ -110,14 +114,49 @@
     apply();
   };
 
+  const isLocalServe = () =>
+    location.protocol === 'http:' && ['127.0.0.1', 'localhost', '::1'].includes(location.hostname);
+
+  const exerciseIdForLink = (link) => {
+    const fromRow = link.closest('[data-eid]')?.dataset.eid;
+    if (fromRow) return fromRow;
+    const fromPath = location.pathname.match(/\/problems\/([\w-]+)\.html$/)?.[1];
+    if (fromPath) return fromPath;
+    return link.dataset.command?.match(/rk\.start\(["']([\w-]+)["']\)/)?.[1] || '';
+  };
+
+  const enableLocalWorkspace = () => {
+    if (!isLocalServe()) return;
+    document.querySelectorAll('.jupyter-link').forEach((link) => {
+      const eid = exerciseIdForLink(link);
+      if (!eid) return;
+      link.href = `/kata/${encodeURIComponent(eid)}?lang=${encodeURIComponent(lang)}`;
+      link.removeAttribute('target');
+      link.removeAttribute('rel');
+      link.textContent = msg.practiceHere;
+      link.classList.add('local-workspace-link');
+    });
+
+    const note = document.querySelector('.local-note');
+    if (note) {
+      const strong = document.createElement('strong');
+      const span = document.createElement('span');
+      strong.textContent = msg.localTitle;
+      span.textContent = msg.localBody;
+      note.replaceChildren(strong, span);
+    }
+  };
+
   absorbParams();
   renderProgress();
   renderDifficultyFilter();
+  enableLocalWorkspace();
 
   document.querySelectorAll('.jupyter-link').forEach((link) => {
     link.addEventListener('click', () => {
-      const command = link.dataset.command || '';
       try { localStorage.setItem('root-kata:lang', lang); } catch {}
+      if (link.classList.contains('local-workspace-link')) return;
+      const command = link.dataset.command || '';
       if (!command || !navigator.clipboard?.writeText) return;
       navigator.clipboard.writeText(command).then(() => showToast(msg.copied)).catch(() => {});
     });

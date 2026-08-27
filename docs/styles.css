@@ -112,3 +112,34 @@ h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.35rem); line-height: 1.02; letter-
   .row-actions { grid-column: 2; justify-self: stretch; flex-direction: row; flex-wrap: wrap; }
 }
 a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+
+/* Local kata workspace */
+.workspace { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+.workspace-grid { display: grid; grid-template-columns: minmax(280px, .85fr) minmax(420px, 1.15fr); gap: 24px; align-items: start; }
+.workspace-problem, .workspace-editor-panel { min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+.workspace-problem { padding: 24px; }
+.workspace-problem h1 { margin-top: 10px; font-size: clamp(1.8rem, 4vw, 2.6rem); }
+.workspace-problem section { padding-top: 22px; margin-top: 22px; border-top: 1px solid var(--border); }
+.workspace-problem h2, .workspace-editor-panel h2 { margin: 0 0 10px; font-size: 1.05rem; }
+.workspace-problem p, .workspace-problem li { line-height: 1.6; }
+.workspace-problem ul { padding-left: 1.2rem; }
+.workspace-example { padding: 12px 14px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface-2); }
+.workspace-example + .workspace-example { margin-top: 10px; }
+.workspace-example > div { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 8px; margin: 4px 0; }
+.workspace-example span { color: var(--muted); font-size: .8rem; }
+.workspace-example code { overflow-wrap: anywhere; }
+.workspace-example p { margin: 8px 0 0; color: var(--muted); font-size: .9rem; }
+.workspace-editor-panel { position: sticky; top: 18px; overflow: hidden; }
+.workspace-editor-head { padding: 18px 20px 14px; display: flex; justify-content: space-between; gap: 16px; align-items: start; border-bottom: 1px solid var(--border); }
+.workspace-editor-head p { margin: 4px 0 0; color: var(--muted); font-size: .9rem; line-height: 1.45; }
+.workspace-runtime { flex: none; padding: 4px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: .75rem; font-weight: 700; }
+.code-editor { display: block; width: 100%; min-height: 460px; resize: vertical; border: 0; border-bottom: 1px solid var(--border); padding: 18px 20px; background: var(--code); color: var(--text); font: 14px/1.55 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; tab-size: 4; white-space: pre; overflow: auto; }
+.code-editor:focus { outline: 3px solid var(--accent); outline-offset: -3px; }
+.workspace-status { margin: 0; padding: 11px 20px; color: var(--muted); font-size: .82rem; background: var(--surface-2); }
+@media (max-width: 860px) {
+  .workspace { width: min(100% - 24px, 1180px); }
+  .workspace-grid { grid-template-columns: 1fr; }
+  .workspace-editor-panel { position: static; }
+  .code-editor { min-height: 380px; }
+}

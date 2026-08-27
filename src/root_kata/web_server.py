@@ -1,23 +1,51 @@
 """Minimal trusted-local HTTP server for the ROOT Kata learner UI.
 
-Phase 1 deliberately exposes only read-only catalog data plus the generated
-static site. Browser-triggered code execution belongs to the later execution
-slice; this module does not add a second runner or make the current runner
-network-accessible.
+Phase 1 serves the existing catalog plus a small server-rendered kata workspace.
+Browser-triggered code execution belongs to the later execution slice; this
+module still exposes only read-only exercise data.
 """
 from __future__ import annotations
 
+import html
 import json
 from functools import partial
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 
-from .catalog import exercise_payload, list_exercises, repository_root
+from .catalog import exercise_payload, list_exercises, localized, repository_root
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
+_LANGS = {"es", "en"}
+
+_WORKSPACE_UI = {
+    "es": {
+        "back": "← Todos los katas",
+        "code": "Código",
+        "edit_help": "Edita el starter directamente aquí. La ejecución se conecta en el siguiente hito.",
+        "requirements": "Requisitos",
+        "examples": "Ejemplos",
+        "hints": "Pistas",
+        "input": "Entrada",
+        "output": "Salida",
+        "not_running": "Editor listo · ejecución aún no habilitada",
+        "switch": "EN",
+    },
+    "en": {
+        "back": "← All katas",
+        "code": "Code",
+        "edit_help": "Edit the starter directly here. Execution is connected in the next milestone.",
+        "requirements": "Requirements",
+        "examples": "Examples",
+        "hints": "Hints",
+        "input": "Input",
+        "output": "Output",
+        "not_running": "Editor ready · execution not enabled yet",
+        "switch": "ES",
+    },
+}
 
 
 class RootKataHTTPServer(ThreadingHTTPServer):
@@ -26,29 +54,111 @@ class RootKataHTTPServer(ThreadingHTTPServer):
 
 
 class RootKataHandler(SimpleHTTPRequestHandler):
-    """Serve the generated learner UI and a tiny read-only catalog API."""
+    """Serve the learner UI plus a tiny read-only catalog API."""
 
-    server_version = "ROOTKataHTTP/0.1"
+    server_version = "ROOTKataHTTP/0.2"
 
-    def _send_json(self, status: HTTPStatus, payload: object) -> None:
-        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    def _send_bytes(self, status: HTTPStatus, body: bytes, content_type: str) -> None:
         self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
 
-    def _exercise(self, exercise_id: str) -> None:
+    def _send_json(self, status: HTTPStatus, payload: object) -> None:
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self._send_bytes(status, body, "application/json; charset=utf-8")
+
+    def _send_html(self, status: HTTPStatus, markup: str) -> None:
+        self._send_bytes(status, markup.encode("utf-8"), "text/html; charset=utf-8")
+
+    def _exercise(self, exercise_id: str) -> dict | None:
         try:
             payload = exercise_payload(exercise_id)
         except (KeyError, OSError, ValueError):
-            self._send_json(HTTPStatus.NOT_FOUND, {"error": "exercise_not_found"})
-            return
+            return None
         if not payload.get("published", True):
-            self._send_json(HTTPStatus.NOT_FOUND, {"error": "exercise_not_found"})
+            return None
+        return payload
+
+    def _workspace(self, exercise_id: str, lang: str) -> None:
+        payload = self._exercise(exercise_id)
+        if payload is None:
+            self._send_html(HTTPStatus.NOT_FOUND, "<h1>404 · kata not found</h1>")
             return
-        self._send_json(HTTPStatus.OK, payload)
+
+        lang = lang if lang in _LANGS else "es"
+        view = localized(payload, lang)
+        ui = _WORKSPACE_UI[lang]
+        esc = lambda value: html.escape(str(value), quote=True)
+
+        requirements = "".join(f"<li>{esc(item)}</li>" for item in view.get("requirements", []))
+        hints = "".join(f"<li>{esc(item)}</li>" for item in view.get("hints", []))
+        examples = []
+        for item in view.get("examples", []):
+            explanation = f"<p>{esc(item.get('explanation', ''))}</p>" if item.get("explanation") else ""
+            examples.append(
+                '<div class="workspace-example">'
+                f'<div><span>{esc(ui["input"])}</span><code>{esc(item.get("input", ""))}</code></div>'
+                f'<div><span>{esc(ui["output"])}</span><code>{esc(item.get("output", ""))}</code></div>'
+                f"{explanation}</div>"
+            )
+
+        other_lang = "en" if lang == "es" else "es"
+        runtime = "ROOT + C++" if view.get("requires") else "C++17"
+        source = esc(payload["starter_code"])
+        markup = f"""<!doctype html>
+<html lang="{lang}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{esc(view["title"])} · ROOT Kata</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">ROOT Kata</a>
+    <span>{esc(runtime)}</span>
+    <nav class="lang-switch" aria-label="Language">
+      <a href="/kata/{esc(exercise_id)}?lang={other_lang}" lang="{other_lang}" hreflang="{other_lang}">{ui["switch"]}</a>
+    </nav>
+  </header>
+  <main class="workspace">
+    <a class="back-link" href="/">{esc(ui["back"])}</a>
+    <div class="workspace-grid">
+      <article class="workspace-problem" aria-labelledby="kata-title">
+        <div class="problem-meta">
+          <span class="difficulty">{esc(view.get("difficulty", ""))}</span>
+          <span>{esc(runtime)}</span>
+        </div>
+        <h1 id="kata-title">{esc(view["title"])}</h1>
+        <p class="lead">{esc(view.get("summary", ""))}</p>
+        <section>
+          <p>{esc(view.get("description", ""))}</p>
+        </section>
+        {'<section><h2>' + esc(ui["examples"]) + '</h2>' + ''.join(examples) + '</section>' if examples else ''}
+        {'<section><h2>' + esc(ui["requirements"]) + '</h2><ul>' + requirements + '</ul></section>' if requirements else ''}
+        {'<section><h2>' + esc(ui["hints"]) + '</h2><ul>' + hints + '</ul></section>' if hints else ''}
+      </article>
+      <section class="workspace-editor-panel" aria-labelledby="editor-title">
+        <div class="workspace-editor-head">
+          <div>
+            <h2 id="editor-title">{esc(ui["code"])}</h2>
+            <p>{esc(ui["edit_help"])}</p>
+          </div>
+          <span class="workspace-runtime">{esc(runtime)}</span>
+        </div>
+        <label class="visually-hidden" for="code-editor">{esc(ui["code"])}</label>
+        <textarea id="code-editor" class="code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off">{source}</textarea>
+        <p class="workspace-status" role="status">{esc(ui["not_running"])}</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
+"""
+        self._send_html(HTTPStatus.OK, markup)
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib handler API
         parsed = urlsplit(self.path)
@@ -65,10 +175,23 @@ class RootKataHandler(SimpleHTTPRequestHandler):
             if not exercise_id or "/" in exercise_id:
                 self._send_json(HTTPStatus.NOT_FOUND, {"error": "exercise_not_found"})
                 return
-            self._exercise(exercise_id)
+            payload = self._exercise(exercise_id)
+            if payload is None:
+                self._send_json(HTTPStatus.NOT_FOUND, {"error": "exercise_not_found"})
+            else:
+                self._send_json(HTTPStatus.OK, payload)
             return
         if path.startswith("/api/"):
             self._send_json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
+            return
+
+        if path.startswith("/kata/"):
+            exercise_id = unquote(path.removeprefix("/kata/"))
+            if not exercise_id or "/" in exercise_id:
+                self._send_html(HTTPStatus.NOT_FOUND, "<h1>404 · kata not found</h1>")
+                return
+            lang = parse_qs(parsed.query).get("lang", ["es"])[0]
+            self._workspace(exercise_id, lang)
             return
 
         super().do_GET()
