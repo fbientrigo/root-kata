@@ -3,25 +3,34 @@ from __future__ import annotations
 
 import html
 import json
+import os
+import tempfile
 from functools import partial
 from http import HTTPStatus
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from .catalog import exercise_payload, list_exercises, localized, repository_root
+from . import i18n
+from .catalog import case_label, exercise_payload, list_exercises, localized, message_label, repository_root
 from .grader import grade_code
+from .notebook_ui import _summary
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 MAX_RUN_BODY_BYTES = 256 * 1024
 _LANGS = {"es", "en"}
+_STATUS_KEYS = {
+    "passed": "status.passed", "failed": "status.failed", "compile_error": "status.compile_error",
+    "runtime_error": "status.runtime_error", "solution_error": "status.solution_error", "timeout": "status.timeout",
+    "runtime_missing": "status.runtime_missing", "harness_error": "status.harness_error", "grader_error": "status.grader_error",
+}
 
 _WORKSPACE_UI = {
     "es": {
         "back": "← Todos los katas",
         "code": "Código",
-        "edit_help": "Edita el starter directamente aquí. La ejecución se conecta en el siguiente hito.",
+        "edit_help": "Edita el starter aquí y pulsa Ejecutar para ver el resultado.",
         "requirements": "Requisitos",
         "examples": "Ejemplos",
         "hints": "Pistas",
@@ -36,7 +45,7 @@ _WORKSPACE_UI = {
     "en": {
         "back": "← All katas",
         "code": "Code",
-        "edit_help": "Edit the starter directly here. Execution is connected in the next milestone.",
+        "edit_help": "Edit the starter here, then press Run to see the result.",
         "requirements": "Requirements",
         "examples": "Examples",
         "hints": "Hints",
@@ -170,6 +179,35 @@ class RootKataHandler(SimpleHTTPRequestHandler):
 """
         self._send_html(HTTPStatus.OK, markup)
 
+    def _present_result(self, result: dict, metadata: dict, lang: str) -> dict:
+        public = dict(result)
+        status = str(public.get("status", ""))
+        public["status_label"] = i18n.translate(_STATUS_KEYS.get(status, "status.check_result"), lang)
+        public["summary"] = _summary(public, lang=lang)
+        public["cases"] = []
+        for item in result.get("cases", []):
+            case = dict(item)
+            case["name"] = case_label(metadata, str(case.get("name", "")), lang=lang)
+            if "message" in case:
+                case["message"] = message_label(metadata, case.get("message"), lang=lang)
+            if not case.get("passed") and case.get("expected") is not None:
+                case["expected_got"] = i18n.translate(
+                    "expected_got_text", lang, expected=case.get("expected"), actual=case.get("actual")
+                )
+            public["cases"].append(case)
+
+        work_dir = public.get("work_dir")
+        if work_dir:
+            for field in ("stdout", "stderr"):
+                text = public.get(field)
+                if isinstance(text, str):
+                    for separator in (os.sep, "/", "\\"):
+                        text = text.replace(str(work_dir) + separator, "")
+                    public[field] = text.replace(str(work_dir), "")
+        for internal_key in ("work_dir", "preview", "_sid", "_params"):
+            public.pop(internal_key, None)
+        return public
+
     def _run_request(self) -> None:
         if self.headers.get_content_type() != "application/json":
             self._send_json(HTTPStatus.UNSUPPORTED_MEDIA_TYPE, {"error": "content_type_required"})
@@ -202,14 +240,17 @@ class RootKataHandler(SimpleHTTPRequestHandler):
         if not isinstance(code, str):
             self._send_json(HTTPStatus.BAD_REQUEST, {"error": "invalid_request", "message": "code must be a string"})
             return
-        if self._exercise(exercise_id) is None:
+        metadata = self._exercise(exercise_id)
+        if metadata is None:
             self._send_json(HTTPStatus.NOT_FOUND, {"error": "exercise_not_found"})
             return
 
-        result = dict(grade_code(exercise_id, code))
-        for internal_key in ("work_dir", "preview", "_sid", "_params"):
-            result.pop(internal_key, None)
-        self._send_json(HTTPStatus.OK, result)
+        lang = request.get("lang", "es")
+        if not isinstance(lang, str) or lang not in _LANGS:
+            lang = "es"
+        with tempfile.TemporaryDirectory(prefix="root-kata-web-") as attempt:
+            result = grade_code(exercise_id, code, work_root=Path(attempt))
+        self._send_json(HTTPStatus.OK, self._present_result(result, metadata, lang))
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib handler API
         path = urlsplit(self.path).path.rstrip("/") or "/"

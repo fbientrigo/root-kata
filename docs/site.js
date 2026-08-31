@@ -155,17 +155,6 @@
     const feedback = document.getElementById('run-feedback');
     if (!form || !editor || !button || !status || !feedback) return;
 
-    const labels = {
-      passed: lang === 'es' ? 'Resuelto' : 'Passed',
-      failed: lang === 'es' ? 'Pruebas visibles fallidas' : 'Visible tests failed',
-      compile_error: lang === 'es' ? 'Error de compilación' : 'Compile error',
-      runtime_error: lang === 'es' ? 'Error de ejecución' : 'Runtime error',
-      timeout: lang === 'es' ? 'Tiempo agotado' : 'Timeout',
-      runtime_missing: lang === 'es' ? 'Falta el entorno de ejecución' : 'Runtime missing',
-      harness_error: lang === 'es' ? 'Error del harness' : 'Harness error',
-      grader_error: lang === 'es' ? 'Error del grader' : 'Grader error',
-      request_error: lang === 'es' ? 'No se pudo ejecutar' : 'Could not run',
-    };
     const exerciseId = decodeURIComponent(location.pathname.replace(/^\/kata\//, '').replace(/\/$/, ''));
     const make = (tag, text, className) => {
       const element = document.createElement(tag);
@@ -183,7 +172,7 @@
       feedback.hidden = false;
       feedback.className = `run-feedback status-${String(result.status || 'unknown').replace(/[^\w-]/g, '')}`;
       feedback.replaceChildren(
-        make('h2', labels[result.status] || result.status || (lang === 'es' ? 'Resultado' : 'Result')),
+        make('h2', result.status_label || result.status || (lang === 'es' ? 'Resultado' : 'Result')),
         make('p', result.summary || '')
       );
       if (Array.isArray(result.cases) && result.cases.length) {
@@ -195,7 +184,7 @@
           row.append(make('span', item.name || ''));
           if (!item.passed) {
             const detail = [item.message];
-            if (item.expected !== null && item.expected !== undefined) detail.push(`expected ${item.expected}, got ${item.actual}`);
+            if (item.expected_got) detail.push(item.expected_got);
             if (detail.some(Boolean)) row.append(make('div', detail.filter(Boolean).join(' · '), 'case-detail'));
           }
           list.append(row);
@@ -223,7 +212,7 @@
         const response = await fetch('/api/run', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({exercise_id: exerciseId, code: editor.value}),
+          body: JSON.stringify({exercise_id: exerciseId, code: editor.value, lang}),
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.message || result.error || 'Request failed');

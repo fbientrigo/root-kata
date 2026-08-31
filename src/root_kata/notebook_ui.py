@@ -14,13 +14,13 @@ _ICON = {
 }
 
 
-def _summary(result: dict[str, Any]) -> str:
+def _summary(result: dict[str, Any], *, lang: str | None = None) -> str:
     """Localized summary: prefer sid+params over the canonical English text."""
     sid = result.get("_sid")
     if sid:
-        text = i18n.t(sid, **(result.get("_params") or {}))
+        text = i18n.translate(sid, lang or i18n.get_lang(), **(result.get("_params") or {}))
         if sid == "sum.crashed_signal" and result.get("_params", {}).get("signal") == "SIGSEGV":
-            text += i18n.t("sum.segv_hint")
+            text += i18n.translate("sum.segv_hint", lang or i18n.get_lang())
         return text
     return str(result.get("summary", ""))
 
