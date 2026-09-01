@@ -28,5 +28,8 @@ jobs:
       - name: Generate static pages
         run: python scripts/build_pages.py
 
+      - name: Verify static pages are in sync
+        run: test -z "$(git status --porcelain -- docs)"
+
       - name: Run tests
         run: python -m unittest discover -s tests -v
