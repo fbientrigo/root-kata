@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Representa pares medidos x-y sin convertir sus coordenadas x en números de punto implícitos.">
+  <title>Conserva mediciones pareadas con TGraph · ROOT Kata</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../index.html">ROOT Kata</a>
+    <span>práctica corta de C++/ROOT en Jupyter</span>
+    <nav class="lang-switch" aria-label="Language"><a href="../en/problems/cpp-root-tgraph-points.html" lang="en" hreflang="en">EN</a></nav>
+  </header>
+  
+  <main class="problem-layout">
+    <a class="back-link" href="../index.html">← Todos los katas</a>
+    <article class="problem">
+      <header class="problem-header">
+        <div class="problem-meta">
+          <span class="difficulty">Intermedio</span>
+          <span>≈ 10 min</span>
+          <span>ROOT + C++</span>
+        </div>
+        <h1>Conserva mediciones pareadas con TGraph</h1>
+        <p class="lead">Representa pares medidos x-y sin convertir sus coordenadas x en números de punto implícitos.</p>
+        <div class="chips"><span class="chip">TGraph</span><span class="chip">paired data</span><span class="chip">GetPoint</span><span class="chip">coordinates</span></div>
+      </header>
+
+      <section>
+        <h2>Problema</h2>
+        <p>Implementa TGraph* build_graph(const std::vector&lt;double&gt;&amp; x, const std::vector&lt;double&gt;&amp; y). Los dos vectores tienen igual longitud. Conserva cada par ordenado y su orden de entrada.</p>
+        <div class="contract"><span>Implementa</span><code>build_graph(…)</code></div>
+      </section>
+
+      <section>
+        <h2>Ejemplo</h2>
+        
+        <div class="example-box">
+          <div><span>Entrada</span><code>x={0,1.5,4}, y={2,3.5,3}</code></div>
+          <div><span>Salida</span><code>(0,2), (1.5,3.5), (4,3)</code></div>
+          <p>Un gráfico almacena coordenadas pareadas; el índice del punto no reemplaza a x.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Requisitos</h2>
+        <ul><li>Devuelve un TGraph con exactamente un punto por cada par de entrada.</li><li>Usa los valores x entregados como coordenadas x.</li><li>Usa los valores y entregados como coordenadas y.</li><li>Conserva el orden de las mediciones.</li></ul>
+      </section>
+
+      <section>
+        <h2>Qué practicas</h2>
+        <p>Elegir TGraph para mediciones pareadas y conservar la correspondencia x-y real.</p>
+      </section>
+
+      <section>
+        <h2>Referencias</h2>
+        <ul class="resource-list"><li><a href="https://root.cern.ch/doc/master/classTGraph.html" target="_blank" rel="noopener">TGraph — ROOT reference</a></li></ul>
+      </section>
+
+      <section class="start-panel">
+        <div>
+          <h2>Empieza en Jupyter</h2>
+          <p>Abre tu Jupyter local y pega el comando de abajo. El botón intenta copiarlo.</p>
+          <pre><code>import root_kata as rk
+rk.start(&quot;cpp-root-tgraph-points&quot;)</code></pre>
+        </div>
+        <a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-tgraph-points.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-tgraph-points&quot;)">Abrir en Jupyter</a>
+      </section>
+    </article>
+  </main>
+  <footer class="site-footer">Prototipo educativo no oficial · sin cuentas · corre en tu máquina</footer>
+  <script src="../site.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Represent measured x-y pairs without turning their x coordinates into implicit bin numbers.">
+  <title>Preserve paired measurements with TGraph · ROOT Kata</title>
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../index.html">ROOT Kata</a>
+    <span>short C++/ROOT practice in Jupyter</span>
+    <nav class="lang-switch" aria-label="Language"><a href="../../problems/cpp-root-tgraph-points.html" lang="es" hreflang="es">ES</a></nav>
+  </header>
+  
+  <main class="problem-layout">
+    <a class="back-link" href="../index.html">← All katas</a>
+    <article class="problem">
+      <header class="problem-header">
+        <div class="problem-meta">
+          <span class="difficulty">Intermediate</span>
+          <span>≈ 10 min</span>
+          <span>ROOT + C++</span>
+        </div>
+        <h1>Preserve paired measurements with TGraph</h1>
+        <p class="lead">Represent measured x-y pairs without turning their x coordinates into implicit bin numbers.</p>
+        <div class="chips"><span class="chip">TGraph</span><span class="chip">paired data</span><span class="chip">GetPoint</span><span class="chip">coordinates</span></div>
+      </header>
+
+      <section>
+        <h2>Problem</h2>
+        <p>Implement TGraph* build_graph(const std::vector&lt;double&gt;&amp; x, const std::vector&lt;double&gt;&amp; y). The two vectors have equal length. Preserve each ordered pair and its input order.</p>
+        <div class="contract"><span>Implement</span><code>build_graph(…)</code></div>
+      </section>
+
+      <section>
+        <h2>Example</h2>
+        
+        <div class="example-box">
+          <div><span>Input</span><code>x={0,1.5,4}, y={2,3.5,3}</code></div>
+          <div><span>Output</span><code>(0,2), (1.5,3.5), (4,3)</code></div>
+          <p>A graph stores paired coordinates; the point index is not a replacement for x.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Requirements</h2>
+        <ul><li>Return a TGraph containing exactly one point per input pair.</li><li>Use the supplied x values as x coordinates.</li><li>Use the supplied y values as y coordinates.</li><li>Preserve the order of the measurements.</li></ul>
+      </section>
+
+      <section>
+        <h2>What this practices</h2>
+        <p>Choose TGraph for paired measurements and preserve the actual x-y correspondence.</p>
+      </section>
+
+      <section>
+        <h2>References</h2>
+        <ul class="resource-list"><li><a href="https://root.cern.ch/doc/master/classTGraph.html" target="_blank" rel="noopener">TGraph — ROOT reference</a></li></ul>
+      </section>
+
+      <section class="start-panel">
+        <div>
+          <h2>Start in Jupyter</h2>
+          <p>Open your local Jupyter and paste the command below. The button tries to copy it for you.</p>
+          <pre><code>import root_kata as rk
+rk.start(&quot;cpp-root-tgraph-points&quot;)</code></pre>
+        </div>
+        <a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-tgraph-points.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-tgraph-points&quot;)">Open in Jupyter</a>
+      </section>
+    </article>
+  </main>
+  <footer class="site-footer">Unofficial educational prototype · no accounts · runs on your machine</footer>
+  <script src="../../site.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Read what a TH1D actually contains: total entries, a chosen bin, and summary statistics.">
+  <title>Inspect a ROOT histogram · ROOT Kata</title>
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../index.html">ROOT Kata</a>
+    <span>short C++/ROOT practice in Jupyter</span>
+    <nav class="lang-switch" aria-label="Language"><a href="../../problems/cpp-root-histogram-inspect.html" lang="es" hreflang="es">ES</a></nav>
+  </header>
+  
+  <main class="problem-layout">
+    <a class="back-link" href="../index.html">← All katas</a>
+    <article class="problem">
+      <header class="problem-header">
+        <div class="problem-meta">
+          <span class="difficulty">Easy</span>
+          <span>≈ 10 min</span>
+          <span>ROOT + C++</span>
+        </div>
+        <h1>Inspect a ROOT histogram</h1>
+        <p class="lead">Read what a TH1D actually contains: total entries, a chosen bin, and summary statistics.</p>
+        <div class="chips"><span class="chip">TH1D</span><span class="chip">GetEntries</span><span class="chip">GetBinContent</span><span class="chip">GetMean</span><span class="chip">GetStdDev</span></div>
+      </header>
+
+      <section>
+        <h2>Problem</h2>
+        <p>Implement HistogramInspection inspect_histogram(const TH1D&amp; hist, int bin). Read the histogram without modifying it and return its total entries, the content of the requested ROOT bin, mean, and standard deviation.</p>
+        <div class="contract"><span>Implement</span><code>inspect_histogram(…)</code></div>
+      </section>
+
+      <section>
+        <h2>Example</h2>
+        
+        <div class="example-box">
+          <div><span>Input</span><code>5 filled observations; requested bin contains 2</code></div>
+          <div><span>Output</span><code>entries = 5, bin_content = 2</code></div>
+          <p>Entries count observations; a bin content counts only observations represented by that bin.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Requirements</h2>
+        <ul><li>Do not fill, reset, or otherwise modify the histogram.</li><li>Return GetEntries() as entries.</li><li>Return GetBinContent(bin) for the requested ROOT bin number.</li><li>Return the histogram mean and standard deviation from ROOT&#x27;s histogram statistics.</li></ul>
+      </section>
+
+      <section>
+        <h2>What this practices</h2>
+        <p>Distinguish total histogram entries from individual bin contents and inspect numerical summary statistics directly.</p>
+      </section>
+
+      <section>
+        <h2>References</h2>
+        <ul class="resource-list"><li><a href="https://root.cern.ch/doc/master/classTH1.html" target="_blank" rel="noopener">TH1 — ROOT reference</a></li></ul>
+      </section>
+
+      <section class="start-panel">
+        <div>
+          <h2>Start in Jupyter</h2>
+          <p>Open your local Jupyter and paste the command below. The button tries to copy it for you.</p>
+          <pre><code>import root_kata as rk
+rk.start(&quot;cpp-root-histogram-inspect&quot;)</code></pre>
+        </div>
+        <a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-histogram-inspect.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-histogram-inspect&quot;)">Open in Jupyter</a>
+      </section>
+    </article>
+  </main>
+  <footer class="site-footer">Unofficial educational prototype · no accounts · runs on your machine</footer>
+  <script src="../../site.js" defer></script>
+</body>
+</html>
