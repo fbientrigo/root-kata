@@ -115,6 +115,13 @@ class DashboardTests(unittest.TestCase):
         self.assertIn("/kata/", js)
         self.assertIn("local-workspace-link", js)
 
+    def test_workspace_editor_keyboard_shortcuts_are_wired(self):
+        js = (ROOT / "docs" / "site.js").read_text(encoding="utf-8")
+        self.assertIn("event.key === 'Tab'", js)
+        self.assertIn("setRangeText('  '", js)
+        self.assertIn("event.ctrlKey || event.metaKey", js)
+        self.assertIn("form.requestSubmit()", js)
+
     def test_dashboard_filters_by_difficulty(self):
         markup = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
         self.assertIn('id="difficulty-filter"', markup)

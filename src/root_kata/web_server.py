@@ -151,7 +151,7 @@ class RootKataHandler(SimpleHTTPRequestHandler):
         </section>
         {'<section><h2>' + esc(ui["examples"]) + '</h2>' + ''.join(examples) + '</section>' if examples else ''}
         {'<section><h2>' + esc(ui["requirements"]) + '</h2><ul>' + requirements + '</ul></section>' if requirements else ''}
-        {'<section><h2>' + esc(ui["hints"]) + '</h2><ul>' + hints + '</ul></section>' if hints else ''}
+        {'<details class="workspace-hints"><summary>' + esc(ui["hints"]) + '</summary><ul>' + hints + '</ul></details>' if hints else ''}
       </article>
       <section class="workspace-editor-panel" aria-labelledby="editor-title">
         <div class="workspace-editor-head">

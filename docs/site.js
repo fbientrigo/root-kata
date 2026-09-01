@@ -202,6 +202,32 @@
       if (result.stderr) feedback.append(details('stderr', result.stderr));
     };
 
+    const changeIndent = (outdent) => {
+      const {value, selectionStart: start, selectionEnd: end} = editor;
+      if (start === end) {
+        editor.setRangeText('  ', start, end, 'end');
+        return;
+      }
+      const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+      const lastLineEnd = end > start && value[end - 1] === '\n' ? end - 1 : end;
+      const lineEnd = value.indexOf('\n', lastLineEnd);
+      const blockEnd = lineEnd === -1 ? value.length : lineEnd;
+      const changed = value.slice(lineStart, blockEnd).split('\n').map((line) =>
+        outdent ? line.replace(/^ {1,2}/, '') : `  ${line}`
+      ).join('\n');
+      editor.setRangeText(changed, lineStart, blockEnd, 'select');
+    };
+
+    editor.addEventListener('keydown', (event) => {
+      if (event.key === 'Tab') {
+        event.preventDefault();
+        changeIndent(event.shiftKey);
+      } else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        if (!button.disabled) form.requestSubmit();
+      }
+    });
+
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (button.disabled) return;
