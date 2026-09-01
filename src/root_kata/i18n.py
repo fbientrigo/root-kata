@@ -47,6 +47,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "status.runtime_error": "Error de ejecución",
         "status.solution_error": "Error en tu código",
         "status.timeout": "Tiempo agotado",
+        "status.runtime_missing": "Falta el entorno de ejecución",
+        "status.harness_error": "Error del banco de pruebas",
+        "status.grader_error": "Error del evaluador",
         "status.check_result": "Resultado",
         "next.passed": "Todas las pruebas visibles pasan.\nTu solución quedó guardada localmente.",
         "next.failed": "Empieza por la primera prueba que falla: compara lo que esperaba con lo que produjo tu código.",
@@ -180,6 +183,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "status.runtime_error": "Runtime error",
         "status.solution_error": "Code error",
         "status.timeout": "Timeout",
+        "status.runtime_missing": "Runtime missing",
+        "status.harness_error": "Harness error",
+        "status.grader_error": "Grader error",
         "status.check_result": "Check result",
         "next.passed": "All visible tests pass.\nYour solution has been saved locally.",
         "next.failed": "Start with the first failing case: compare what it expected with what your code produced.",
@@ -324,13 +330,17 @@ def set_lang(lang: str) -> str:
     return chosen
 
 
-def t(key: str, **kwargs: Any) -> str:
-    """Translate a string id in the active language, falling back to en/key."""
-    lang = get_lang()
-    template = _STRINGS.get(lang, {}).get(key) or _STRINGS["en"].get(key) or key
+def translate(key: str, language: str | None = None, **kwargs: Any) -> str:
+    """Translate a string id in an explicit language, falling back to en/key."""
+    language = normalize(language) or DEFAULT_LANG
+    template = _STRINGS.get(language, {}).get(key) or _STRINGS["en"].get(key) or key
     if kwargs:
         try:
             return template.format(**kwargs)
         except (KeyError, IndexError):
             return template
     return template
+
+
+def t(key: str, **kwargs: Any) -> str:
+    return translate(key, get_lang(), **kwargs)

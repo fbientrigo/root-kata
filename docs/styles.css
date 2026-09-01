@@ -136,7 +136,26 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
 .workspace-runtime { flex: none; padding: 4px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: .75rem; font-weight: 700; }
 .code-editor { display: block; width: 100%; min-height: 460px; resize: vertical; border: 0; border-bottom: 1px solid var(--border); padding: 18px 20px; background: var(--code); color: var(--text); font: 14px/1.55 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace; tab-size: 4; white-space: pre; overflow: auto; }
 .code-editor:focus { outline: 3px solid var(--accent); outline-offset: -3px; }
+.run-form { padding: 14px 20px; border-bottom: 1px solid var(--border); }
+.run-form .button { cursor: pointer; }
+.run-form .button:disabled { cursor: wait; opacity: .65; }
 .workspace-status { margin: 0; padding: 11px 20px; color: var(--muted); font-size: .82rem; background: var(--surface-2); }
+.run-feedback { margin: 0; padding: 17px 20px 20px; border-top: 1px solid var(--border); line-height: 1.5; }
+.run-feedback h2 { margin: 0 0 5px; color: var(--text); }
+.run-feedback p { margin: 0; color: var(--muted); }
+.run-feedback.status-passed h2 { color: var(--ok); }
+.run-feedback.status-failed h2, .run-feedback.status-compile_error h2, .run-feedback.status-runtime_error h2,
+.run-feedback.status-timeout h2, .run-feedback.status-runtime_missing h2, .run-feedback.status-harness_error h2,
+.run-feedback.status-grader_error h2, .run-feedback.status-request_error h2 { color: #c2413a; }
+.run-feedback details { margin-top: 13px; }
+.run-feedback summary { cursor: pointer; font-weight: 700; }
+.run-feedback pre { max-height: 260px; margin: 7px 0 0; padding: 10px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--code); border: 1px solid var(--border); border-radius: 7px; }
+.run-cases { display: grid; gap: 7px; margin: 14px 0 0; padding: 0; list-style: none; }
+.run-cases li { display: grid; grid-template-columns: 1.4rem minmax(0, 1fr); gap: 4px; padding-top: 7px; border-top: 1px solid var(--border); }
+.case-mark { font-weight: 800; }
+.case-passed .case-mark { color: var(--ok); }
+.case-failed .case-mark { color: #c2413a; }
+.case-detail { grid-column: 2; color: var(--muted); font-size: .9rem; overflow-wrap: anywhere; }
 @media (max-width: 860px) {
   .workspace { width: min(100% - 24px, 1180px); }
   .workspace-grid { grid-template-columns: 1fr; }

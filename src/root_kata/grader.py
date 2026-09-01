@@ -8,13 +8,15 @@ from .catalog import get_exercise, repository_root
 def missing_requirements(requirements: list[str]) -> list[str]: return [name for name in requirements if importlib.util.find_spec(name) is None]
 
 
-def grade_code(exercise_id: str, code: str, *, timeout_seconds: float = 8.0) -> dict[str, Any]:
+def grade_code(exercise_id: str, code: str, *, timeout_seconds: float = 8.0,
+               work_root: Path | None = None) -> dict[str, Any]:
     metadata, exercise_dir = get_exercise(exercise_id)
     if metadata.get("kind") == "cpp":
         from .cpp_runner import run_cpp, work_dir
         with tempfile.TemporaryDirectory(prefix="root-kata-") as tmp:
             src = Path(tmp) / metadata["starter"]; src.write_text(code, encoding="utf-8")
-            return run_cpp(exercise_id, src, timeout_seconds=max(timeout_seconds, 10.0), work=work_dir(exercise_id, Path(tempfile.gettempdir()) / "root-kata-web"))
+            root = work_root or Path(tempfile.gettempdir()) / "root-kata-web"
+            return run_cpp(exercise_id, src, timeout_seconds=max(timeout_seconds, 10.0), work=work_dir(exercise_id, root))
     missing = missing_requirements(metadata.get("requires", []))
     if missing:
         names = ", ".join(missing)

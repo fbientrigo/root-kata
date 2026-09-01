@@ -131,12 +131,13 @@ def _label_or_raw(key:str,raw:str)->str:
 def difficulty_label(difficulty:str)->str:return _label_or_raw(f"difficulty.{str(difficulty).lower()}",difficulty)
 def kind_label(kind:str)->str:return _label_or_raw(f"kind.{kind}",kind)
 def badge_label(badge_id:str|None)->str|None:return i18n.t(f"badge.{badge_id}.name") if badge_id else None
-def case_label(meta:dict[str,Any],name:str)->str:
-    overlay=meta.get(i18n.get_lang(),{})
+def case_label(meta:dict[str,Any],name:str,*,lang:str|None=None)->str:
+    overlay=meta.get(i18n.normalize(lang) or i18n.get_lang(),{})
     return overlay.get("cases",{}).get(name,name) if isinstance(overlay,dict) else name
-def message_label(meta:dict[str,Any],message:str|None)->str|None:
+def message_label(meta:dict[str,Any],message:str|None,*,lang:str|None=None)->str|None:
     if message is None: return None
     key=_DEFAULT_MESSAGE_KEYS.get(message)
-    if key: return i18n.t(key)
-    overlay=meta.get(i18n.get_lang(),{})
+    language=i18n.normalize(lang) or i18n.get_lang()
+    if key: return i18n.translate(key,language)
+    overlay=meta.get(language,{})
     return overlay.get("messages",{}).get(message,message) if isinstance(overlay,dict) else message
