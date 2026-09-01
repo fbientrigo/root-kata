@@ -107,6 +107,9 @@ class ReadOnlyApiTests(unittest.TestCase):
         self.assertIn('class="workspace-grid"', markup)
         self.assertIn('id="run-button"', markup)
         self.assertIn('id="run-feedback"', markup)
+        self.assertIn('<details class="workspace-hints">', markup)
+        self.assertIn("<summary>Pistas</summary>", markup)
+        self.assertNotIn('<details class="workspace-hints" open', markup)
         self.assertIn('src="/site.js"', markup)
         self.assertNotIn("Jupyter", markup)
 
