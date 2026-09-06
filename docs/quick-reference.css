@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
   --bg: #ffffff;
   --surface: #ffffff;
   --surface-2: #f4f5f7;
@@ -13,13 +13,13 @@
 
 html,
 body {
-  background: #ffffff;
+  background: var(--bg);
   color: var(--text);
 }
 
 .site-header {
   border-bottom: 0;
-  background: #ffffff;
+  background: var(--bg);
 }
 
 .quickref-back {
@@ -80,7 +80,7 @@ body {
   font-weight: 750;
 }
 .language-toggle button[aria-pressed="true"] {
-  background: #ffffff;
+  background: var(--surface);
   color: var(--text);
   box-shadow: 0 1px 3px rgba(17,17,17,.10);
 }
@@ -90,7 +90,7 @@ body {
   z-index: 10;
   margin: 0 -8px 18px;
   padding: 10px 8px 9px;
-  background: rgba(255,255,255,.94);
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
   backdrop-filter: blur(10px);
   border-bottom: 0;
 }
@@ -103,7 +103,7 @@ body {
   padding: 10px 46px 10px 14px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: #ffffff;
+  background: var(--surface);
   color: var(--text);
   font: inherit;
 }
@@ -169,19 +169,56 @@ body {
   border-radius: 0;
   background: transparent;
   overflow: visible;
+  --domain-mark: #64748b;
+  --domain-bg: var(--code);
+}
+.quickref-domain[data-domain="files"] {
+  --domain-mark: #4f7fc7;
+  --domain-bg: #eef4ff;
+}
+.quickref-domain[data-domain="histograms"] {
+  --domain-mark: #b7791f;
+  --domain-bg: #fff6df;
+}
+.quickref-domain[data-domain="rdataframe"] {
+  --domain-mark: #3f8a5b;
+  --domain-bg: #ecf8f0;
+}
+.quickref-domain[data-domain="trees"] {
+  --domain-mark: #7b61b3;
+  --domain-bg: #f3eeff;
+}
+.quickref-domain[data-domain="fits"] {
+  --domain-mark: #b45b74;
+  --domain-bg: #fdeff2;
+}
+.quickref-domain[data-domain="plotting"] {
+  --domain-mark: #398b98;
+  --domain-bg: #eaf8fa;
 }
 .quickref-domain > h2 {
   position: sticky;
   top: 118px;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0;
   padding: 11px 0;
   border-bottom: 0;
-  background: rgba(255,255,255,.96);
-  color: var(--accent);
+  background: color-mix(in srgb, var(--bg) 96%, transparent);
+  color: var(--text);
   font-size: .82rem;
   text-transform: uppercase;
   letter-spacing: .06em;
+}
+.quickref-domain > h2::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: 0 0 8px;
+  border-radius: 50%;
+  background: var(--domain-mark);
 }
 .quickref-item {
   padding: 13px 0 16px;
@@ -209,7 +246,8 @@ body {
   padding: 10px 76px 10px 11px;
   border: 0;
   border-radius: 8px;
-  background: var(--code);
+  background: var(--domain-bg);
+  color: var(--text);
   overflow: auto;
   font-size: .79rem;
   line-height: 1.5;
@@ -223,7 +261,7 @@ body {
   padding: 3px 7px;
   border: 0;
   border-radius: 6px;
-  background: #ffffff;
+  background: color-mix(in srgb, var(--surface) 88%, var(--domain-bg));
   color: var(--muted);
   font-size: .72rem;
   font-weight: 700;
@@ -274,6 +312,55 @@ body {
 .site-footer {
   border-top: 0;
 }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101114;
+    --surface: #15171b;
+    --surface-2: #1c1f24;
+    --text: #f5f7fa;
+    --muted: #a5abb3;
+    --border: #343a44;
+    --accent: #6ea8ff;
+    --accent-text: #0b1220;
+    --code: #181b20;
+  }
+
+  .domain-filter[aria-pressed="true"] {
+    background: #17233b;
+    color: var(--accent);
+  }
+
+  .quickref-domain[data-domain="files"] {
+    --domain-mark: #76a1df;
+    --domain-bg: #17233b;
+  }
+  .quickref-domain[data-domain="histograms"] {
+    --domain-mark: #d0a451;
+    --domain-bg: #332815;
+  }
+  .quickref-domain[data-domain="rdataframe"] {
+    --domain-mark: #70b98a;
+    --domain-bg: #162a20;
+  }
+  .quickref-domain[data-domain="trees"] {
+    --domain-mark: #a48ad3;
+    --domain-bg: #241b36;
+  }
+  .quickref-domain[data-domain="fits"] {
+    --domain-mark: #d48399;
+    --domain-bg: #351c24;
+  }
+  .quickref-domain[data-domain="plotting"] {
+    --domain-mark: #68b4bf;
+    --domain-bg: #153036;
+  }
+
+  .language-toggle button[aria-pressed="true"] {
+    box-shadow: none;
+  }
+}
+
 @media (max-width: 820px) {
   .quickref-grid { grid-template-columns: 1fr; gap: 24px; }
   .quickref-domain > h2 { position: static; }
