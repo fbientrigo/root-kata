@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "topics": [
+    {
+      "id": "files",
+      "summary": "Abrir, inspeccionar, recuperar y persistir objetos ROOT sin perder de vista quién posee cada objeto ni qué modo de archivo estás usando.",
+      "mental_model": "Piensa en TFile como un contenedor persistente con nombres y directorios. El flujo normal es abrir el contenedor, inspeccionar sus claves, traer a memoria sólo lo que necesitas y decidir explícitamente cuándo escribes o cierras.",
+      "workflow": ["Abre el archivo en READ salvo que realmente necesites escribir.","Inspecciona nombres y estructura antes de asumir qué objetos existen.","Recupera el objeto por nombre y comprueba que exista antes de usarlo.","Si escribes, elige conscientemente entre crear, reemplazar o actualizar el archivo.","Cierra el archivo cuando terminaste; separa del directorio los histogramas que deban sobrevivir al cierre."],
+      "recipes": [
+        {"title":"Abrir de forma segura","why":"Primero garantiza que el contenedor existe y es legible; todo el análisis depende de eso.","python":"import ROOT\nf = ROOT.TFile.Open(\"data.root\")","cpp":"std::unique_ptr<TFile> f{TFile::Open(\"data.root\", \"READ\")};\nif (!f || f->IsZombie()) return;","note":"PyROOT lanza OSError si TFile.Open no puede abrir correctamente el archivo."},
+        {"title":"Inspeccionar y recuperar un objeto","why":"Los nombres almacenados son parte del contrato del archivo; inspección y acceso deben ir juntos.","python":"f.ls()\nh = f[\"h_pt\"]","cpp":"f->ls();\nauto* h = f->Get<TH1>(\"h_pt\");\nif (!h) return;","note":"Get<T>() permite comprobar nombre y tipo en C++."},
+        {"title":"Escribir un resultado deliberadamente","why":"Persistir es una decisión distinta de tener un objeto en memoria.","python":"with ROOT.TFile(\"out.root\", \"RECREATE\") as out:\n    out.WriteObject(h, \"h_pt\")","cpp":"TFile out{\"out.root\", \"RECREATE\"};\nout.WriteObject(h, \"h_pt\");","note":"RECREATE reemplaza un archivo existente con el mismo nombre."}
+      ],
+      "pitfalls": ["RECREATE sobrescribe un archivo existente; no lo uses por costumbre cuando necesitas conservar contenido previo.","Un histograma asociado al directorio actual puede ser eliminado al cerrar el archivo; si debe sobrevivir, usa SetDirectory(nullptr).","No confundas que una clave exista con que tenga el tipo que esperas; en C++ prefiere Get<T>() cuando conoces el tipo."],
+      "docs": [{"label":"TFile","url":"https://root.cern/doc/master/classTFile.html"},{"label":"ROOT files manual","url":"https://root.cern/manual/root_files/"}]
+    },
+    {
+      "id": "histograms",
+      "summary": "Convertir observaciones en una distribución binned y distinguir correctamente entradas, contenido, integral, errores y normalización.",
+      "mental_model": "Un histograma no es una lista de eventos: es un acumulador por intervalos. Fill decide en qué bin cae cada observación y modifica el contenido de ese bin. Después trabajas con el resumen binned, no con los valores originales.",
+      "workflow": ["Decide variable, rango y binning antes de llenar.","Llena con Fill; usa peso sólo cuando la observación realmente lo tenga.","Inspecciona bins, estadísticos e integral según la pregunta que quieres responder.","Decide explícitamente si underflow y overflow pertenecen a tu yield o normalización.","Dibuja o normaliza sólo después de verificar que el contenido representa lo que crees."],
+      "recipes": [
+        {"title":"Crear y llenar","why":"Binning y rango definen qué resolución y qué información visible tendrá la distribución.","python":"h = ROOT.TH1D(\"h\", \";p_{T} [GeV];Events\", 50, 0.0, 200.0)\nfor pt in values:\n    h.Fill(pt)","cpp":"TH1D h{\"h\", \";p_{T} [GeV];Events\", 50, 0.0, 200.0};\nfor (double pt : values) h.Fill(pt);"},
+        {"title":"Leer un bin y recordar los bordes especiales","why":"El índice del bin es una posición interna; no es el valor de x.","python":"value = h.GetBinContent(i)\nerror = h.GetBinError(i)\nfull = h.Integral(0, h.GetNbinsX() + 1)","cpp":"const auto value = h.GetBinContent(i);\nconst auto error = h.GetBinError(i);\nconst auto full = h.Integral(0, h.GetNbinsX() + 1);","note":"0 es underflow y N+1 es overflow."},
+        {"title":"Normalizar a área unidad","why":"Útil para comparar formas cuando el número total de entradas no es la información principal.","python":"integral = h.Integral()\nif integral != 0:\n    h.Scale(1.0 / integral)","cpp":"const auto integral = h.Integral();\nif (integral != 0.0) h.Scale(1.0 / integral);","note":"Define antes si quieres incluir underflow y overflow."}
+      ],
+      "pitfalls": ["GetEntries() y Integral() responden preguntas distintas, especialmente cuando hay pesos o contenidos modificados.","El bin 0 y el bin N+1 no son bins regulares: representan underflow y overflow.","Normalizar sin decidir qué hacer con los eventos fuera del rango puede ocultar una pérdida importante de aceptación."],
+      "docs": [{"label":"Histograms manual","url":"https://root.cern/manual/histograms/"},{"label":"TH1","url":"https://root.cern/doc/master/classTH1.html"}]
+    },
+    {
+      "id": "rdataframe",
+      "summary": "Construir un análisis como un grafo de transformaciones y acciones, dejando que ROOT ejecute el event loop sólo cuando un resultado sea necesario.",
+      "mental_model": "RDataFrame describe un pipeline: una fuente de datos entra, Filter elimina filas, Define crea columnas y las acciones producen resultados. La mayor parte del trabajo se agenda de forma lazy; el grafo se ejecuta cuando accedes a un resultado.",
+      "workflow": ["Construye el dataframe desde el dataset.","Aplica Filter para selecciones y Define para variables derivadas.","Reserva histogramas, conteos y otras acciones antes de pedir resultados.","Accede a un resultado para disparar el event loop y aprovechar que varias acciones compartan la misma lectura.","Usa Snapshot cuando necesites persistir una selección o columnas derivadas."],
+      "recipes": [
+        {"title":"Seleccionar, derivar y reservar un histograma","why":"Este es el patrón central de un análisis: selección → variable → resultado.","python":"df2 = df.Filter(\"pt > 25\").Define(\"pt2\", \"pt * pt\")\nh = df2.Histo1D((\"h\", \";p_{T};Events\", 50, 0.0, 200.0), \"pt\")","cpp":"auto df2 = df.Filter(\"pt > 25\").Define(\"pt2\", \"pt * pt\");\nauto h = df2.Histo1D({\"h\", \";p_{T};Events\", 50, 0.0, 200.0}, \"pt\");","note":"Las expresiones string de Filter y Define usan sintaxis C++ también desde Python."},
+        {"title":"Compartir un solo event loop","why":"Reserva todas las acciones primero para no releer el dataset innecesariamente.","python":"n = df2.Count()\nh_pt = df2.Histo1D(\"pt\")\nh_eta = df2.Histo1D(\"eta\")\nprint(n.GetValue())","cpp":"auto n = df2.Count();\nauto h_pt = df2.Histo1D(\"pt\");\nauto h_eta = df2.Histo1D(\"eta\");\nstd::cout << *n << '\\n';"},
+        {"title":"Trabajar con colecciones por evento","why":"Las branches vectoriales aparecen como RVec y pueden filtrarse elemento a elemento.","python":"good = df.Define(\"good_pt\", \"pt[pt > 25]\")\nh = good.Histo1D(\"good_pt\")","cpp":"auto good = df.Define(\"good_pt\", \"pt[pt > 25]\");\nauto h = good.Histo1D(\"good_pt\");"}
+      ],
+      "pitfalls": ["Filter y Define no modifican el nodo anterior: devuelven nuevos nodos del grafo.","Pedir un resultado antes de reservar las demás acciones puede obligarte a ejecutar otro event loop más tarde.","En PyROOT, una expresión string de Filter/Define sigue siendo código C++; no asumas sintaxis Python dentro del string."],
+      "docs": [{"label":"RDataFrame manual","url":"https://root.cern/manual/data_frame/"},{"label":"RDataFrame reference","url":"https://root.cern/doc/master/classROOT_1_1RDataFrame.html"}]
+    },
+    {
+      "id": "trees",
+      "summary": "Entender TTree como almacenamiento columnar de eventos y separar la inspección del árbol de la lógica moderna de análisis.",
+      "mental_model": "Un TTree organiza muchas entradas con la misma estructura de branches. Sirve para almacenar y leer datos por evento; para análisis nuevos, RDataFrame suele ser la capa de trabajo más directa sobre ese almacenamiento.",
+      "workflow": ["Confirma cuántas entradas tiene el árbol.","Inspecciona branches y tipos con Print antes de escribir expresiones.","Usa Scan sólo para mirar unas pocas filas y entender los datos.","Convierte el árbol a RDataFrame para filtros, variables derivadas y agregaciones.","Baja a acceso manual de branches sólo cuando necesitas control de bajo nivel."],
+      "recipes": [
+        {"title":"Inspeccionar estructura y escala","why":"Antes de analizar debes saber qué columnas existen y cuántos eventos hay.","python":"print(tree.GetEntries())\ntree.Print()\ntree.Scan(\"pt:eta\", \"\", \"\", 5)","cpp":"std::cout << tree->GetEntries() << '\\n';\ntree->Print();\ntree->Scan(\"pt:eta\", \"\", \"\", 5);"},
+        {"title":"Pasar de almacenamiento a análisis","why":"TTree conserva los datos; RDataFrame expresa el análisis con menos plumbing manual.","python":"df = ROOT.RDataFrame(tree)\nselected = df.Filter(\"pt > 25\")","cpp":"ROOT::RDataFrame df{*tree};\nauto selected = df.Filter(\"pt > 25\");"}
+      ],
+      "pitfalls": ["Iterar un TTree entrada por entrada desde Python puede ser lento; ROOT recomienda RDataFrame para procesamiento eficiente.","Scan es una herramienta de inspección, no el patrón principal para un análisis completo.","No escribas acceso manual a branches por reflejo si Filter, Define y las acciones de RDataFrame expresan mejor la intención."],
+      "docs": [{"label":"Trees manual","url":"https://root.cern/manual/trees/"},{"label":"TTree","url":"https://root.cern/doc/master/classTTree.html"}]
+    },
+    {
+      "id": "fits",
+      "summary": "Relacionar un modelo parametrizado con los datos, controlar rango e inicialización y conservar el resultado del ajuste para inspeccionarlo.",
+      "mental_model": "Un fit busca valores de parámetros que hagan al modelo compatible con los datos según la función objetivo usada. La función, el rango y los valores iniciales forman parte del problema; el número final de un parámetro no tiene sentido separado de sus errores y de la calidad del ajuste.",
+      "workflow": ["Elige una función que represente el modelo que quieres contrastar.","Define un rango donde ese modelo sea razonable.","Da valores iniciales cuando el problema no tenga una inicialización obvia.","Ejecuta el fit con la opción S si necesitas conservar TFitResult.","Lee parámetros, errores y calidad antes de interpretar físicamente el resultado."],
+      "recipes": [
+        {"title":"Gaussiana con resultado conservado","why":"La opción S devuelve el objeto de resultado que luego puedes inspeccionar.","python":"fit = h.Fit(\"gaus\", \"S\")\nmu = fit.Parameter(1)\nsigma = fit.Parameter(2)","cpp":"auto fit = h.Fit(\"gaus\", \"S\");\nconst auto mu = fit->Parameter(1);\nconst auto sigma = fit->Parameter(2);"},
+        {"title":"Restringir el rango del ajuste","why":"El rango define qué parte de los datos participa en el problema de ajuste.","python":"fit = h.Fit(\"gaus\", \"S\", \"\", 80.0, 100.0)","cpp":"auto fit = h.Fit(\"gaus\", \"S\", \"\", 80.0, 100.0);"},
+        {"title":"Modelo TF1 con parámetros iniciales","why":"Una función propia hace explícitos fórmula, rango e hipótesis inicial sobre sus parámetros.","python":"f = ROOT.TF1(\"f\", \"[0] + [1]*x\", 0.0, 10.0)\nf.SetParameters(1.0, 0.0)\nfit = h.Fit(f, \"S\")","cpp":"TF1 f{\"f\", \"[0] + [1]*x\", 0.0, 10.0};\nf.SetParameters(1.0, 0.0);\nauto fit = h.Fit(&f, \"S\");"}
+      ],
+      "pitfalls": ["No interpretes sólo el valor central de un parámetro; revisa también su incertidumbre y la calidad del ajuste.","Un rango demasiado amplio puede forzar a un modelo local a describir regiones donde no aplica.","Si necesitas inspeccionar TFitResult, recuerda usar la opción S al hacer Fit."],
+      "docs": [{"label":"Fitting manual","url":"https://root.cern/manual/fitting/"},{"label":"TF1","url":"https://root.cern/doc/master/classTF1.html"},{"label":"TFitResult","url":"https://root.cern/doc/master/classTFitResult.html"}]
+    },
+    {
+      "id": "plotting",
+      "summary": "Construir una figura ROOT entendiendo qué pertenece al objeto, qué pertenece al canvas y qué opción de Draw expresa la representación deseada.",
+      "mental_model": "El histograma o gráfico contiene datos y atributos; TCanvas/TPad es la superficie donde se dibujan. Draw decide cómo representar el objeto en la superficie y SaveAs exporta el estado visible del pad/canvas.",
+      "workflow": ["Crea un canvas cuando necesites controlar la superficie de salida.","Configura títulos de ejes y estilo mínimo antes o después de Draw según corresponda.","Elige una opción de Draw que corresponda a la información: HIST, E1, SAME, etc.","Añade leyenda sólo cuando haya algo que desambiguar.","Exporta con SaveAs; la extensión del nombre define el formato del archivo."],
+      "recipes": [
+        {"title":"Histograma con errores y ejes legibles","why":"La figura debe mostrar tanto la variable como la incertidumbre cuando ésta importa.","python":"c = ROOT.TCanvas(\"c\", \"c\", 800, 600)\nh.GetXaxis().SetTitle(\"p_{T} [GeV]\")\nh.GetYaxis().SetTitle(\"Events\")\nh.Draw(\"E1\")","cpp":"TCanvas c{\"c\", \"c\", 800, 600};\nh.GetXaxis()->SetTitle(\"p_{T} [GeV]\");\nh.GetYaxis()->SetTitle(\"Events\");\nh.Draw(\"E1\");"},
+        {"title":"Superponer y explicar con una leyenda","why":"SAME conserva el contenido previo del pad y la leyenda explicita qué representa cada objeto.","python":"h_data.Draw(\"E1\")\nh_mc.Draw(\"HIST SAME\")\nleg = ROOT.TLegend(0.65, 0.75, 0.88, 0.88)\nleg.AddEntry(h_data, \"Data\", \"lep\")\nleg.AddEntry(h_mc, \"MC\", \"l\")\nleg.Draw()","cpp":"h_data.Draw(\"E1\");\nh_mc.Draw(\"HIST SAME\");\nTLegend leg{0.65, 0.75, 0.88, 0.88};\nleg.AddEntry(&h_data, \"Data\", \"lep\");\nleg.AddEntry(&h_mc, \"MC\", \"l\");\nleg.Draw();"},
+        {"title":"Exportar la figura","why":"La salida reproducible debe ser un paso explícito del análisis.","python":"c.SaveAs(\"plot.pdf\")\nc.SaveAs(\"plot.png\")","cpp":"c.SaveAs(\"plot.pdf\");\nc.SaveAs(\"plot.png\");","note":"ROOT determina el formato a partir de la extensión."}
+      ],
+      "pitfalls": ["SAME presupone que ya hay algo dibujado en el pad; úsalo para superponer, no como primera opción de Draw.","No uses una leyenda para repetir información que ya está clara en los ejes o el contexto.","El formato de SaveAs depende de la extensión del archivo: revisa que nombre y formato coincidan."],
+      "docs": [{"label":"Graphics manual","url":"https://root.cern/manual/graphics/"},{"label":"TCanvas","url":"https://root.cern/doc/master/classTCanvas.html"},{"label":"TH1 drawing","url":"https://root.cern/doc/master/classTH1.html"}]
+    }
+  ]
+}
