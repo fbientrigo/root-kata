@@ -120,6 +120,17 @@
     return article;
   };
 
+  const renderDomainTitle = (domain) => {
+    const heading = el('h2');
+    const anchor = el('a', 'domain-title-link');
+    anchor.href = `quick-reference-topic.html?domain=${encodeURIComponent(domain.id)}`;
+    anchor.setAttribute('aria-label', `${domain.label}: abrir hoja de trucos específica`);
+    anchor.append(el('span', 'domain-title-label', domain.label));
+    anchor.append(el('span', 'domain-title-hint', 'Ver guía →'));
+    heading.append(anchor);
+    return heading;
+  };
+
   const render = () => {
     content.replaceChildren();
     let visibleItems = 0;
@@ -133,7 +144,7 @@
 
       const section = el('section', 'quickref-domain');
       section.dataset.domain = domain.id;
-      section.append(el('h2', '', domain.label));
+      section.append(renderDomainTitle(domain));
       items.forEach((item) => section.append(renderItem(domain, item)));
       content.append(section);
     });
