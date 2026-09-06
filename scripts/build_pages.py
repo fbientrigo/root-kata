@@ -48,6 +48,7 @@ UI = {
         "completed": "Completado",
         "view_problem": "Ver problema",
         "exercises": "Ejercicios",
+        "cheat_sheet": "Hoja de trucos",
         "footer": "Prototipo educativo no oficial · sin cuentas · corre en tu máquina",
     },
     "en": {
@@ -82,6 +83,7 @@ UI = {
         "completed": "Completed",
         "view_problem": "View problem",
         "exercises": "Exercises",
+        "cheat_sheet": "Cheat-sheet",
         "footer": "Unofficial educational prototype · no accounts · runs on your machine",
     },
 }
@@ -113,7 +115,6 @@ def view(meta: dict, lang: str) -> dict:
             out["requirements"] = overlay["requirements"]
         if "examples" in overlay:
             out["examples"] = [{**base, **extra} for base, extra in zip(meta.get("examples", []), overlay["examples"])]
-    # Filter by the stable English metadata key, even when the visible label is localized.
     difficulty_key = str(meta.get("difficulty", "")).lower()
     out["difficulty_key"] = difficulty_key
     if difficulty_key in {"introductory", "easy", "intermediate", "hard"}:
@@ -215,6 +216,7 @@ def build_index(exercises: list[tuple[dict, Path]], lang: str) -> None:
       <h1>{esc(ui["hero_title"])}</h1>
       <p>{esc(ui["hero_text"])}</p>
       <div class="flow" aria-label="Learning path">{flow}</div>
+      <div class="card-actions"><a class="button secondary" href="{asset_prefix}quick-reference.html">{esc(ui["cheat_sheet"])}</a></div>
     </section>
 
     <section class="progress-panel" data-total="{total}" aria-labelledby="progress-title">
