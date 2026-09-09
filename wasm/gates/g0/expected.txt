@@ -1,0 +1,6 @@
+circle area = 12.566371
+square area = 9.000000
+total area = 21.566371
+caught: negative radius
+sqrt(2) = 1.414214
+G0 SMOKE OK
