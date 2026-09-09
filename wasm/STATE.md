@@ -2,7 +2,7 @@
 
 ## Current gate
 
-**G0 — reproducible Emscripten toolchain. Implementation complete, awaiting review.**
+**G0 — reproducible Emscripten toolchain. Independently reviewed: PASS.**
 
 Session scope was G0 only. G1 was not started.
 
@@ -115,9 +115,32 @@ See `wasm/REPRODUCE.md`.
 
 ## Last verified commit
 
-`42be051` on `experiment/root-wasm-subset` — the tree state at which the orchestrator ran
-the two consecutive passes and the falsifiability check.
+`deb92d9de7df86ec88042a3d8009622064c3458a` on `experiment/root-wasm-subset` —
+the tree independently reviewed here.
 
 ## Reviewer verdict
 
-**PENDING** — branch prepared for independent Codex Sol High review. Not yet reviewed.
+**PASS** — independent review at `deb92d9de7df86ec88042a3d8009622064c3458a`.
+
+- **VERIFIED:** `bash wasm/toolchain/install-emsdk.sh`, followed by a clean
+  `wasm/build/` and `bash wasm/gates/g0/run.sh`, ended in `G0 PASS`. The gate compiled
+  with `emcc 4.0.9`, then produced byte-identical 125-byte stdout under emsdk's Node
+  v22.22.2 and host Chromium 144.0.7559.96, both matching `expected.txt`.
+- **VERIFIED:** appending a wrong expected-output line caused `G0 FAIL` with exit 1 and
+  a unified diff; `expected.txt` was restored from Git immediately afterward. The smoke
+  program is standalone C++17 (`Shape`, exceptions, standard library, math) and contains
+  no ROOT include, API, or replacement implementation.
+- **VERIFIED:** the live GitHub release API for `v6-40-04` reports
+  `root_v6.40.04.source.tar.gz`, 343548919 bytes, and
+  `sha256:44ada253b1935d34b6801222232d50731fe7c5e3cbcfab47734c85031cfbe4d3`, exactly
+  matching `root-src.env`; `fetch-root-src.sh` hard-fails before unpacking on a mismatch.
+- **INVALIDATED:** none.
+- **BLOCKER:** none for the stated G0 claim.
+- **NEXT EVIDENCE REQUIRED:** none to accept G0. Its explicit host prerequisites are
+  Bash, Git and network access for installation, then Python 3, curl, and a `chromium`
+  executable for the browser leg; `run.sh` checks the latter three before use. Chromium is
+  deliberately a checked host prerequisite rather than a pinned toolchain component. A
+  future cross-host portability claim would need a documented/pinned browser matrix, but
+  that is outside G0's pinned-Emscripten claim.
+- **REPRODUCTION:** `bash wasm/toolchain/install-emsdk.sh`; clear `wasm/build/`; then
+  `bash wasm/gates/g0/run.sh` (observed final line: `G0 PASS`).
