@@ -7,7 +7,7 @@ Nothing here writes inside the repository. All toolchain and source state lives 
 `$ROOT_WASM_TOOLS` (default `~/.root-kata-wasm`). Build artifacts go to `wasm/build/`,
 which is gitignored.
 
-## Current gate: G0 — reproducible Emscripten toolchain
+## Current completed gate: G2 — genuine GenVector in WebAssembly
 
 From a clean checkout of `experiment/root-wasm-subset`:
 
@@ -15,35 +15,36 @@ From a clean checkout of `experiment/root-wasm-subset`:
 # 1. install the pinned Emscripten SDK (idempotent; ~minutes on first run, seconds after)
 bash wasm/toolchain/install-emsdk.sh
 
-# 2. run the gate
+# 2. run the G2 gate (also fetches and verifies pinned ROOT source)
 rm -rf wasm/build
+bash wasm/gates/g2/run.sh
+```
+
+Expected final line: `G2 PASS` (exit 0).
+
+The gate uses unmodified ROOT 6.40.04 GenVector headers plus an `RConfigure.h`
+generated at run time from ROOT's `config/RConfigure.in` through CMake
+`configure_file`; no generated header is kept in Git. It compiles a native reference
+and WebAssembly Node/browser targets, then requires all three outputs to match
+`wasm/gates/g2/expected.txt` byte-for-byte.
+
+### G0 toolchain smoke gate
+
+```bash
 bash wasm/gates/g0/run.sh
 ```
 
-Expected final line: `G0 PASS` (exit 0).
-
-`run.sh` compiles `wasm/gates/g0/smoke.cpp` to WebAssembly, executes it under **Node**
-and under **headless Chromium**, and requires that both stdouts match each other *and*
-`wasm/gates/g0/expected.txt` byte-for-byte. Any divergence is a hard failure.
-
-### Pinned ROOT source (used from G1 onward, not by G0)
-
-```bash
-bash wasm/toolchain/fetch-root-src.sh
-```
-
-Downloads and sha256-verifies the pinned ROOT tarball into `$ROOT_WASM_TOOLS/cache/`
-and unpacks to `$ROOT_WASM_TOOLS/src/root-<version>`. Idempotent; a checksum mismatch
-is a hard failure.
+G0 remains the independent pinned-toolchain check. G2 invokes the same activation and
+also calls `wasm/toolchain/fetch-root-src.sh` itself.
 
 ## Falsifiability check
 
-A reproduction that cannot fail proves nothing. To confirm the G0 gate is live:
+A reproduction that cannot fail proves nothing. To confirm G2 is live:
 
 ```bash
-echo "THIS LINE IS WRONG" >> wasm/gates/g0/expected.txt
-bash wasm/gates/g0/run.sh          # must print "G0 FAIL: ..." and exit non-zero
-git checkout wasm/gates/g0/expected.txt
+edit one number in wasm/gates/g2/expected.txt
+bash wasm/gates/g2/run.sh          # must print "G2 FAIL: ..." and exit non-zero
+git restore wasm/gates/g2/expected.txt
 ```
 
 ## Pins

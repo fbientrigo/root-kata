@@ -16,8 +16,8 @@ A gate is a falsifiable claim with a deterministic reproduction command.
 | Gate | Claim |
 | ---- | ----- |
 | G0 | A reproducible Emscripten toolchain exists, pinned and re-runnable from a clean state. |
-| G1 | ROOT MathCore builds to WebAssembly. |
-| G2 | `ROOT::Math::PtEtaPhiMVector` executes correctly in Chromium. |
+| G1 | ROOT MathCore builds to WebAssembly. **Deferred:** its normal build path reaches Core/Cling. |
+| G2 | `ROOT::Math::PtEtaPhiMVector` executes correctly in Chromium. **PASS.** |
 | G3 | The minimum ROOT Core/Physics dependency boundary is established and documented. |
 | G4 | Actual ROOT `TH1D` builds to WebAssembly. |
 | G5 | `TH1D` supports `Fill`, `GetEntries`, `GetBinContent`, `Integral`, `GetMean` in Chromium. |
@@ -64,3 +64,12 @@ wasm/gates/gN/run.sh
 
 which exits `0` and prints `gN PASS`, or exits non-zero and prints `gN FAIL: <reason>`.
 `wasm/REPRODUCE.md` lists the canonical command for the current gate.
+
+## Gate-order correction
+
+Old assumption: G1 had to precede G2. Evidence: `math/mathcore/CMakeLists.txt`
+depends on Core, and `core/CMakeLists.txt` unconditionally makes Core depend on
+CLING; the G2 template path compiled and ran without a ROOT library. Replacement:
+`G0 → G2 → ROOT Light surface discovery → smallest next capability probe`. Risk:
+this bypass only proves the restricted GenVector template path, not MathCore, Hist,
+or the wider curriculum.
