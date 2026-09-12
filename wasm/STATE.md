@@ -43,7 +43,7 @@ bash wasm/gates/g2/run.sh
 
 ## Last verified commit
 
-Pending the atomic G2 experiment commit.
+`dd8f3b8` — `feat(wasm): prove GenVector WebAssembly gate`.
 
 ## Reviewer verdict
 
