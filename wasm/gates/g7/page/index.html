@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>G7 harness</title>
+</head>
+<body>
+<!--
+  G7: compile genuine ROOT C++ (wasm/gates/g2/genvector.cpp, unmodified) entirely
+  client-side using a prebuilt xeus-cpp-lite / CppInterOp WebAssembly toolchain
+  (clang-repl under the hood), then run it and capture stdout -- no server-side
+  compilation, no SharedArrayBuffer/pthreads.
+
+  DOM contract (scraped by wasm/gates/g7/drive.mjs):
+    <pre id="output">   -- exact captured stdout of the compiled program (empty on error)
+    <pre id="diag">     -- compiler diagnostic text, if the compile/run failed
+    <pre id="log">      -- verbose trace of every step, for debugging
+    document.title      -- "G7-DONE" once the run (success or failure) is complete
+
+  ?variant=broken loads a deliberately-corrupted copy of genvector.cpp (one
+  real identifier typo) instead of the pristine payload, to prove this harness
+  can genuinely fail -- see wasm/gates/g7/build_payload.py.
+-->
+<pre id="output"></pre>
+<pre id="diag"></pre>
+<pre id="log"></pre>
+<script>
+  function log(s) {
+    document.getElementById('log').appendChild(document.createTextNode(s + '\n'));
+  }
+  window.addEventListener('error', (ev) => {
+    log('[window-error] ' + ev.message + ' @ ' + ev.filename + ':' + ev.lineno);
+  });
+  window.addEventListener('unhandledrejection', (ev) => {
+    log('[unhandled-rejection] ' + ev.reason);
+  });
+
+  let stdoutText = '';
+  let diagText = '';
+  let pendingReplies = 0;
+  let doneRequested = false;
+
+  window.addEventListener('message', (ev) => {
+    const data = ev.data;
+    if (!data || !data.header) return;
+    const mt = data.header.msg_type;
+    if (mt === 'stream' && data.content && typeof data.content.text === 'string') {
+      log('[stream:' + data.content.name + '] ' + JSON.stringify(data.content.text));
+      if (data.content.name === 'stdout') {
+        stdoutText += data.content.text;
+      } else {
+        diagText += data.content.text;
+      }
+    } else if (mt === 'error') {
+      log('[error] ' + JSON.stringify(data.content));
+      diagText += (data.content && data.content.evalue) || '';
+    } else if (mt === 'execute_reply') {
+      log('[execute_reply] status=' + data.content.status);
+      pendingReplies -= 1;
+      maybeFinish();
+    }
+  });
+
+  function maybeFinish() {
+    if (doneRequested && pendingReplies <= 0) {
+      document.getElementById('output').textContent = stdoutText;
+      document.getElementById('diag').textContent = diagText;
+      document.title = 'G7-DONE';
+    }
+  }
+</script>
+<script src="./headers.js"></script>
+<script src="./payload.js"></script>
+<script src="./xcpp.js"></script>
+<script>
+  log('[g7] headers loaded: ' + Object.keys(ROOT_HEADERS).length);
+
+  createXeusModule({
+    print: (t) => log('[stdout-raw] ' + t),
+    printErr: (t) => log('[stderr-raw] ' + t),
+    locateFile: (f) => f,
+    noInitialRun: true,
+  }).then(async (Module) => {
+    log('[g7] module ready');
+
+    // Mount the ROOT header subtrees (and the generated RConfigure.h) into the
+    // interpreter's virtual filesystem before compiling anything.
+    const paths = Object.keys(ROOT_HEADERS);
+    for (const vpath of paths) {
+      const dir = vpath.substring(0, vpath.lastIndexOf('/'));
+      Module.FS.mkdirTree(dir);
+      Module.FS.writeFile(vpath, ROOT_HEADERS[vpath]);
+    }
+    log('[g7] mounted ' + paths.length + ' header files under /rootsrc');
+
+    const argv = [
+      'xcpp',
+      '-std=c++17',
+      '-I/rootsrc/generated',
+      '-I/rootsrc/math/genvector/inc',
+      '-I/rootsrc/math/mathcore/inc',
+      '-I/rootsrc/core/foundation/inc',
+      '-I/rootsrc/core/base/inc',
+      // The prebuilt xcpp.wasm's auto-detected -internal-isystem list omits
+      // Emscripten's own "compat" shim directory (needed for e.g. xlocale.h,
+      // pulled in transitively via TError.h -> <functional>). This is not a
+      // hand-written shim: it is the real header already bundled in xcpp.data
+      // (Emscripten's own compat/xlocale.h) -- we are just pointing at it.
+      '-I/include/compat',
+    ];
+    log('[g7] argv = ' + JSON.stringify(argv));
+
+    const xkernel = new Module.xkernel(argv);
+    const xserver = xkernel.get_server();
+    xkernel.start();
+    log('[g7] kernel started');
+
+    function execute(code, msgId) {
+      pendingReplies += 1;
+      xserver.notify_listener({
+        header: { msg_id: msgId, msg_type: 'execute_request', username: 'g7', session: 's1', date: new Date().toISOString(), version: '5.3' },
+        parent_header: {},
+        metadata: {},
+        content: { code, silent: false, store_history: true, user_expressions: {}, allow_stdin: false },
+        buffers: [],
+        channel: 'shell',
+      });
+    }
+
+    const variant = new URLSearchParams(location.search).get('variant') || 'good';
+    const genvectorSrc = variant === 'broken' ? window.__GENVECTOR_SRC_BROKEN__ : window.__GENVECTOR_SRC_GOOD__;
+    log('[g7] variant = ' + variant);
+
+    // Two REPL inputs, mirroring how a ROOT/cling macro is normally driven
+    // (".x file.cpp" style): first the unmodified translation unit (declares
+    // main() but does not run it), then an explicit call to invoke it.
+    execute(genvectorSrc, 'm-define');
+    execute('main();', 'm-run');
+    doneRequested = true;
+    maybeFinish();
+  }).catch((e) => {
+    log('[init-error] ' + e);
+    document.getElementById('diag').textContent = String(e);
+    document.title = 'G7-DONE';
+  });
+</script>
+</body>
+</html>

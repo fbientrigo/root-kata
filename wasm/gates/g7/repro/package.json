@@ -1,0 +1,10 @@
+{
+  "name": "g7-h2-repro",
+  "private": true,
+  "type": "module",
+  "description": "Standalone repro for the H2 (browsercc / clang-as-wasm) finding on Gate G7. Not part of the gate pass/fail contract -- see ../H2-FINDINGS.md. Not wired into any run.sh on purpose: the hypothesis was falsified, so there is no passing gate to reproduce.",
+  "dependencies": {
+    "browsercc": "0.1.1",
+    "@bjorn3/browser_wasi_shim": "0.4.2"
+  }
+}
