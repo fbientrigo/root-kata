@@ -22,7 +22,7 @@ A gate is a falsifiable claim with a deterministic reproduction command.
 | G4 | Actual ROOT `TH1D` builds to WebAssembly. **BLOCKER:** a direct no-library link first requires `TH1D::TH1D(char const*, char const*, int, double, double)`. |
 | G5 | `TH1D` supports `Fill`, `GetEntries`, `GetBinContent`, `Integral`, `GetMean` in Chromium. |
 | G6 | `TGraph`/`TF1` evaluated — **only if inexpensive**. This gate may be declined on cost. |
-| G7 | **Narrowed, pulled forward:** a genuine ROOT program, typed in the browser, is compiled client-side (no server) and runs correctly in Chromium. Independent of which ROOT surface is proven — a prerequisite for G8 regardless. |
+| G7 | **Narrowed, pulled forward. PASS** (via xeus-cpp-lite/CppInterOp): a genuine ROOT program, typed in the browser, is compiled client-side (no server) and runs correctly in Chromium. Proves a compiler can run client-side; says nothing about `TH1D`, which stays blocked per G4. |
 | G8 | One existing genuine ROOT Kata exercise executes fully client-side. |
 
 ## Out of scope
@@ -90,5 +90,17 @@ test exactly this, using the already-proven G2 program as payload so a failure
 is unambiguously the compiler's, not ROOT's.
 
 Risk carried forward: G2's bypass only proves the restricted GenVector template
-path, not MathCore, Hist, or the wider curriculum; G7 passing would prove the
+path, not MathCore, Hist, or the wider curriculum; G7 passing proves the
 toolchain exists but says nothing yet about which ROOT subset it can build.
+
+## G7 result
+
+**PASS**, via hypothesis H1 (xeus-cpp-lite/CppInterOp, Clang-Repl-based), run in
+parallel against an independent hypothesis H2 (Clang+LLD as WebAssembly,
+AOT/WASI-targeted) which **falsified** on an unrelated, ecosystem-wide gap: every
+WASI-lineage prebuilt clang+lld shares a `libc++abi` with no exception-throwing
+runtime, and ROOT's `GenVector_exception.h` keeps its `Throw()` inline specifically
+so interactive `PtEtaPhiMVector` usage needs it. Full evidence and independent
+re-verification in `gates/g7/FINDINGS.md` and `gates/g7/H2-FINDINGS.md`. `~99.5 MiB`
+toolchain payload; no threads/`SharedArrayBuffer` required, satisfying the GitHub
+Pages hosting constraint.
