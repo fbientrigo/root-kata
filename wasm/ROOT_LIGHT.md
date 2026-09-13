@@ -30,8 +30,6 @@ produces scalar values or arrays, then browser-native UI renders those values. I
 supported for the G2 slice and m0/m1-style observable displays, but falsified as a
 claim to cover the planned m2+ TFile/TTree/RDataFrame curriculum without further gates.
 
-Separately, and prior to any of the above: no gate so far has proven that a C++
-compiler can run *in the browser* at all, which is required for gate G8
-("one kata fully client-side") independent of which ROOT surface is targeted —
-even the cheap header-only GenVector slice was only ever compiled by a host
-`em++`, never by an in-page toolchain. This is the next gate.
+G7 subsequently proved that a C++ compiler can run *in the browser* against the
+Tier 1 GenVector slice. That removes the compiler-placement risk for G8, but does
+not expand the proven ROOT surface: `TH1D`, files, and RDataFrame remain unproven.

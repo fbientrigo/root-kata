@@ -55,5 +55,5 @@ be informative about what's missing (a missing `.pcm`, a missing `libHist.so`, e
 - Payload cost: G7's toolchain alone is ~99.5 MiB before any ROOT library is added. This
   was accepted per an explicit "whatever fidelity requires" product decision, but the
   next session's scoping should keep the number honest rather than let it grow unnoticed.
-- G7 has not yet been independently reviewed (Codex Sol High); the branch is prepared for
-  that review before any further gate work begins.
+- G7 passed independent Codex Sol High review; no further G7 review blocks the next
+  separately-approved probe.

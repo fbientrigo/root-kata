@@ -56,7 +56,7 @@ under plain `python3 -m http.server` (confirmed via `curl -D-`: no COOP/COEP hea
 under `--headless --no-sandbox`. Satisfies the hard constraint (GitHub Pages cannot set
 COOP/COEP).
 
-**Payload:** 104,369,384 bytes total (~99.5 MiB): `libclangCppInterOp.so` 71.3MB,
+**Payload:** 104,369,411 bytes total (~99.5 MiB): `libclangCppInterOp.so` 71.3MB,
 `xcpp.data` 26.1MB, `xcpp.wasm` 2.2MB, `xcpp.js` 2.2MB, `headers.js` 2.3MB (the 355
 mounted ROOT header files, 2.2MB), `libxeus.so` 0.3MB.
 

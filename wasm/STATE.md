@@ -56,8 +56,11 @@ bash wasm/gates/g7/run.sh # G7 PASS
 
 ## Last verified commit
 
-`8789999` — `feat(wasm): prove in-browser ROOT compilation via xeus-cpp-lite (gate G7)`.
+`9fa5f547` — G7 implementation and close-out state, independently reproduced from
+clean twice by Codex Sol High on 2026-09-13. The review also corrected the browser
+interpreter arguments with `-fwasm-exceptions`; ordinary G2 execution did not expose
+the omission, while a direct throw/catch probe did.
 
 ## Reviewer verdict
 
-Not yet independently reviewed.
+**PASS.** See [gates/g7/CODEX-REVIEW.md](gates/g7/CODEX-REVIEW.md).

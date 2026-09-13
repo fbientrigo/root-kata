@@ -24,7 +24,8 @@ bash wasm/gates/g7/run.sh
 
 Expected final line: `G7 PASS` (exit 0). Full evidence in
 [g7/FINDINGS.md](gates/g7/FINDINGS.md) (and [g7/H2-FINDINGS.md](gates/g7/H2-FINDINGS.md)
-for the parallel hypothesis that was falsified). The gate compiles the already-proven
+for the parallel hypothesis that was falsified); independent review is recorded in
+[g7/CODEX-REVIEW.md](gates/g7/CODEX-REVIEW.md). The gate compiles the already-proven
 G2 `genvector.cpp` payload **inside the browser page itself** — via a prebuilt
 xeus-cpp-lite/CppInterOp interpreter, driven over the real Jupyter wire protocol,
 against the real, sha256-pinned ROOT 6.40.04 headers — then diffs the result against
