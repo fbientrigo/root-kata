@@ -1,0 +1,1 @@
+entries=4 bin2=2 integral=4 mean=1.500000

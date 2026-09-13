@@ -2,14 +2,17 @@
 
 ## Objective
 
-Run one falsification-first `TH1D` dependency probe: use genuine ROOT headers and the pinned `em++` toolchain to identify the first unavoidable out-of-line ROOT symbol or library dependency for `TH1D` construction plus `Fill`.
+Review the G4 blocker before authorizing another gate. The direct standalone
+`TH1D` route requires `TH1D::TH1D(char const*, char const*, int, double, double)`
+from Hist, whose declared chain reaches Core and CLING.
 
 ## Constraints
 
-- Do not start a Core, MathCore, Hist, Cling, LLVM, or rootcling build.
-- Do not emulate `TH1D` or replace a missing ROOT symbol.
-- Stop once the first blocker is reproducible and source-backed, or if a genuinely small standalone route is demonstrated.
+- Do not start a Core, MathCore, Hist, Cling, LLVM, or rootcling build without a
+  separately approved scope.
+- Do not emulate `TH1D` or replace the unresolved constructor.
 
 ## Why this is next
 
-Histogram semantics are the strongest current ROOT Kata demand, but the documented Hist → MathCore/Matrix/RIO → Core path may make them too costly for ROOT Light. This probe decides whether the browser-native visualization boundary has any genuine ROOT histogram computation to consume.
+G4 supplied the requested evidence; a full Hist/Core route is not a small
+follow-up to that falsification gate.

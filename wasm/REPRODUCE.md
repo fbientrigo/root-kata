@@ -7,7 +7,7 @@ Nothing here writes inside the repository. All toolchain and source state lives 
 `$ROOT_WASM_TOOLS` (default `~/.root-kata-wasm`). Build artifacts go to `wasm/build/`,
 which is gitignored.
 
-## Current completed gate: G2 — genuine GenVector in WebAssembly
+## Current completed gate: G4 — direct `TH1D` blocker
 
 From a clean checkout of `experiment/root-wasm-subset`:
 
@@ -15,18 +15,22 @@ From a clean checkout of `experiment/root-wasm-subset`:
 # 1. install the pinned Emscripten SDK (idempotent; ~minutes on first run, seconds after)
 bash wasm/toolchain/install-emsdk.sh
 
-# 2. run the G2 gate (also fetches and verifies pinned ROOT source)
+# 2. run the G4 gate (also fetches and verifies pinned ROOT source)
 rm -rf wasm/build
-bash wasm/gates/g2/run.sh
+bash wasm/gates/g4/run.sh
 ```
 
-Expected final line: `G2 PASS` (exit 0).
+Expected final line: `G4 FAIL: direct TH1D link requires
+TH1D::TH1D(char const*, char const*, int, double, double); ...` (exit 1).
+This is the completed falsification result, not a broken setup. The first missing
+symbol is saved at `wasm/build/g4/first-missing-symbol.txt` and its ROOT source
+and CMake dependency chain are in [g4/BLOCKER.md](gates/g4/BLOCKER.md).
 
-The gate uses unmodified ROOT 6.40.04 GenVector headers plus an `RConfigure.h`
-generated at run time from ROOT's `config/RConfigure.in` through CMake
-`configure_file`; no generated header is kept in Git. It compiles a native reference
-and WebAssembly Node/browser targets, then requires all three outputs to match
-`wasm/gates/g2/expected.txt` byte-for-byte.
+The probe uses unmodified ROOT 6.40.04 headers plus an `RConfigure.h` generated
+at run time from ROOT's `config/RConfigure.in` through CMake `configure_file`.
+It directly links the fixed-sample constructor/`Fill`/statistics program with no
+ROOT library. It stops at the first unavoidable symbol; native, Node, Chromium,
+and expected-output comparisons run automatically only if that direct link succeeds.
 
 ### G0 toolchain smoke gate
 
@@ -39,13 +43,18 @@ also calls `wasm/toolchain/fetch-root-src.sh` itself.
 
 ## Falsifiability check
 
-A reproduction that cannot fail proves nothing. To confirm G2 is live:
+A reproduction that cannot fail proves nothing. To confirm G4 still checks the
+pinned boundary:
 
 ```bash
-edit one number in wasm/gates/g2/expected.txt
-bash wasm/gates/g2/run.sh          # must print "G2 FAIL: ..." and exit non-zero
-git restore wasm/gates/g2/expected.txt
+bash wasm/gates/g4/run.sh          # must print the TH1D constructor blocker and exit non-zero
+grep -Fx 'TH1D::TH1D(char const*, char const*, int, double, double)' \
+  wasm/build/g4/first-missing-symbol.txt
 ```
+
+If a future ROOT/toolchain change lets that direct link pass, temporarily corrupt
+`wasm/gates/g4/expected.txt`; the native/Node/Chromium comparison path must then
+fail before G4 can report `PASS`.
 
 ## Pins
 

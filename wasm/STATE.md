@@ -2,7 +2,7 @@
 
 ## Current gate
 
-**G2 — genuine `ROOT::Math::PtEtaPhiMVector` WebAssembly: PASS.**
+**G4 — genuine `TH1D` direct WebAssembly probe: BLOCKER.**
 
 ## Confirmed facts
 
@@ -20,6 +20,7 @@
 5. G2 deliberately failed (non-zero, unified diff) after corrupting its expected `pt` to `999.000000`; the fixture was restored.
 6. The normal library route remains expensive: Core has unconditional `add_dependencies(Core CLING rconfigure)` (`core/CMakeLists.txt:42`), while MathCore and Hist depend on Core.
 7. [ROOT_LIGHT.md](ROOT_LIGHT.md) records the evidence-backed 20/80 inventory. The only Tier 1 computation is the restricted GenVector slice. Histograms are the strongest actual curriculum demand but remain Tier 2; TFormula/fitting, TFile/TTree and RDataFrame are Tier 3 under current evidence.
+8. G4 ran the pinned `em++` direct-link probe with genuine `TH1D`, no ROOT libraries, and the G2-generated `RConfigure.h`. Its first missing symbol was `TH1D::TH1D(char const*, char const*, int, double, double)`. The source definition is `hist/hist/src/TH1.cxx:10540`; `Hist` depends on MathCore, Matrix, and RIO, MathCore depends on Core, and Core unconditionally depends on CLING. The reproducible error is preserved in `wasm/build/g4/first-missing-symbol.txt`; [g4/BLOCKER.md](gates/g4/BLOCKER.md) records the dependency explanation.
 
 ## Gate-order correction
 
@@ -38,7 +39,7 @@
 
 ```bash
 bash wasm/toolchain/install-emsdk.sh
-bash wasm/gates/g2/run.sh
+bash wasm/gates/g4/run.sh # intentionally exits 1 with the pinned G4 blocker
 ```
 
 ## Last verified commit

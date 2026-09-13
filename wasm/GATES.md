@@ -19,7 +19,7 @@ A gate is a falsifiable claim with a deterministic reproduction command.
 | G1 | ROOT MathCore builds to WebAssembly. **Deferred:** its normal build path reaches Core/Cling. |
 | G2 | `ROOT::Math::PtEtaPhiMVector` executes correctly in Chromium. **PASS.** |
 | G3 | The minimum ROOT Core/Physics dependency boundary is established and documented. |
-| G4 | Actual ROOT `TH1D` builds to WebAssembly. |
+| G4 | Actual ROOT `TH1D` builds to WebAssembly. **BLOCKER:** a direct no-library link first requires `TH1D::TH1D(char const*, char const*, int, double, double)`. |
 | G5 | `TH1D` supports `Fill`, `GetEntries`, `GetBinContent`, `Integral`, `GetMean` in Chromium. |
 | G6 | `TGraph`/`TF1` evaluated — **only if inexpensive**. This gate may be declined on cost. |
 | G7 | The proven ROOT subset is exposed through the existing xeus-cpp browser runtime. |
@@ -64,6 +64,10 @@ wasm/gates/gN/run.sh
 
 which exits `0` and prints `gN PASS`, or exits non-zero and prints `gN FAIL: <reason>`.
 `wasm/REPRODUCE.md` lists the canonical command for the current gate.
+
+G4 is a completed falsification result: its canonical command deliberately exits
+non-zero with the pinned first unresolved symbol. See `g4/BLOCKER.md` for the
+source and target chain; no partial ROOT build was started.
 
 ## Gate-order correction
 
