@@ -22,7 +22,7 @@ A gate is a falsifiable claim with a deterministic reproduction command.
 | G4 | Actual ROOT `TH1D` builds to WebAssembly. **BLOCKER:** a direct no-library link first requires `TH1D::TH1D(char const*, char const*, int, double, double)`. |
 | G5 | `TH1D` supports `Fill`, `GetEntries`, `GetBinContent`, `Integral`, `GetMean` in Chromium. |
 | G6 | `TGraph`/`TF1` evaluated — **only if inexpensive**. This gate may be declined on cost. |
-| G7 | The proven ROOT subset is exposed through the existing xeus-cpp browser runtime. |
+| G7 | **Narrowed, pulled forward:** a genuine ROOT program, typed in the browser, is compiled client-side (no server) and runs correctly in Chromium. Independent of which ROOT surface is proven — a prerequisite for G8 regardless. |
 | G8 | One existing genuine ROOT Kata exercise executes fully client-side. |
 
 ## Out of scope
@@ -73,7 +73,22 @@ source and target chain; no partial ROOT build was started.
 
 Old assumption: G1 had to precede G2. Evidence: `math/mathcore/CMakeLists.txt`
 depends on Core, and `core/CMakeLists.txt` unconditionally makes Core depend on
-CLING; the G2 template path compiled and ran without a ROOT library. Replacement:
-`G0 → G2 → ROOT Light surface discovery → smallest next capability probe`. Risk:
-this bypass only proves the restricted GenVector template path, not MathCore, Hist,
-or the wider curriculum.
+CLING (a build-order edge, not a link edge — see `gates/g4/BLOCKER.md`); the G2
+template path compiled and ran without a ROOT library. Replacement:
+`G0 → G2 → G4 (blocker, documented) → G7 (narrowed) → smallest next capability probe`.
+
+Second correction: reading all 13 shipped exercises plus `curriculum/triads/*.csv`
+and `curriculum/plan.json` shows **no current or planned kata uses GenVector or
+TMath** — G2's proven capability validated the toolchain, not the curriculum's
+actual ROOT surface, which is `TH1D` (5/8 katas) and `TF1`/`TFormula` (3/8).
+
+Third correction: gate G8 requires compiling *the student's own C++* in the
+browser, which needs a C++ toolchain running client-side — independent of ROOT,
+and unproven even for the cheap GenVector slice (G2 was compiled by a host
+`em++`, never by an in-page toolchain). G7 is pulled forward and narrowed to
+test exactly this, using the already-proven G2 program as payload so a failure
+is unambiguously the compiler's, not ROOT's.
+
+Risk carried forward: G2's bypass only proves the restricted GenVector template
+path, not MathCore, Hist, or the wider curriculum; G7 passing would prove the
+toolchain exists but says nothing yet about which ROOT subset it can build.
