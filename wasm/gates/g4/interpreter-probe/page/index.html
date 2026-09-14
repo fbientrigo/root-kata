@@ -1,0 +1,179 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>G4 interpreter probe</title>
+</head>
+<body>
+<!--
+  G4/G5 interpreter probe: can the same prebuilt xeus-cpp-lite / CppInterOp
+  in-browser interpreter that G7 proved (Clang-Repl under the hood) resolve
+  genuine ROOT TH1D -- construct it, Fill it, and read back GetEntries /
+  GetBinContent / Integral / GetMean -- given the real headers mounted, with
+  NO rootcling-generated dictionary anywhere in this page's toolchain?
+
+  This is a probe, not a gate: it never prints a PASS/FAIL gate verdict
+  itself. wasm/gates/g4/interpreter-probe/probe.sh classifies the result.
+
+  DOM contract (scraped by wasm/gates/g7/drive.mjs, reused unmodified):
+    <pre id="output">   -- JSON array of {id, status, stdout, diag} per executed cell
+    <pre id="diag">     -- concatenated diagnostic text across all cells (quick grep)
+    <pre id="log">      -- verbose trace of every step
+    document.title      -- "PROBE-DONE" once every queued cell has replied
+
+  ?variant=probe (default): three cells against genuine wasm/gates/g4/th1d.cpp
+    c1-include: `#include <TH1D.h>` alone -- does the header even parse?
+    c2-define:  the unmodified th1d.cpp translation unit (declares main(), does not run it)
+    c3-run:     `main();` -- construct TH1D, Fill, and the five read methods
+
+  ?variant=control: the SAME enlarged include set, running G2's already-proven
+    genvector.cpp -- so a probe failure is provably about TH1D, not a broken
+    harness (same falsifiability discipline as G7's broken-payload check).
+
+  ?variant=symbol-retry: only meaningful if variant=probe classified
+    BLOCKED-AT-SYMBOL. Adds one more cell feeding genuine upstream
+    hist/hist/src/TH1.cxx to the interpreter before main(), testing whether
+    clang-repl JITs the out-of-line definitions on the fly instead of needing
+    a rootcling dictionary.
+-->
+<pre id="output"></pre>
+<pre id="diag"></pre>
+<pre id="log"></pre>
+<script>
+  function log(s) {
+    document.getElementById('log').appendChild(document.createTextNode(s + '\n'));
+  }
+  window.addEventListener('error', (ev) => {
+    log('[window-error] ' + ev.message + ' @ ' + ev.filename + ':' + ev.lineno);
+  });
+  window.addEventListener('unhandledrejection', (ev) => {
+    log('[unhandled-rejection] ' + ev.reason);
+  });
+
+  // Per-cell results, keyed by msg_id, in execution order.
+  const cellOrder = [];
+  const cells = {};
+  let pendingReplies = 0;
+  let doneRequested = false;
+
+  window.addEventListener('message', (ev) => {
+    const data = ev.data;
+    if (!data || !data.header) return;
+    const mt = data.header.msg_type;
+    const parentId = data.parent_header && data.parent_header.msg_id;
+    const cell = parentId ? cells[parentId] : null;
+
+    if (mt === 'stream' && data.content && typeof data.content.text === 'string') {
+      log('[stream:' + data.content.name + ':' + parentId + '] ' + JSON.stringify(data.content.text));
+      if (cell) {
+        if (data.content.name === 'stdout') cell.stdout += data.content.text;
+        else cell.diag += data.content.text;
+      }
+    } else if (mt === 'error') {
+      log('[error:' + parentId + '] ' + JSON.stringify(data.content));
+      const evalue = (data.content && data.content.evalue) || '';
+      if (cell) cell.diag += evalue;
+    } else if (mt === 'execute_reply') {
+      log('[execute_reply:' + parentId + '] status=' + data.content.status);
+      if (cell) cell.status = data.content.status;
+      pendingReplies -= 1;
+      maybeFinish();
+    }
+  });
+
+  function maybeFinish() {
+    if (doneRequested && pendingReplies <= 0) {
+      const out = cellOrder.map((id) => ({ id, status: cells[id].status, stdout: cells[id].stdout, diag: cells[id].diag }));
+      document.getElementById('output').textContent = JSON.stringify(out);
+      document.getElementById('diag').textContent = cellOrder.map((id) => cells[id].diag).join('');
+      document.title = 'PROBE-DONE';
+    }
+  }
+</script>
+<script src="./headers.js"></script>
+<script src="./payload.js"></script>
+<script src="./xcpp.js"></script>
+<script>
+  log('[probe] headers loaded: ' + Object.keys(ROOT_HEADERS).length);
+
+  createXeusModule({
+    print: (t) => log('[stdout-raw] ' + t),
+    printErr: (t) => log('[stderr-raw] ' + t),
+    locateFile: (f) => f,
+    noInitialRun: true,
+  }).then(async (Module) => {
+    log('[probe] module ready');
+
+    const paths = Object.keys(ROOT_HEADERS);
+    for (const vpath of paths) {
+      const dir = vpath.substring(0, vpath.lastIndexOf('/'));
+      Module.FS.mkdirTree(dir);
+      Module.FS.writeFile(vpath, ROOT_HEADERS[vpath]);
+    }
+    log('[probe] mounted ' + paths.length + ' header files under /rootsrc');
+
+    const argv = [
+      'xcpp',
+      '-std=c++17',
+      '-fwasm-exceptions',
+      '-I/rootsrc/generated',
+      '-I/rootsrc/math/genvector/inc',
+      '-I/rootsrc/math/mathcore/inc',
+      '-I/rootsrc/core/foundation/inc',
+      '-I/rootsrc/core/base/inc',
+      '-I/rootsrc/hist/hist/inc',
+      '-I/rootsrc/core/cont/inc',
+      '-I/rootsrc/core/meta/inc',
+      '-I/rootsrc/math/matrix/inc',
+      '-I/rootsrc/io/io/inc',
+      '-I/rootsrc/core/thread/inc',
+      '-I/rootsrc/core/clib/inc',
+      '-I/include/compat',
+    ];
+    log('[probe] argv = ' + JSON.stringify(argv));
+
+    const xkernel = new Module.xkernel(argv);
+    const xserver = xkernel.get_server();
+    xkernel.start();
+    log('[probe] kernel started');
+
+    function execute(code, msgId) {
+      cellOrder.push(msgId);
+      cells[msgId] = { stdout: '', diag: '', status: null };
+      pendingReplies += 1;
+      xserver.notify_listener({
+        header: { msg_id: msgId, msg_type: 'execute_request', username: 'g4probe', session: 's1', date: new Date().toISOString(), version: '5.3' },
+        parent_header: {},
+        metadata: {},
+        content: { code, silent: false, store_history: true, user_expressions: {}, allow_stdin: false },
+        buffers: [],
+        channel: 'shell',
+      });
+    }
+
+    const variant = new URLSearchParams(location.search).get('variant') || 'probe';
+    log('[probe] variant = ' + variant);
+
+    if (variant === 'control') {
+      execute(window.__CONTROL_SRC__, 'ctl-define');
+      execute('main();', 'ctl-run');
+    } else if (variant === 'symbol-retry') {
+      execute('#include <TH1D.h>', 'c1-include');
+      execute(window.__TH1_CXX_SRC__, 'c1b-th1cxx');
+      execute(window.__PROBE_SRC__, 'c2-define');
+      execute('main();', 'c3-run');
+    } else {
+      execute('#include <TH1D.h>', 'c1-include');
+      execute(window.__PROBE_SRC__, 'c2-define');
+      execute('main();', 'c3-run');
+    }
+    doneRequested = true;
+    maybeFinish();
+  }).catch((e) => {
+    log('[init-error] ' + e);
+    document.getElementById('diag').textContent = String(e);
+    document.title = 'PROBE-DONE';
+  });
+</script>
+</body>
+</html>

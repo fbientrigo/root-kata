@@ -3,9 +3,12 @@
 ## Current gate
 
 **G7 — compile genuine ROOT C++ client-side in the browser: PASS** (narrowed, pulled
-forward ahead of the `TH1D` build-system decision). `TH1D` is **PARTIAL** at G4:
+forward ahead of the `TH1D` build-system decision). `TH1D` is **PARTIAL** at G4 and
+**BLOCKED** at G5's cheap interpreter path:
 native `rootcling` generated a genuine dictionary and Emscripten compiled it plus
-upstream `TH1.cxx` to wasm objects, but the ROOT runtime closure does not yet link.
+upstream `TH1.cxx` to wasm objects, but the ROOT runtime closure does not yet link;
+the pinned interpreter probe also fails at `#include <TH1D.h>` on
+`TVersionCheck::TVersionCheck(int)` before any `TH1D` code runs.
 
 ## Confirmed facts
 
@@ -27,8 +30,9 @@ upstream `TH1.cxx` to wasm objects, but the ROOT runtime closure does not yet li
 9. **Curriculum ROOT-API inventory** (all 13 exercises read directly): the shipped surface is `TH1D`/`TH1` (5 of 8 ROOT katas: ctor, `Fill`, `GetEntries`, `GetBinContent`, `SetBinContent`, `SetBinError`, `GetMean`, `GetStdDev`, `Integral`, `GetNbinsX`, `GetXaxis`, `Fit`, `Draw`), `TAxis` (4), `TF1`-from-formula-string (3, which transitively requires `TFormula`→`TInterpreter` — this is a **shipped**, not merely planned, interpreter dependency), `TGraph` data access (1), and one `TCanvas`/`gROOT::SetBatch`/`SaveAs("preview.png")` (1, decorative — no validator inspects the PNG). `TMath`, `TRandom`/`gRandom`, and `ROOT::Math` four-vectors (the G2 slice) appear **nowhere** in the curriculum, planned or shipped. Planned m2–m6 milestones add `TFile`/`TTree`, `RDataFrame`, `RVec`. Source: `curriculum/triads/*.csv`, `curriculum/plan.json`, `src/root_kata/exercises/*/harness.cpp`.
 10. **The browser runner today does no client-side compilation of any kind.** `docs/site.js` (`fetch('/api/run')`) posts student code to a *local* Python server (`src/root_kata/web_server.py`, bound to `127.0.0.1`) which shells out to real `g++`/`root-config` — this is the existing, honest "no Cling, no PyROOT" design (`src/root_kata/cpp_runner.py:1-21`), not a mock of ROOT. There is no WASM, xeus-cpp, or JSROOT integration anywhere in `docs/`/`src/`/`scripts/`. `docs/site.js:231-254`'s single `fetch` call is the integration seam a wasm runner would replace. No COOP/COEP headers are set anywhere and GitHub Pages cannot set them, so any in-browser toolchain must be single-threaded (no `SharedArrayBuffer`, no pthreads).
 11. **G7 PASS: a C++ compiler runs entirely client-side in Chromium and compiles genuine, unmodified ROOT headers correctly.** Two independent hypotheses ran in parallel against the identical G2 payload. **H1 (xeus-cpp-lite/CppInterOp, Clang-Repl-based) passed**: prebuilt `emscripten-forge-4x` conda packages (`xeus-cpp` 0.10.0, `cppinterop` 1.9.0, `xeus` 6.0.5), sha256-pinned and independently re-verified by the orchestrator against the channel's live `repodata.json`. The page drives a genuine `xkernel` via the real Jupyter `execute_request` wire protocol, mounts 355 real ROOT header files into its virtual FS, and produces output byte-identical to `wasm/gates/g2/expected.txt` — independently reproduced by the orchestrator twice consecutively from clean. A deliberately-broken variant produces a genuine Clang diagnostic (`error: no member named 'printfXX'... did you mean 'printf'?`) and no stdout. No `SharedArrayBuffer`/threads required — verified running under a plain `python3 -m http.server` with no COOP/COEP headers, satisfying the GitHub Pages hosting constraint. Payload: ~99.5 MiB. **H2 (Clang+LLD as WebAssembly, AOT/WASI-targeted) was falsified**: the prebuilt `browsercc` npm package genuinely compiles the same payload against the same real ROOT headers, but linking fails on `__cxa_allocate_exception`/`__cxa_throw` — every WASI-lineage prebuilt clang+lld shares a `libc++abi` with no exception-throwing runtime (a known, open upstream wasi-sdk gap), and ROOT's `GenVector_exception.h` deliberately keeps its `Throw()` inline so interactive `PtEtaPhiMVector` usage needs exceptions. See `gates/g7/FINDINGS.md` (synthesis) and `gates/g7/H2-FINDINGS.md` (H2 detail).
-12. **G7 proves the compiler exists; it proves nothing about `TH1D`.** The payload was deliberately the already-proven GenVector program so a pass/fail would be unambiguously about the compiler, not ROOT. Whether xeus-cpp-lite's Clang-Repl/interpreter architecture changes the calculus for `TH1D`'s dictionary requirement (fact 8) — an interpreter can in principle resolve symbols differently than a static link — is a genuinely open question, not one this gate answered.
+12. **G7 proves the compiler exists; the G4/G5 interpreter probe now tests the open `TH1D` question.** G7's payload was deliberately the already-proven GenVector program so its pass/fail was unambiguously about the compiler, not ROOT. The pinned interpreter probe mounts 631 genuine ROOT headers and passes the enlarged GenVector control, but `#include <TH1D.h>` fails with `TVersionCheck::TVersionCheck(int)` while loading the first incremental module.
 13. **G4 cross-build review: PARTIAL.** Independent reproduction with ROOT 6.34.10's unmodified upstream `hist/hist/inc/LinkDef.h` and native host `rootcling` generated genuine `TH1D::Class`, `Dictionary`, and `Streamer` code. Emscripten compiled that dictionary and genuine upstream `hist/hist/src/TH1.cxx` as WebAssembly objects, but the focused link fails on `TVersionCheck`, `TObject`, `TNamed`, `TString`, `TAtt*`, `TAxis`, and `TArrayD` symbols because the target-side `Hist + MathCore + Matrix + RIO + Thread + Core` closure was not built. The all-Emscripten top-level `Hist` attempt remains in embedded LLVM/Cling compilation under the bounded build, so no linked module, six-call execution, native comparison, Chromium run, or final payload size exists; see [gates/g4/rootcling-crossbuild/CODEX-REVIEW.md](gates/g4/rootcling-crossbuild/CODEX-REVIEW.md). This evidence uses a worker checkout at 6.34.10 rather than the G0-pinned 6.40.04 source, so pinned-release confirmation remains open.
+14. **G4/G5 interpreter probe: BLOCKED-AT-SYMBOL.** `bash gates/g4/interpreter-probe/probe.sh` independently reproduced the pinned ROOT 6.40.04 result: the identical enlarged 631-header mount passes G2's GenVector control, while `#include <TH1D.h>` fails with `Dynamic linking error: cannot resolve symbol _ZN13TVersionCheckC1Ei`. The pinned source confirms `TVersionCheck.h:31` creates the file-scope static, `TObject.h:18` includes it, and `TSystem.cxx:4462` defines its constructor. This corroborates the prior Core closure finding and closes the cheap interpreter path; no G5 call executes.
 
 ## Gate-order correction
 
@@ -38,6 +42,8 @@ upstream `TH1.cxx` to wasm objects, but the ROOT runtime closure does not yet li
 - Third correction: G8 ("one kata fully client-side") requires compiling **the student's own C++** in the browser, which needs a C++ toolchain in the browser — a requirement independent of ROOT and unproven by any gate so far, including for the cheap header-only G2 slice.
 - Replacement order: `G0 → G2 → G4 (blocker, documented) → G7 (PASS, compiler-in-browser) → TH1D build-system decision`.
 - Fourth correction: G7 passed. A C++ compiler running client-side is no longer an open risk; it is confirmed (fact 11). The open risk moves entirely to `TH1D`/`TF1` — the curriculum's actual demand — which G7 did not touch.
+- Fifth correction: the interpreter probe closes the cheap `TH1D` path without Core. The first-cell symbol failure under the pinned release means the next objective should scope a target-side Core cross-build, not another interpreter variation.
+- Replacement order: `G0 → G2 → G4 (partial, documented) → G7 (PASS, compiler-in-browser) → Core cross-build scope → smallest validated ROOT capability`.
 - Unresolved risk: GenVector does not establish a path for `TH1D`, files, or RDataFrame; ROOT Light is not yet viable as a useful curriculum subset on this evidence alone.
 
 ## Rejected approaches
@@ -48,6 +54,7 @@ upstream `TH1.cxx` to wasm objects, but the ROOT runtime closure does not yet li
 - Stubbing `TH1D::Class()`/`Streamer()` to satisfy the linker: it would link, but is forking `TH1`, which the mission forbids (fact 8).
 - Arguing the TH1D blocker from the CMake target graph alone: `add_dependencies` is build-order, not a link requirement (fact 8's correction).
 - AOT clang+lld compiled to WebAssembly via any WASI-lineage prebuilt (`browsercc`, and by inheritance `binji/wasm-clang`, `wapm-packages/clang`): falsified for this project's needs by a shared, currently-open upstream `libc++abi` exception-handling gap (fact 11, H2).
+- Treating the prebuilt xeus-cpp-lite interpreter as a cheap `TH1D` escape hatch: falsified by the first-cell `TVersionCheck` symbol wall; the interpreter still needs target-side Core.
 - Building LLVM/Clang/LLD from source to fix the H2 gap: explicitly out of scope for a gate; not attempted.
 
 ## Canonical reproduction
@@ -55,6 +62,7 @@ upstream `TH1.cxx` to wasm objects, but the ROOT runtime closure does not yet li
 ```bash
 bash wasm/toolchain/install-emsdk.sh
 bash wasm/gates/g7/run.sh # G7 PASS
+bash wasm/gates/g4/interpreter-probe/probe.sh # BLOCKED-AT-SYMBOL (evidence)
 ```
 
 ## Last verified commit

@@ -19,8 +19,8 @@ A gate is a falsifiable claim with a deterministic reproduction command.
 | G1 | ROOT MathCore builds to WebAssembly. **Deferred:** its normal build path reaches Core/Cling. |
 | G2 | `ROOT::Math::PtEtaPhiMVector` executes correctly in Chromium. **PASS.** |
 | G3 | The minimum ROOT Core/Physics dependency boundary is established and documented. |
-| G4 | Actual ROOT `TH1D` builds to WebAssembly. **PARTIAL:** native `rootcling` generated a genuine dictionary and Emscripten compiled it plus upstream `TH1.cxx` to wasm objects; the target-side ROOT closure still prevents a linked module. |
-| G5 | `TH1D` supports `Fill`, `GetEntries`, `GetBinContent`, `Integral`, `GetMean` in Chromium. |
+| G4 | Actual ROOT `TH1D` builds to WebAssembly. **PARTIAL:** native `rootcling` generated a genuine dictionary and Emscripten compiled it plus upstream `TH1.cxx` to wasm objects; the target-side ROOT closure still prevents a linked module. The pinned in-browser interpreter probe independently reaches the same Core boundary at header-load time. |
+| G5 | `TH1D` supports `Fill`, `GetEntries`, `GetBinContent`, `Integral`, `GetMean` in Chromium. **BLOCKED:** the proven in-browser interpreter cannot load `TH1D.h` without target-side Core. |
 | G6 | `TGraph`/`TF1` evaluated — **only if inexpensive**. This gate may be declined on cost. |
 | G7 | **Narrowed, pulled forward. PASS** (via xeus-cpp-lite/CppInterOp): a genuine ROOT program, typed in the browser, is compiled client-side (no server) and runs correctly in Chromium. Proves a compiler can run client-side; says nothing about `TH1D`, which remains partial at G4. |
 | G8 | One existing genuine ROOT Kata exercise executes fully client-side. |
@@ -71,7 +71,10 @@ rootcling-crossbuild review proves a real dictionary and genuine upstream
 `TH1.cxx` can each be compiled to wasm objects. See
 `g4/rootcling-crossbuild/CODEX-REVIEW.md` for the independent reproduction and
 the remaining target-side ROOT closure; no linked or browser-running `TH1D`
-module exists yet.
+module exists yet. The bounded interpreter probe
+(`g4/interpreter-probe/probe.sh`) now confirms that the same target-side Core
+boundary is required even to load `#include <TH1D.h>`; see
+`g4/interpreter-probe/CODEX-REVIEW.md`.
 
 ## Gate-order correction
 
@@ -93,6 +96,15 @@ and unproven even for the cheap GenVector slice (G2 was compiled by a host
 test exactly this, using the already-proven G2 program as payload so a failure
 is unambiguously the compiler's, not ROOT's.
 
+Fifth correction: the G4/G5 interpreter probe reproduced the missing
+`TVersionCheck` Core symbol at `#include <TH1D.h>` under the pinned 6.40.04
+headers, while the identical enlarged-header GenVector control passed. The cheap
+interpreter path is closed without a target-side Core build.
+
+Replacement order: `G0 → G2 → G4 (partial, documented) → G7 (PASS,
+compiler-in-browser) → Core cross-build scope → smallest validated ROOT
+capability`.
+
 Risk carried forward: G2's bypass only proves the restricted GenVector template
 path, not MathCore, Hist, or the wider curriculum; G7 passing proves the
 toolchain exists but says nothing yet about which ROOT subset it can build.
@@ -108,3 +120,12 @@ so interactive `PtEtaPhiMVector` usage needs it. Full evidence and independent
 re-verification in `gates/g7/FINDINGS.md` and `gates/g7/H2-FINDINGS.md`. `~99.5 MiB`
 toolchain payload; no threads/`SharedArrayBuffer` required, satisfying the GitHub
 Pages hosting constraint.
+
+## G4/G5 interpreter result
+
+`bash gates/g4/interpreter-probe/probe.sh` independently reproduced
+`BLOCKED-AT-SYMBOL` under pinned ROOT 6.40.04: the enlarged 631-header control
+passes, but `#include <TH1D.h>` fails while loading the first incremental wasm
+module with `cannot resolve symbol _ZN13TVersionCheckC1Ei`. The source-cited
+Core constructor is required before any `TH1D` cell can run; see
+`gates/g4/interpreter-probe/CODEX-REVIEW.md`.

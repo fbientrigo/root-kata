@@ -3,24 +3,29 @@
 into a single headers.js the in-browser page loads and mounts into the
 Emscripten virtual filesystem via FS.writeFile before compiling.
 
-Usage: build_headers.py <root-source-dir> <rconfigure.h-path> <output headers.js>
+Usage: build_headers.py <root-source-dir> <rconfigure.h-path> <output headers.js> [extra-dir ...]
+
+Extra trailing args append more ROOT-source-relative subtree dirs to the
+default four (used by the g4 interpreter-probe to add hist/core/io subtrees
+without touching G7's own call, which passes no extra args).
 """
 import json
 import os
 import sys
 
 def main():
-    if len(sys.argv) != 4:
-        print(f"usage: {sys.argv[0]} <root-source-dir> <rconfigure.h> <out headers.js>", file=sys.stderr)
+    if len(sys.argv) < 4:
+        print(f"usage: {sys.argv[0]} <root-source-dir> <rconfigure.h> <out headers.js> [extra-dir ...]", file=sys.stderr)
         return 1
     root_src, rconfigure_path, out_path = sys.argv[1:4]
+    extra_dirs = sys.argv[4:]
 
     dirs = [
         "math/genvector/inc",
         "math/mathcore/inc",
         "core/foundation/inc",
         "core/base/inc",
-    ]
+    ] + extra_dirs
 
     mapping = {}
     for d in dirs:
