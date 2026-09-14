@@ -19,10 +19,10 @@ A gate is a falsifiable claim with a deterministic reproduction command.
 | G1 | ROOT MathCore builds to WebAssembly. **Deferred:** its normal build path reaches Core/Cling. |
 | G2 | `ROOT::Math::PtEtaPhiMVector` executes correctly in Chromium. **PASS.** |
 | G3 | The minimum ROOT Core/Physics dependency boundary is established and documented. |
-| G4 | Actual ROOT `TH1D` builds to WebAssembly. **BLOCKER:** a direct no-library link first requires `TH1D::TH1D(char const*, char const*, int, double, double)`. |
+| G4 | Actual ROOT `TH1D` builds to WebAssembly. **PARTIAL:** native `rootcling` generated a genuine dictionary and Emscripten compiled it plus upstream `TH1.cxx` to wasm objects; the target-side ROOT closure still prevents a linked module. |
 | G5 | `TH1D` supports `Fill`, `GetEntries`, `GetBinContent`, `Integral`, `GetMean` in Chromium. |
 | G6 | `TGraph`/`TF1` evaluated — **only if inexpensive**. This gate may be declined on cost. |
-| G7 | **Narrowed, pulled forward. PASS** (via xeus-cpp-lite/CppInterOp): a genuine ROOT program, typed in the browser, is compiled client-side (no server) and runs correctly in Chromium. Proves a compiler can run client-side; says nothing about `TH1D`, which stays blocked per G4. |
+| G7 | **Narrowed, pulled forward. PASS** (via xeus-cpp-lite/CppInterOp): a genuine ROOT program, typed in the browser, is compiled client-side (no server) and runs correctly in Chromium. Proves a compiler can run client-side; says nothing about `TH1D`, which remains partial at G4. |
 | G8 | One existing genuine ROOT Kata exercise executes fully client-side. |
 
 ## Out of scope
@@ -65,9 +65,13 @@ wasm/gates/gN/run.sh
 which exits `0` and prints `gN PASS`, or exits non-zero and prints `gN FAIL: <reason>`.
 `wasm/REPRODUCE.md` lists the canonical command for the current gate.
 
-G4 is a completed falsification result: its canonical command deliberately exits
-non-zero with the pinned first unresolved symbol. See `g4/BLOCKER.md` for the
-source and target chain; no partial ROOT build was started.
+G4 is a **PARTIAL** cross-build result. Its canonical direct-link command still
+deliberately exits non-zero with the first unresolved symbol, while the
+rootcling-crossbuild review proves a real dictionary and genuine upstream
+`TH1.cxx` can each be compiled to wasm objects. See
+`g4/rootcling-crossbuild/CODEX-REVIEW.md` for the independent reproduction and
+the remaining target-side ROOT closure; no linked or browser-running `TH1D`
+module exists yet.
 
 ## Gate-order correction
 
@@ -75,7 +79,7 @@ Old assumption: G1 had to precede G2. Evidence: `math/mathcore/CMakeLists.txt`
 depends on Core, and `core/CMakeLists.txt` unconditionally makes Core depend on
 CLING (a build-order edge, not a link edge — see `gates/g4/BLOCKER.md`); the G2
 template path compiled and ran without a ROOT library. Replacement:
-`G0 → G2 → G4 (blocker, documented) → G7 (narrowed) → smallest next capability probe`.
+`G0 → G2 → G4 (partial, documented) → G7 (narrowed) → smallest next capability probe`.
 
 Second correction: reading all 13 shipped exercises plus `curriculum/triads/*.csv`
 and `curriculum/plan.json` shows **no current or planned kata uses GenVector or

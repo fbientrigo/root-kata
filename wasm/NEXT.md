@@ -4,8 +4,8 @@
 
 Test whether xeus-cpp-lite's Clang-Repl/Cling interpreter (proven working in-browser by
 G7) can construct a genuine `TH1D` through its own interactive class-resolution machinery
-— which historically differs from ahead-of-time static linking — *before* committing to a
-full CMake + host-`rootcling` cross-build of Core/MathCore/Matrix/RIO/Hist.
+— which historically differs from ahead-of-time static linking — *before* committing to
+another full CMake + host-`rootcling` cross-build of Core/MathCore/Matrix/RIO/Hist.
 
 ## Why this, specifically, is next
 
@@ -15,7 +15,10 @@ G7 proved a **Cling-based interpreter** can run entirely client-side. Real ROOT'
 is known to resolve classes interactively at the prompt without a precompiled dictionary
 in some cases (autoloading, on-the-fly `TClass`/`TProtoClass` generation) — a mechanism
 that is architecturally different from G4's static-link probe and untested by any gate
-so far. If it works for `TH1D`, the path to G5 is far cheaper than a full ROOT build.
+so far. The larger rootcling cross-build review now shows that the static route can
+reach real wasm objects but stops at the target-side Core closure, without producing
+a linked module. If it works for `TH1D`, the interpreter path to G5 is far cheaper than
+another full ROOT build.
 If it does not — if the interpreter hits the identical missing-dictionary wall — that is
 still valuable: it closes off the cheap path and confirms the full build is necessary
 before paying for it.
@@ -57,3 +60,7 @@ be informative about what's missing (a missing `.pcm`, a missing `libHist.so`, e
   next session's scoping should keep the number honest rather than let it grow unnoticed.
 - G7 passed independent Codex Sol High review; no further G7 review blocks the next
   separately-approved probe.
+- The G4 rootcling cross-build is **PARTIAL**, not a PASS: real dictionary and
+  `TH1.cxx` wasm objects were reproduced, but no linked/running module exists.
+  It used ROOT 6.34.10 from the experiment cache; repeat against the pinned
+  6.40.04 source before claiming release-specific closure.
