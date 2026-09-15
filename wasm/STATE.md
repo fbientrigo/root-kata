@@ -10,9 +10,11 @@ upstream `TH1.cxx` to wasm objects, but the ROOT runtime closure does not yet li
 the pinned interpreter probe also fails at `#include <TH1D.h>` on
 `TVersionCheck::TVersionCheck(int)` before any `TH1D` code runs.
 
-**P0 dependency review: PARTIAL.** ROOT's own patched Core/Hist target graphs
-avoid building target LLVM/Cling, but Core stops at `G__Core.cxx` compilation
-against the wrong C++ stdlib. No Core library or running wasm TH1D exists.
+**P0 Core-fix review: PARTIAL; Core target build PASS.** ROOT's own patched
+Core target builds with a host rootcling parsing the wasm32/libc++ environment.
+Its `libCore.so` is Emscripten 4.0.9's relocatable object output, not a loaded
+side module. No running wasm TH1D exists; interpreter initialization,
+no-pthread packaging and runtime dictionary behavior remain open.
 
 ## Confirmed facts
 
@@ -39,7 +41,7 @@ against the wrong C++ stdlib. No Core library or running wasm TH1D exists.
 14. **G4/G5 interpreter probe: BLOCKED-AT-SYMBOL.** `bash gates/g4/interpreter-probe/probe.sh` independently reproduced the pinned ROOT 6.40.04 result: the identical enlarged 631-header mount passes G2's GenVector control, while `#include <TH1D.h>` fails with `Dynamic linking error: cannot resolve symbol _ZN13TVersionCheckC1Ei`. The pinned source confirms `TVersionCheck.h:31` creates the file-scope static, `TObject.h:18` includes it, and `TSystem.cxx:4462` defines its constructor. This corroborates the prior Core closure finding and closes the cheap interpreter path; no G5 call executes.
 
 15. **P0 native audit: conditional interpreter dependency.** Independently reproduced on 6.40.02 and 6.34.10: stock 6.40 TH1D initialization reaches libCling through the autoregistration configuration lookup; denial aborts. Diagnostic E1 interposition preserves default P0 output without libCling, while the denied interpreter control still fails. This proves a narrow semantic isolation, not a configuration-preserving port; 6.40.04 runtime parity remains untested.
-16. **ROOT-target Core build: BLOCKED-AT-COMPILE.** The CMake-only host-rootcling patch applies to pinned 6.40.04 and leaves no LLVM/Cling build nodes in Core's 13-node or Hist's 24-node order closures. Installed host rootcling 6.40.02 generates host-libstdc++ types; pinned em++ independently rejects `G__Core.cxx` on `__gnu_cxx`. Candidate ROOT packages remain Core, Thread, RIO, MathCore, Matrix and Hist with `imt=OFF`. Target ABI, builtin zstd scheduling/toolchain, generic `-pthread` flags, packaging and Cling-free initialization are unresolved. See [P0 review](gates/p0deps/CODEX-REVIEW.md).
+16. **ROOT-target Core build: PASS, runtime PARTIAL.** Independent fresh-cache reproduction with pinned 6.40.04/Emscripten 4.0.9 and version-mismatched host rootcling 6.40.02 completes ROOT's own Core target. The eight-file platform patch supplies the target generator environment, identifies wasm32 in RConfig/TUnixSystem, forwards builtin toolchains and schedules ZSTD. Core's 14-node order closure contains no target LLVM/Cling build nodes. Selected target class layouts agree with em++; the generator overlay does not reach target compilation. All members of the five codec/regex archives are wasm and their implementations are included, but no codec round trip or runtime reflection is tested. `libCore.so` remains relocatable, `-pthread` remains, and `InitInterpreter` is unchanged. Non-empty PCM serialization crashes, but pinned upstream MathCore, Matrix, Hist, RIO and Thread explicitly request empty PCM; that crash is not an established blocker for their stock targets. Candidate packages remain Core, Thread, RIO, MathCore, Matrix and Hist with `imt=OFF`. See [Core-fix review](gates/p0deps/CODEX-REVIEW-CORE.md), superseding the earlier [P0 compile blocker](gates/p0deps/CODEX-REVIEW.md).
 
 ## Gate-order correction
 
@@ -83,6 +85,6 @@ the omission, while a direct throw/catch probe did.
 
 ## Reviewer verdict
 
-**P0 dependency session: PARTIAL**, independently reviewed 2026-09-15. See
-[gates/p0deps/CODEX-REVIEW.md](gates/p0deps/CODEX-REVIEW.md). G7 remains **PASS**;
+**P0 Core-fix session: PARTIAL; Core build PASS**, independently reviewed 2026-09-15. See
+[gates/p0deps/CODEX-REVIEW-CORE.md](gates/p0deps/CODEX-REVIEW-CORE.md). G7 remains **PASS**;
 its historical verification above is unchanged.

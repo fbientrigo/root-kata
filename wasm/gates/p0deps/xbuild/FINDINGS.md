@@ -1,6 +1,54 @@
 # Phase 3 bounded cross-build: ROOT `Core` under Emscripten with a HOST rootcling (Worker C)
 
-## Verdict: **BLOCKED-AT-COMPILE**
+## Current verdict (resolution, coordinator, 2026-09-15): **CORE-TARGET-BUILT**
+
+ROOT's own `Core` CMake target builds under Emscripten 4.0.9 from the pinned 6.40.04 source. It
+uses host rootcling (conda-forge 6.40.02, version-mismatched) for `G__Core`, and no
+LLVM, Cling or rootcling is built for wasm.
+
+Independent fresh-cache review reproduces this on 2026-09-15: configure exit 0,
+Core build exit 0 in 398 seconds, 14-node order closure with no forbidden targets,
+and both `xbuild Core PASS` and `dictprobe PASS`. The 6,877,437-byte Core output
+is a relocatable object, not a loaded runtime library; see the review below.
+
+`run.sh configure && run.sh graph && run.sh build && run.sh inspect` prints `xbuild Core PASS`.
+The inspection checks below are narrow; the [independent Core review](../CODEX-REVIEW-CORE.md)
+documents phase exit-status and stale-artifact limits and supplements archive sampling with
+an all-member audit. The inspection reports:
+
+- `lib/libCore.so` is a WebAssembly module.
+- `TObject::Class()` from `G__Core` is defined.
+- 0 non-wasm archive members were skipped at link.
+- The first member of each discovered builtin archive (zlib, lz4, lzma, zstd, pcre) is wasm.
+- 0 undefined codec or regex symbols remain.
+
+Changes applied on top of the original three-hunk patch (all in `host-rootcling.patch`,
+classification in brackets):
+
+| Blocker (verbatim first error) | Change | Class |
+| --- | --- | --- |
+| `G__Core.cxx:315: use of undeclared identifier '__gnu_cxx'` | Target frontend for the host generator via `-DROOT_HOST_ROOTCLING_EXTRA_ARGS`, passed as `EXTRA_CLING_ARGS` by `RootMacros.cmake`. The args mirror em++ (`-target wasm32-unknown-emscripten`, `--sysroot`, `-DEMSCRIPTEN`, `include/{fakesdl,compat}`) plus the generator-only `../dictprobe/overlay/stdlib.h`. See `../dictprobe/FINDINGS.md`. | PLATFORM PORT (host tool env) |
+| `clib/src/detach.c:67: call to undeclared function 'close'` | `RConfig.hxx`: new `__EMSCRIPTEN__ && __wasm32__` block defining `R__EMSCRIPTEN`, `R__UNIX`, `R__BYTESWAP` (wasm is little-endian) and `NEED_SIGJMP`. No platform was previously recognised, so `R__UNIX` was undefined. | PLATFORM PORT (platform identification) |
+| `TUnixSystem.cxx:728: use of undeclared identifier 'sys_nerr'`, `:3462 'FIONBIO'` | Add `R__EMSCRIPTEN` to the two existing platform lists: `<sys/ioctl.h>` include and `strerror` (musl). | PLATFORM PORT (existing platform guards) |
+| `No rule to make target 'builtins/ZSTD-prefix/lib/libzstd.a'` / `'zdict.h' file not found` | `builtins/zstd`: `add_dependencies(ZSTD::ZSTD BUILTIN_ZSTD)` (as `builtins/lz4` already does) and forward `CMAKE_TOOLCHAIN_FILE`. | PLATFORM PORT (build system) |
+| `wasm-ld: warning: liblz4.a / libz.a: archive member ... is neither Wasm object file nor LLVM bitcode` (silently native x86-64 builtins) | Forward `CMAKE_TOOLCHAIN_FILE` in `builtins/lz4` and `builtins/zlib` (same pattern as lzma). | PLATFORM PORT (build system) |
+
+Still open (not claimed):
+
+- `libCore.so` is the pinned-emcc output of bare `-shared` (see CODEX-REVIEW). It is not a
+  loaded side module, and it has not been linked or executed in node or Chromium.
+- `-pthread` is still in the flags.
+- `TROOT::InitInterpreter` is present and unchanged, so runtime still requires the Cling
+  edge.
+- Non-empty PCM generation segfaults on host/target serialization layout disagreement
+  (`../dictprobe/FINDINGS.md`). **Correction:** pinned upstream MathCore, Matrix and Hist
+  explicitly request `-writeEmptyRootPCM`, as do RIO and Thread, and all five generated
+  commands preserve it. Non-empty PCM is unsupported but is not an established blocker
+  for these stock targets.
+
+The historical Worker C report follows unchanged.
+
+## Historical verdict (Worker C): **BLOCKED-AT-COMPILE**
 
 `G__Core.cxx` does not compile for wasm32. The host rootcling parsed ROOT's headers against the
 **host C++ standard library (libstdc++)** and spelled libstdc++-private types into the dictionary.

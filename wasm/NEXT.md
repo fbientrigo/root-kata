@@ -2,60 +2,58 @@
 
 ## Objective
 
-Run one bounded **Core dictionary generation-and-compile probe** with the
-already installed native rootcling and the complete Emscripten wasm32 target
-include/ABI environment. Use pinned ROOT 6.40.04 and Emscripten 4.0.9; label the
-installed 6.40.02 generator as version-mismatched diagnostic evidence.
+Run one bounded **stock G__MathCore dictionary generation-and-whole-C++
+compile probe** in the already configured ROOT-owned cross-build tree.
+Use pinned ROOT 6.40.04/Emscripten 4.0.9 and label the installed 6.40.02
+rootcling as version-mismatched diagnostic evidence.
 
 ## Why this is next
 
-The P0 dependency session retained ROOT's own Core/Hist CMake targets and
-removed target LLVM/Cling from their build-order closures with a CMake-only
-host-tool patch. Core stopped at `G__Core.cxx`: the host generator emitted
-libstdc++-private types that target libc++ cannot compile. The partial libc++
-retry omitted musl includes and crashed; it did not close all native generator
-routes. The independent review also invalidated the assumed ordinary ROOT PCH
-attachment in rootcling mode. See
-[gates/p0deps/CODEX-REVIEW.md](gates/p0deps/CODEX-REVIEW.md).
+Core now builds from a fresh cache with target frontend arguments for the
+host generator, target-built codecs and narrowly reviewed wasm32 platform
+guards. The output is a relocatable object, and no runtime is proven. The
+independent review also corrects the proposed next PCM blocker: upstream
+MathCore, Matrix, Hist, RIO and Thread explicitly pass `-writeEmptyRootPCM`.
+Their stock paths must be tested before prescribing a non-empty PCM fix.
+See [Core-fix review](gates/p0deps/CODEX-REVIEW-CORE.md).
 
 ## Concrete next experiment
 
-Extract the existing generated G__Core rootcling command from the xbuild cache
-into a fresh cache directory, redirect its outputs there, and run it once with
-C++17, the wasm32-unknown-emscripten target, the full target sysroot, libc++,
-musl and Clang builtin include paths. Set `EXTRA_CLING_ARGS` on that command
-directly: `xbuild/run.sh diag-libcxx` currently overwrites the environment.
-Bound generation to 120 seconds; record the command, exit and diagnostics.
-If generation succeeds, compile the entire resulting dictionary with em++ and
-Core's generated compile settings. Stop at the first failure. This is one
-probe, not a Core build; exact argument guidance is in the review.
+Extract the generated `G__MathCore` rootcling rule into a fresh probe directory.
+Preserve all upstream options, including `-writeEmptyRootPCM`, Core's PCM
+dependency and the target frontend environment; redirect only outputs.
+Run from the generated working directory under a 120-second bound and record
+the complete command, generator exit and diagnostics. If generation passes,
+compile the entire emitted dictionary using pinned em++ and MathCore's
+generated `flags.make`. Check target STL spellings and wasm object format.
+Stop at the first failure.
 
-Success establishes only a dictionary compile path. On failure, a genuine
-native pinned `rootcling_stage1` remains a separate candidate; stage-2 failure
-does not eliminate it. Do not build a new stage1 or wasm Cling before assessing
-this cheap result.
+This tests transfer to a non-STAGE1 dependency of Hist. Success proves only
+that dictionary path; it does not prove a MathCore library, Hist, non-empty
+PCM correctness or Cling-free execution.
 
 ## Constraints
 
-- Do not start or resume a Core, MathCore, Hist, Cling, LLVM, or rootcling
-  **build** without separately approved bounded scope.
-- Use ROOT's own CMake targets for subsequent library work. The pre-existing
-  manual `gcore/` source slice is retired diagnostic evidence and is excluded
-  from the P0 commit.
-- Do not replace autoregistration configuration with a constant, silently skip
-  interpreter services, hand-write Class/Streamer methods, or emulate TH1D.
-- Do not begin TF1, TGraph, G8, GUI, TFile/TTree or RDataFrame.
+- Use ROOT's own targets and generated rules. Do not resume the retired
+  manual `gcore/` source slice.
+- Do not start a MathCore/Hist/LLVM/Cling/compiler build in this dictionary
+  probe. A larger Hist target build needs separately bounded scope.
+- Do not remove upstream empty-PCM options to manufacture a blocker, invent
+  metadata workarounds, hand-write Class/Streamer methods or emulate TH1D.
+- Do not replace autoregistration configuration with a constant or silently
+  skip interpreter initialization. Do not begin TF1, TGraph, G8, GUI,
+  TFile/TTree or RDataFrame.
 
 ## Carry forward
 
-- G7 remains PASS: the pinned browser compiler works without shared memory;
-  its toolchain payload is about 99.5 MiB.
+- G7 remains PASS without shared memory; its compiler payload is about 99.5 MiB.
 - G4 remains PARTIAL and G5 BLOCKED; no linked/running wasm TH1D exists.
 - Candidate package closure is Core, Thread, RIO, MathCore, Matrix and Hist
-  with `imt=OFF`; this is not yet a proven minimal executable closure.
-- Stock 6.40 P0 initialization loads Cling; native E1 proves default-workload
-  isolation only. A Cling-free platform profile still needs preserved ROOT
-  configuration, dictionary/initialization state and cleanup behavior.
-- Before any browser packaging claim, resolve target ABI/PCM correctness,
-  builtin zstd scheduling/toolchain, generic `-pthread` flags, wasm exception
-  compatibility and actual side-module linkage.
+  with `imt=OFF`; it is not a proven minimal executable closure.
+- Non-empty PCM generation independently crashes on host/target serialization
+  layout disagreement. Empty PCM is upstream behavior for the relevant targets.
+- `libCore.so` is bare `-shared` relocatable output under pinned 4.0.9.
+  `-pthread`, main/side-module linkage, G7 wasm exception compatibility,
+  runtime reflection/resources and the unchanged InitInterpreter/Cling edge
+  remain unresolved. The present inspection script needs stronger failure
+  propagation and complete archive checks before unattended release use.

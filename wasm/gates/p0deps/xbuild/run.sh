@@ -9,6 +9,10 @@ S=$X/src B=$X/build
 # conda-forge 6.40.02 fallback (CERN 6.40.04 debian13 tarball was a >10 min download)
 HOST_ROOTCLING=${HOST_ROOTCLING:-/home/fabian/thesis/FairShip/.pixi/envs/default/bin/rootcling}
 source ~/.root-kata-wasm/emsdk/emsdk_env.sh >/dev/null 2>&1
+# Target frontend for the host generator: mirrors em++ (target, sysroot, -DEMSCRIPTEN, include order)
+# plus the generator-only stdlib.h overlay (../dictprobe/overlay). See ../dictprobe/FINDINGS.md.
+SYSROOT=$EMSDK/upstream/emscripten/cache/sysroot
+HOST_CLING_ARGS="-std=c++17 --target=wasm32-unknown-emscripten --sysroot=$SYSROOT -DEMSCRIPTEN -fignore-exceptions -nostdinc -nostdinc++ -isystem $SYSROOT/include/fakesdl -isystem $SYSROOT/include/compat -isystem $SYSROOT/include/c++/v1 -isystem $EMSDK/upstream/lib/clang/21/include -isystem $HERE/../dictprobe/overlay -isystem $SYSROOT/include"
 emcc --version | head -1 | grep -q ' 4\.0\.9 ' || { echo "need emcc 4.0.9"; exit 1; }
 
 step=${1:-all}
@@ -22,7 +26,7 @@ if [[ $step == configure || $step == all ]]; then
     -Dminimal=ON -Dimt=OFF -Druntime_cxxmodules=OFF -Dclad=OFF -Dfail-on-missing=OFF \
     -Dbuiltin_zlib=ON -Dbuiltin_lzma=ON -Dbuiltin_lz4=ON -Dbuiltin_zstd=ON \
     -Dbuiltin_xxhash=ON -Dbuiltin_pcre=ON -Dbuiltin_nlohmannjson=ON -Dbuiltin_freetype=ON \
-    -DROOT_HOST_ROOTCLING="$HOST_ROOTCLING" > "$X/configure.log" 2>&1
+    -DROOT_HOST_ROOTCLING="$HOST_ROOTCLING" -DROOT_HOST_ROOTCLING_EXTRA_ARGS="$HOST_CLING_ARGS" > "$X/configure.log" 2>&1
   echo "exit=$? seconds=$(($(date +%s)-start))" | tee -a "$X/configure.log"
 fi
 
@@ -71,7 +75,16 @@ if [[ $step == inspect || $step == all ]]; then
   { echo "artifact: $lib"; ls -l "$lib"; file "$lib"
     for s in TROOT::InitInterpreter TObject::Class 'TVersionCheck::TVersionCheck(int)' getrandom G__Core; do
       echo "== $s"; $NM -C "$lib" 2>/dev/null | grep -F "$s" | head -5; done
-    echo "== archive members matching G__"; (llvm-ar t "$lib" 2>/dev/null || $EMSDK/upstream/bin/llvm-ar t "$lib") | grep G__
+    echo "== non-wasm archive members skipped at link (must be 0)"; grep -c "neither Wasm" "$X/build.log"
+    echo "== builtin archive formats"
+    for a in $(find builtins -path '*-prefix/lib/*.a' -o -path '*PCRE-build/*.a' | sort); do
+      m=$($EMSDK/upstream/bin/llvm-ar t "$a" | head -1)
+      echo "$a: $($EMSDK/upstream/bin/llvm-ar p "$a" "$m" | file -b - | cut -d, -f1)"; done
+    echo "== undefined codec/regex symbols (must be 0)"; $NM "$lib" | grep -cE " U (LZ4_|ZSTD_|lzma_|inflate|deflate|pcre)"
+    echo "== undefined total"; $NM "$lib" | grep -c " U "
   } > "$X/inspect.txt" 2>&1
   cat "$X/inspect.txt"
+  bad=$(awk '/must be 0/{getline; if ($1!=0) print}' "$X/inspect.txt"; grep -E '^builtins/.*: ' "$X/inspect.txt" | grep -v WebAssembly)
+  [[ -z $bad ]] && file "$lib" | grep -q WebAssembly && [[ $($NM -C "$lib" | grep -c " T TObject::Class()$") -ge 1 ]] \
+    && echo "xbuild Core PASS" || { echo "xbuild Core FAIL"; exit 1; }
 fi
