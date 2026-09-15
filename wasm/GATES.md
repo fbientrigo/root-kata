@@ -18,7 +18,7 @@ A gate is a falsifiable claim with a deterministic reproduction command.
 | G0 | A reproducible Emscripten toolchain exists, pinned and re-runnable from a clean state. |
 | G1 | ROOT MathCore builds to WebAssembly. **Deferred:** its normal build path reaches Core/Cling. |
 | G2 | `ROOT::Math::PtEtaPhiMVector` executes correctly in Chromium. **PASS.** |
-| G3 | The minimum ROOT Core/Physics dependency boundary is established and documented. |
+| G3 | The minimum ROOT Core/Physics dependency boundary is established and documented. **PARTIAL for P0 TH1D:** the ROOT package closure and conditional interpreter initialization edge are mapped; a minimal usable wasm closure is unproven. |
 | G4 | Actual ROOT `TH1D` builds to WebAssembly. **PARTIAL:** native `rootcling` generated a genuine dictionary and Emscripten compiled it plus upstream `TH1.cxx` to wasm objects; the target-side ROOT closure still prevents a linked module. The pinned in-browser interpreter probe independently reaches the same Core boundary at header-load time. |
 | G5 | `TH1D` supports `Fill`, `GetEntries`, `GetBinContent`, `Integral`, `GetMean` in Chromium. **BLOCKED:** the proven in-browser interpreter cannot load `TH1D.h` without target-side Core. |
 | G6 | `TGraph`/`TF1` evaluated — **only if inexpensive**. This gate may be declined on cost. |
@@ -129,3 +129,14 @@ passes, but `#include <TH1D.h>` fails while loading the first incremental wasm
 module with `cannot resolve symbol _ZN13TVersionCheckC1Ei`. The source-cited
 Core constructor is required before any `TH1D` cell can run; see
 `gates/g4/interpreter-probe/CODEX-REVIEW.md`.
+
+## P0 dependency review
+
+**PARTIAL.** Native E1 isolates default TH1D behavior from Cling, but stock 6.40
+initialization still requires it. A CMake-only host-tool patch retains ROOT's
+own Core/Hist targets and removes target LLVM/Cling from their build-order
+closures. Core dictionary compilation fails on host-libstdc++ types under
+em++; no Core runtime or browser TH1D result exists. Configuration-preserving
+initialization, target ABI, codec toolchains and single-threaded packaging
+remain open. See [p0deps/CODEX-REVIEW.md](gates/p0deps/CODEX-REVIEW.md); this does
+not promote G4 or G5.

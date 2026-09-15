@@ -2,44 +2,60 @@
 
 ## Objective
 
-Scope a separately approved CMake + Emscripten cross-build beginning with the
-target-side ROOT **Core** closure, using host `rootcling` for dictionaries where
-needed. Do not start that build in this review.
+Run one bounded **Core dictionary generation-and-compile probe** with the
+already installed native rootcling and the complete Emscripten wasm32 target
+include/ABI environment. Use pinned ROOT 6.40.04 and Emscripten 4.0.9; label the
+installed 6.40.02 generator as version-mismatched diagnostic evidence.
 
 ## Why this is next
 
-The static G4 rootcling cross-build compiled genuine dictionary and upstream
-`TH1.cxx` wasm objects but could not link the target-side closure. The pinned
-xeus-cpp-lite interpreter probe independently reaches the same boundary earlier:
-the first `#include <TH1D.h>` incremental module fails on
-`TVersionCheck::TVersionCheck(int)`, while the identical enlarged-header
-GenVector control passes. The cheap interpreter path therefore cannot deliver
-G5 without Core; another interpreter variation is not justified by current
-evidence.
+The P0 dependency session retained ROOT's own Core/Hist CMake targets and
+removed target LLVM/Cling from their build-order closures with a CMake-only
+host-tool patch. Core stopped at `G__Core.cxx`: the host generator emitted
+libstdc++-private types that target libc++ cannot compile. The partial libc++
+retry omitted musl includes and crashed; it did not close all native generator
+routes. The independent review also invalidated the assumed ordinary ROOT PCH
+attachment in rootcling mode. See
+[gates/p0deps/CODEX-REVIEW.md](gates/p0deps/CODEX-REVIEW.md).
 
 ## Concrete next experiment
 
-Design the smallest reproducible Core build against the pinned ROOT 6.40.04
-source and Emscripten 4.0.9. Keep host-side dictionary generation separate from
-the target runtime, record the exact Core sources and dependencies reached, and
-stop at the first falsifiable link or execution result. Only after Core itself
-has evidence of a usable target artifact should the `Hist`/`TH1D` closure be
-scoped.
+Extract the existing generated G__Core rootcling command from the xbuild cache
+into a fresh cache directory, redirect its outputs there, and run it once with
+C++17, the wasm32-unknown-emscripten target, the full target sysroot, libc++,
+musl and Clang builtin include paths. Set `EXTRA_CLING_ARGS` on that command
+directly: `xbuild/run.sh diag-libcxx` currently overwrites the environment.
+Bound generation to 120 seconds; record the command, exit and diagnostics.
+If generation succeeds, compile the entire resulting dictionary with em++ and
+Core's generated compile settings. Stop at the first failure. This is one
+probe, not a Core build; exact argument guidance is in the review.
+
+Success establishes only a dictionary compile path. On failure, a genuine
+native pinned `rootcling_stage1` remains a separate candidate; stage-2 failure
+does not eliminate it. Do not build a new stage1 or wasm Cling before assessing
+this cheap result.
 
 ## Constraints
 
-- Do not start a Core, MathCore, Hist, Cling, LLVM, or rootcling **build** without
-  separately approved scope.
-- Do not emulate `TH1D`, hand-write ROOT stubs, or substitute a reimplementation.
-- Do not begin TF1, TGraph, G8, GUI, TFile/TTree, RDataFrame, or another ROOT
-  subsystem in that session.
+- Do not start or resume a Core, MathCore, Hist, Cling, LLVM, or rootcling
+  **build** without separately approved bounded scope.
+- Use ROOT's own CMake targets for subsequent library work. The pre-existing
+  manual `gcore/` source slice is retired diagnostic evidence and is excluded
+  from the P0 commit.
+- Do not replace autoregistration configuration with a constant, silently skip
+  interpreter services, hand-write Class/Streamer methods, or emulate TH1D.
+- Do not begin TF1, TGraph, G8, GUI, TFile/TTree or RDataFrame.
 
 ## Carry forward
 
-- G7 remains PASS: the pinned in-browser C++ compiler works without threads or
-  `SharedArrayBuffer`; its toolchain payload is about 99.5 MiB.
-- G4 remains PARTIAL: genuine dictionary and `TH1.cxx` wasm objects exist, but
-  no linked/running `TH1D` module exists.
-- The interpreter evidence is pinned to ROOT 6.40.04 and includes the exact
-  `TVersionCheck` symbol diagnostic; the bounded whole-TU retry stopped at
-  missing out-of-scope `GuiTypes.h` and was not chased.
+- G7 remains PASS: the pinned browser compiler works without shared memory;
+  its toolchain payload is about 99.5 MiB.
+- G4 remains PARTIAL and G5 BLOCKED; no linked/running wasm TH1D exists.
+- Candidate package closure is Core, Thread, RIO, MathCore, Matrix and Hist
+  with `imt=OFF`; this is not yet a proven minimal executable closure.
+- Stock 6.40 P0 initialization loads Cling; native E1 proves default-workload
+  isolation only. A Cling-free platform profile still needs preserved ROOT
+  configuration, dictionary/initialization state and cleanup behavior.
+- Before any browser packaging claim, resolve target ABI/PCM correctness,
+  builtin zstd scheduling/toolchain, generic `-pthread` flags, wasm exception
+  compatibility and actual side-module linkage.

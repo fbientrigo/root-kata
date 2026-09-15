@@ -10,6 +10,10 @@ upstream `TH1.cxx` to wasm objects, but the ROOT runtime closure does not yet li
 the pinned interpreter probe also fails at `#include <TH1D.h>` on
 `TVersionCheck::TVersionCheck(int)` before any `TH1D` code runs.
 
+**P0 dependency review: PARTIAL.** ROOT's own patched Core/Hist target graphs
+avoid building target LLVM/Cling, but Core stops at `G__Core.cxx` compilation
+against the wrong C++ stdlib. No Core library or running wasm TH1D exists.
+
 ## Confirmed facts
 
 1. G0 remains reproducible with pinned Emscripten **4.0.9**, ROOT source **6.40.04**, Node and headless Chromium.
@@ -34,6 +38,9 @@ the pinned interpreter probe also fails at `#include <TH1D.h>` on
 13. **G4 cross-build review: PARTIAL.** Independent reproduction with ROOT 6.34.10's unmodified upstream `hist/hist/inc/LinkDef.h` and native host `rootcling` generated genuine `TH1D::Class`, `Dictionary`, and `Streamer` code. Emscripten compiled that dictionary and genuine upstream `hist/hist/src/TH1.cxx` as WebAssembly objects, but the focused link fails on `TVersionCheck`, `TObject`, `TNamed`, `TString`, `TAtt*`, `TAxis`, and `TArrayD` symbols because the target-side `Hist + MathCore + Matrix + RIO + Thread + Core` closure was not built. The all-Emscripten top-level `Hist` attempt remains in embedded LLVM/Cling compilation under the bounded build, so no linked module, six-call execution, native comparison, Chromium run, or final payload size exists; see [gates/g4/rootcling-crossbuild/CODEX-REVIEW.md](gates/g4/rootcling-crossbuild/CODEX-REVIEW.md). This evidence uses a worker checkout at 6.34.10 rather than the G0-pinned 6.40.04 source, so pinned-release confirmation remains open.
 14. **G4/G5 interpreter probe: BLOCKED-AT-SYMBOL.** `bash gates/g4/interpreter-probe/probe.sh` independently reproduced the pinned ROOT 6.40.04 result: the identical enlarged 631-header mount passes G2's GenVector control, while `#include <TH1D.h>` fails with `Dynamic linking error: cannot resolve symbol _ZN13TVersionCheckC1Ei`. The pinned source confirms `TVersionCheck.h:31` creates the file-scope static, `TObject.h:18` includes it, and `TSystem.cxx:4462` defines its constructor. This corroborates the prior Core closure finding and closes the cheap interpreter path; no G5 call executes.
 
+15. **P0 native audit: conditional interpreter dependency.** Independently reproduced on 6.40.02 and 6.34.10: stock 6.40 TH1D initialization reaches libCling through the autoregistration configuration lookup; denial aborts. Diagnostic E1 interposition preserves default P0 output without libCling, while the denied interpreter control still fails. This proves a narrow semantic isolation, not a configuration-preserving port; 6.40.04 runtime parity remains untested.
+16. **ROOT-target Core build: BLOCKED-AT-COMPILE.** The CMake-only host-rootcling patch applies to pinned 6.40.04 and leaves no LLVM/Cling build nodes in Core's 13-node or Hist's 24-node order closures. Installed host rootcling 6.40.02 generates host-libstdc++ types; pinned em++ independently rejects `G__Core.cxx` on `__gnu_cxx`. Candidate ROOT packages remain Core, Thread, RIO, MathCore, Matrix and Hist with `imt=OFF`. Target ABI, builtin zstd scheduling/toolchain, generic `-pthread` flags, packaging and Cling-free initialization are unresolved. See [P0 review](gates/p0deps/CODEX-REVIEW.md).
+
 ## Gate-order correction
 
 - Old assumption: G1 (a MathCore library build) must precede G2.
@@ -56,6 +63,8 @@ the pinned interpreter probe also fails at `#include <TH1D.h>` on
 - AOT clang+lld compiled to WebAssembly via any WASI-lineage prebuilt (`browsercc`, and by inheritance `binji/wasm-clang`, `wapm-packages/clang`): falsified for this project's needs by a shared, currently-open upstream `libc++abi` exception-handling gap (fact 11, H2).
 - Treating the prebuilt xeus-cpp-lite interpreter as a cheap `TH1D` escape hatch: falsified by the first-cell `TVersionCheck` symbol wall; the interpreter still needs target-side Core.
 - Building LLVM/Clang/LLD from source to fix the H2 gap: explicitly out of scope for a gate; not attempted.
+- Resuming the pre-existing manual `gcore/` source manifest: retired diagnostic work, excluded from the P0 session commit. Use ROOT's own CMake targets.
+- Treating E1's constant autoregistration interposition or an unverified `InitInterpreter` early return as a production port: configuration, dictionaries and cleanup require preserved ROOT behavior.
 
 ## Canonical reproduction
 
@@ -74,4 +83,6 @@ the omission, while a direct throw/catch probe did.
 
 ## Reviewer verdict
 
-**PASS.** See [gates/g7/CODEX-REVIEW.md](gates/g7/CODEX-REVIEW.md).
+**P0 dependency session: PARTIAL**, independently reviewed 2026-09-15. See
+[gates/p0deps/CODEX-REVIEW.md](gates/p0deps/CODEX-REVIEW.md). G7 remains **PASS**;
+its historical verification above is unchanged.

@@ -1,0 +1,46 @@
+--- a/cmake/modules/RootMacros.cmake
++++ b/cmake/modules/RootMacros.cmake
+@@ -640,7 +640,15 @@
+   endif()
+ 
+   #---what rootcling command to use--------------------------
+-  if(ARG_STAGE1)
++  if(ROOT_HOST_ROOTCLING)
++    # Cross-compiling: run a host rootcling for STAGE1 and non-STAGE1 dictionaries
++    # instead of the in-tree (target-architecture) rootcling_stage1/rootcling.
++    set(command ${ROOT_HOST_ROOTCLING} -rootbuild)
++    set(ROOTCLINGDEP rconfigure)
++    if(ARG_STAGE1)
++      set(pcm_name)
++    endif()
++  elseif(ARG_STAGE1)
+     if(APPLE)
+       set(command ${CMAKE_COMMAND} -E env SDKROOT=${CMAKE_OSX_SYSROOT} $<TARGET_FILE:rootcling_stage1>)
+     else()
+--- a/core/CMakeLists.txt
++++ b/core/CMakeLists.txt
+@@ -39,7 +39,11 @@
+   ${CMAKE_BINARY_DIR}/ginclude/TApplicationCommandLineOptionsHelp.h
+ )
+ 
+-add_dependencies(Core CLING rconfigure)
++if(ROOT_HOST_ROOTCLING)
++  add_dependencies(Core rconfigure)
++else()
++  add_dependencies(Core CLING rconfigure)
++endif()
+ 
+ target_link_libraries(Core
+   PRIVATE
+--- a/builtins/lzma/CMakeLists.txt
++++ b/builtins/lzma/CMakeLists.txt
+@@ -35,6 +35,9 @@
+         -DCMAKE_C_FLAGS=${liblzma_flags}
+         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER})
++    if(CMAKE_TOOLCHAIN_FILE)
++        list(APPEND lzma_extra_cmake_args -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
++    endif()
+ endif()
+ 
+ ExternalProject_Add(
