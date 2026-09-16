@@ -1,0 +1,12 @@
+# source	why this genuine upstream source is in the ordered Core slice
+core/base/src/TSystem.cxx	core/base/src/TSystem.cxx:4462-4466 defines TVersionCheck::TVersionCheck(int), the first TH1D include blocker.
+core/base/src/TObject.cxx	Initial genuine Core slice member retained from the preceding loader experiment.
+core/base/src/TString.cxx	Initial genuine Core slice member retained from the preceding loader experiment.
+core/base/src/TROOT.cxx	core/base/src/TROOT.cxx:3110-3113 defines TROOT::RootVersionCode(), the first loader error after the initial slice; its required install-layout definition is supplied by core/base/CMakeLists.txt:243-259.
+core/base/src/TDirectory.cxx	core/base/src/TDirectory.cxx:53 defines TDirectory::TDirectory(), the first loader error after adding TROOT; TROOT.cxx:790 invokes it.
+core/cont/src/TObjectTable.cxx	core/cont/src/TObjectTable.cxx:170 defines TObjectTable::AddObj(TObject*), the first loader error after adding TDirectory.
+core/base/src/TStorage.cxx	core/base/src/TStorage.cxx:290 defines TStorage::ObjectAlloc(size_t), the first loader error after adding TObjectTable; TObject.h:189 routes TObject allocation there.
+core/base/src/TMathBase.cxx	core/base/src/TMathBase.cxx:30 defines TMath::NextPrime(long), the first loader error after adding TStorage; TMathBase.h:94 says Core classes use it.
+core/base/src/TNamed.cxx	core/base/src/TNamed.cxx:41 defines TNamed::~TNamed(), the first loader error after adding TMathBase; TDirectory.cxx:53 derives its constructor from TNamed.
+core/base/src/TUUID.cxx	core/base/src/TUUID.cxx:157 defines TUUID::UUIDv4(), the first loader error after adding TNamed; TDirectory.h:143 initializes its UUID with it.
+core/base/src/RCryptoRandom.cxx	core/base/src/RCryptoRandom.cxx:19 defines ROOT::Internal::GetCryptoRandom(void*, unsigned), the first loader error after adding TUUID; TUUID.cxx:170 calls it. Core CMakeLists.txt:322-326 selects its getrandom branch when available.

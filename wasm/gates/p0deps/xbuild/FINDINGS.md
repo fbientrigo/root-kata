@@ -1,5 +1,54 @@
 # Phase 3 bounded cross-build: ROOT `Core` under Emscripten with a HOST rootcling (Worker C)
 
+## M1 verdict (coordinator, 2026-09-15): **HIST-CLOSURE-BUILT**
+
+`run.sh configure && run.sh graph && run.sh hist && run.sh inspect` prints `xbuild Hist PASS`
+from a clean cache (build 606 s at -j4). ROOT's own targets build all six P0 libraries for wasm:
+
+| library | bytes |
+| --- | ---: |
+| libCore.so | 7233446 |
+| libThread.so | 436463 |
+| libRIO.so | 7614424 |
+| libMathCore.so | 3413748 |
+| libMatrix.so | 2042189 |
+| libHist.so | 5585384 |
+
+The gate now checks **every member** of every builtin archive (not the first, per the Core
+review), all six libraries, and that these are defined: `TObject::Class()`,
+`TVersionCheck::TVersionCheck(int)`, `TROOT::InitInterpreter()`, `TH1D::Class()`, the `TH1D`
+constructor, `TFormula::Class()`, `TMatrixT<double>::Class()`, `TFile::Class()`; plus 0
+non-wasm members, 0 undefined codec/regex symbols and 0 `-pthread` in compile flags.
+
+Changes in M1:
+
+| Item | Change | Class |
+| --- | --- | --- |
+| Host generator version mismatch | `run.sh` fetches and sha256-checks the **pinned CERN ROOT 6.40.04** binary release and uses its `rootcling` (sha256 `287ff87deef0eed0fedd32e7d59bdadd22dcb45a5c592c9e08d8d140212ef261`, verified locally; root.cern publishes no `.sha256`). The conda 6.40.02 mismatch is gone. | build config |
+| Browser runtime is single-threaded | `CheckCompiler.cmake`: no `-pthread` under Emscripten. | PLATFORM PORT |
+| G7 runtime ABI | configure with `-DCMAKE_CXX_FLAGS=-fwasm-exceptions -DCMAKE_C_FLAGS=-fwasm-exceptions`. | PLATFORM PORT |
+| `TMapFile.cxx:854: use of undeclared identifier 'SEM_R'` | `HAVE_SEMOP` excludes `R__EMSCRIPTEN` (as it already excludes `R__WINGCC`). | PLATFORM PORT |
+
+Dictionary generation transfers beyond Core: `../dictprobe/run.sh MathCore` passes
+(generator exit 0, 0 host-private STL spellings, whole dictionary compiled by em++), which was
+the Core review's recorded next experiment. `run.sh Core` still passes with the same script.
+
+Three further platform ports (`TROOT::GetSharedLibDir`, `TFile` getxattr, `TUUID` getifaddrs)
+were required to *load* these libraries; they are documented in
+[../../rootlight/FINDINGS.md](../../rootlight/FINDINGS.md) (M2), which also records the
+side-module packaging and the Node run.
+
+Independent review: [M1/M2 review](../../rootlight/CODEX-REVIEW-M2.md).
+The review strengthens the graph check to Hist's complete order closure,
+propagates configure/build/graph errors, makes default `all` build Hist, and
+checks all members of every `.a` under builtins with tool/read errors fatal.
+The eight defined symbols are exact matches. These checks prove object
+format and selected definitions, not full runtime closure or ROOT behavior.
+`build` remains the explicit historical Core-only operation; its output alone
+cannot satisfy the new six-library Hist inspection.
+
+The Core-stage report follows unchanged as historical evidence.
+
 ## Current verdict (resolution, coordinator, 2026-09-15): **CORE-TARGET-BUILT**
 
 ROOT's own `Core` CMake target builds under Emscripten 4.0.9 from the pinned 6.40.04 source. It

@@ -2,58 +2,55 @@
 
 ## Objective
 
-Run one bounded **stock G__MathCore dictionary generation-and-whole-C++
-compile probe** in the already configured ROOT-owned cross-build tree.
-Use pinned ROOT 6.40.04/Emscripten 4.0.9 and label the installed 6.40.02
-rootcling as version-mismatched diagnostic evidence.
+Implement **TClass reflection over CppInterOp**, as one designed subsystem, so
+`TH1::Fit` works. That is the single boundary M4 stopped at.
 
 ## Why this is next
 
-Core now builds from a fresh cache with target frontend arguments for the
-host generator, target-built codecs and narrowly reviewed wasm32 platform
-guards. The output is a relocatable object, and no runtime is proven. The
-independent review also corrects the proposed next PCM blocker: upstream
-MathCore, Matrix, Hist, RIO and Thread explicitly pass `-writeEmptyRootPCM`.
-Their stock paths must be tested before prescribing a non-empty PCM fix.
-See [Core-fix review](gates/p0deps/CODEX-REVIEW-CORE.md).
+M2b, M3 and M4a are PASS: genuine ROOT 6.40.04 runs in Chromium, and both
+numerical probes match native ROOT byte for byte — 39 TH1D/TAxis values and 21
+TF1/TFormula/TGraph values. `TH1::Fit` is the first thing a student hits that
+still does not work, and it is the last piece of the shipped curriculum's
+non-graphical surface (`cpp-root-fit-gaussian`).
+
+Following it one error at a time gave `CheckClassInfo` (implemented) and then
+`SetClassInfo`, which is the entrance to `TClingClassInfo`-shaped work. **Do not
+continue that way.** Adding one method per error message is the same
+"one missing symbol -> add one file -> repeat" pattern this project forbids,
+applied to the interpreter instead of to libCore.
 
 ## Concrete next experiment
 
-Extract the generated `G__MathCore` rootcling rule into a fresh probe directory.
-Preserve all upstream options, including `-writeEmptyRootPCM`, Core's PCM
-dependency and the target frontend environment; redirect only outputs.
-Run from the generated working directory under a 120-second bound and record
-the complete command, generator exit and diagnostics. If generation passes,
-compile the entire emitted dictionary using pinned em++ and MathCore's
-generated `flags.make`. Check target STL spellings and wasm object format.
-Stop at the first failure.
+First, read ROOT's own `core/metacling/src/TClingClassInfo.cxx` and map the
+`ClassInfo_*`/`MethodInfo_*`/`DataMemberInfo_*` family onto CppInterOp's
+reflection API (`GetScope`, `GetClassMethods`, `GetDatamembers`,
+`GetFunctionArgType`, `Construct`, `Allocate`) as a whole, then implement that
+map. Decide up front, and record, which of ROOT's questions CppInterOp can
+answer truthfully and which must keep failing loudly.
 
-This tests transfer to a non-STAGE1 dependency of Hist. Success proves only
-that dictionary path; it does not prove a MathCore library, Hist, non-empty
-PCM correctness or Cling-free execution.
+Second, check the assumption already written down but never tested: that
+`TClass::New` for `ROOT::Minuit2::Minuit2Minimizer` comes from libMinuit2's
+**compiled dictionary** rather than from interpreter reflection. Minuit2 is
+configured in the wasm build tree but has never been built; build it.
 
-## Constraints
+The gate is `wasm/gates/rootformula/run.sh` with its boundary check inverted:
+`TH1::Fit` must return, and its fitted parameters must match native ROOT at
+`%.17g` through `wasm/gates/common/parity.sh`.
 
-- Use ROOT's own targets and generated rules. Do not resume the retired
-  manual `gcore/` source slice.
-- Do not start a MathCore/Hist/LLVM/Cling/compiler build in this dictionary
-  probe. A larger Hist target build needs separately bounded scope.
-- Do not remove upstream empty-PCM options to manufacture a blocker, invent
-  metadata workarounds, hand-write Class/Streamer methods or emulate TH1D.
-- Do not replace autoregistration configuration with a constant or silently
-  skip interpreter initialization. Do not begin TF1, TGraph, G8, GUI,
-  TFile/TTree or RDataFrame.
+## Constraints and carry forward
 
-## Carry forward
-
-- G7 remains PASS without shared memory; its compiler payload is about 99.5 MiB.
-- G4 remains PARTIAL and G5 BLOCKED; no linked/running wasm TH1D exists.
-- Candidate package closure is Core, Thread, RIO, MathCore, Matrix and Hist
-  with `imt=OFF`; it is not a proven minimal executable closure.
-- Non-empty PCM generation independently crashes on host/target serialization
-  layout disagreement. Empty PCM is upstream behavior for the relevant targets.
-- `libCore.so` is bare `-shared` relocatable output under pinned 4.0.9.
-  `-pthread`, main/side-module linkage, G7 wasm exception compatibility,
-  runtime reflection/resources and the unchanged InitInterpreter/Cling edge
-  remain unresolved. The present inspection script needs stronger failure
-  propagation and complete archive checks before unattended release use.
+- ROOT's own targets and generated dictionaries only; no handwritten
+  `Class()`/`Streamer()`, no reimplemented ROOT semantics. The interpreter
+  adapter stays the only new ROOT-facing code.
+- **Unimplemented services must keep failing loudly.** A reflection answer that
+  is merely plausible is worse than an error: it makes ROOT quietly wrong.
+  `exit()` is not available for this — it traps inside Emscripten's atexit
+  dispatch and discards the captured output
+  ([rootweb FINDINGS](gates/rootweb/FINDINGS.md)).
+- `CallFunc_SetFuncProto` currently ignores the prototype string and requires an
+  unambiguous name. Real overload resolution belongs with this reflection work.
+- M1, M2, M2b, M3 and M4a were independently reproduced on 2026-09-16; the
+  review remains PARTIAL only for the interpreter-wide loud-failure invariant
+  outside those exercised gates.
+- Still untouched, in order: graphics (M5), then the kata runner and JupyterLite
+  (M6), then TFile/TTree/RDataFrame.

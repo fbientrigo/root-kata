@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>GCORE</title>
+<pre id="output"></pre><pre id="diag"></pre><pre id="log"></pre>
+<script>
+const output = document.querySelector('#output'), diag = document.querySelector('#diag'), log = document.querySelector('#log');
+const note = text => log.append(document.createTextNode(text + '\n'));
+let reply;
+window.addEventListener('message', event => {
+  const data = event.data;
+  if (!data || !data.header) return;
+  const type = data.header.msg_type;
+  if (type === 'stream' && data.content?.text) {
+    (data.content.name === 'stdout' ? output : diag).append(data.content.text);
+  }
+  if (type === 'error') diag.append(data.content?.evalue || 'kernel error');
+  if (type === 'execute_reply') reply?.(data.content.status);
+});
+</script>
+<script src="headers.js"></script>
+<script src="xcpp.js"></script>
+<script>
+createXeusModule({ locateFile: file => file, noInitialRun: true, print: note, printErr: note }).then(async Module => {
+  for (const path of Object.keys(ROOT_HEADERS)) {
+    Module.FS.mkdirTree(path.substring(0, path.lastIndexOf('/')));
+    Module.FS.writeFile(path, ROOT_HEADERS[path]);
+  }
+  const core = new URLSearchParams(location.search).get('module') === 'core';
+  const library = core ? 'libCore-slice.wasm' : 'side-control.wasm';
+  try {
+    const response = await fetch(library);
+    if (!response.ok) throw new Error('fetch ' + library + ': HTTP ' + response.status);
+    Module.FS.writeFile('/tmp/' + library, new Uint8Array(await response.arrayBuffer()));
+    await Module.loadDynamicLibrary('/tmp/' + library, { global: true, nodelete: true });
+    note('loaded ' + library);
+  } catch (error) {
+    diag.textContent = String(error);
+    document.title = 'GCORE-DONE';
+    return;
+  }
+  const kernel = new Module.xkernel([
+    'xcpp', '-std=c++17', '-fwasm-exceptions', '-I/rootsrc/generated',
+    '-I/rootsrc/math/genvector/inc', '-I/rootsrc/math/mathcore/inc',
+    '-I/rootsrc/core/foundation/inc', '-I/rootsrc/core/base/inc',
+    '-I/rootsrc/hist/hist/inc', '-I/rootsrc/core/cont/inc', '-I/rootsrc/core/meta/inc',
+    '-I/rootsrc/math/matrix/inc', '-I/rootsrc/io/io/inc', '-I/rootsrc/core/thread/inc',
+    '-I/rootsrc/core/clib/inc', '-I/include/compat'
+  ]);
+  const server = kernel.get_server();
+  kernel.start();
+  const code = core ? '#include <TH1D.h>' : '#include <cstdio>\nextern "C" int root_wasm_side_module_control();\nstd::printf("control=%d\\n", root_wasm_side_module_control());';
+  const status = await new Promise(resolve => {
+    reply = resolve;
+    server.notify_listener({
+      header: { msg_id: 'gcore', msg_type: 'execute_request', username: 'gcore', session: 'gcore', date: new Date().toISOString(), version: '5.3' },
+      parent_header: {}, metadata: {},
+      content: { code, silent: false, store_history: false, user_expressions: {}, allow_stdin: false }, buffers: [], channel: 'shell'
+    });
+  });
+  note('execute=' + status);
+  document.title = 'GCORE-DONE';
+}).catch(error => { diag.textContent = String(error); document.title = 'GCORE-DONE'; });
+</script>

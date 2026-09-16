@@ -19,6 +19,19 @@
      if(APPLE)
        set(command ${CMAKE_COMMAND} -E env SDKROOT=${CMAKE_OSX_SYSROOT} $<TARGET_FILE:rootcling_stage1>)
      else()
+--- a/cmake/modules/CheckCompiler.cmake
++++ b/cmake/modules/CheckCompiler.cmake
+@@ -210,7 +210,9 @@
+ 
+ #---Need to locate thead libraries and options to set properly some compilation flags----------------
+ find_package(Threads)
+-if(CMAKE_USE_PTHREADS_INIT)
++# Emscripten: the browser runtime (xeus-cpp-lite) is single-threaded without SharedArrayBuffer;
++# -pthread would require shared memory.
++if(CMAKE_USE_PTHREADS_INIT AND NOT EMSCRIPTEN)
+   set(CMAKE_THREAD_FLAG -pthread)
+ else()
+   set(CMAKE_THREAD_FLAG)
 --- a/core/CMakeLists.txt
 +++ b/core/CMakeLists.txt
 @@ -39,7 +39,11 @@
@@ -139,3 +152,57 @@
     return strerror(err);
  #else
     if (err < 0 || err >= sys_nerr)
+--- a/core/base/src/TROOT.cxx
++++ b/core/base/src/TROOT.cxx
+@@ -3308,6 +3308,13 @@
+       }
+    }
+ 
++#elif defined(R__EMSCRIPTEN)
++
++   // WebAssembly has no ELF program headers to iterate (no dl_iterate_phdr). The ROOT
++   // tree is mounted in the virtual filesystem at $ROOTSYS, so use its lib directory.
++   rootlibdir = TROOT::GetRootSys();
++   rootlibdir += "/lib";
++
+ #else
+ 
+    auto callback = +[](struct dl_phdr_info *info, size_t /*size*/, void *data) -> int {
+--- a/core/base/src/TUUID.cxx
++++ b/core/base/src/TUUID.cxx
+@@ -466,7 +466,13 @@
+          struct ifaddrs *ifAddrStruct = nullptr;
+          struct ifaddrs *ifa = nullptr;
+ 
++#ifndef R__EMSCRIPTEN
+          if (getifaddrs(&ifAddrStruct) != 0) {
++#else
++         // Browsers expose no network interfaces and Emscripten's netlink-based
++         // getifaddrs is unsupported: take ROOT's own no-interface path.
++         if (true) {
++#endif
+             adr = 1;
+          } else {
+             for (ifa = ifAddrStruct; ifa != nullptr; ifa = ifa->ifa_next) {
+--- a/io/io/src/TMapFile.cxx
++++ b/io/io/src/TMapFile.cxx
+@@ -102,7 +102,7 @@
+ 
+ #include <cmath>
+ 
+-#if defined(R__UNIX) && !defined(R__WINGCC)
++#if defined(R__UNIX) && !defined(R__WINGCC) && !defined(R__EMSCRIPTEN)
+ #define HAVE_SEMOP
+ #include <sys/types.h>
+ #include <sys/ipc.h>
+--- a/io/io/src/TFile.cxx
++++ b/io/io/src/TFile.cxx
+@@ -3801,7 +3801,7 @@
+    TString expandedUrl(url);
+    gSystem->ExpandPathName(expandedUrl);
+ 
+-#ifdef R__UNIX
++#if defined(R__UNIX) && !defined(R__EMSCRIPTEN)
+    // If URL is a file on an EOS FUSE mount, attempt redirection to XRootD protocol.
+    if (gEnv->GetValue("TFile.CrossProtocolRedirects", 1) == 1) {
+       TUrl fileurl(expandedUrl, /* default is file */ kTRUE);

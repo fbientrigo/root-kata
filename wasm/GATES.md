@@ -16,14 +16,19 @@ A gate is a falsifiable claim with a deterministic reproduction command.
 | Gate | Claim |
 | ---- | ----- |
 | G0 | A reproducible Emscripten toolchain exists, pinned and re-runnable from a clean state. |
-| G1 | ROOT MathCore builds to WebAssembly. **Deferred:** its normal build path reaches Core/Cling. |
+| G1 | ROOT MathCore builds to WebAssembly. **Built within M1** through the ROOT-owned Hist closure; no standalone runtime claim. |
 | G2 | `ROOT::Math::PtEtaPhiMVector` executes correctly in Chromium. **PASS.** |
 | G3 | The minimum ROOT Core/Physics dependency boundary is established and documented. **PARTIAL for P0 TH1D:** the ROOT package closure and conditional interpreter initialization edge are mapped; a minimal usable wasm closure is unproven. |
-| G4 | Actual ROOT `TH1D` builds to WebAssembly. **PARTIAL:** native `rootcling` generated a genuine dictionary and Emscripten compiled it plus upstream `TH1.cxx` to wasm objects; the target-side ROOT closure still prevents a linked module. The pinned in-browser interpreter probe independently reaches the same Core boundary at header-load time. |
-| G5 | `TH1D` supports `Fill`, `GetEntries`, `GetBinContent`, `Integral`, `GetMean` in Chromium. **BLOCKED:** the proven in-browser interpreter cannot load `TH1D.h` without target-side Core. |
-| G6 | `TGraph`/`TF1` evaluated — **only if inexpensive**. This gate may be declined on cost. |
+| G4 | Actual ROOT `TH1D` builds to WebAssembly. **PASS:** M1 builds the stock Hist closure and M2 links/loads it. |
+| G5 | `TH1D` supports `Fill`, `GetEntries`, `GetBinContent`, `Integral`, `GetMean` in Chromium. **PASS:** M3 matches 39 native ROOT values byte for byte. |
+| G6 | `TGraph`/`TF1` evaluated. **PASS:** M4a matches 21 native ROOT values byte for byte; fitting remains out of scope. |
 | G7 | **Narrowed, pulled forward. PASS** (via xeus-cpp-lite/CppInterOp): a genuine ROOT program, typed in the browser, is compiled client-side (no server) and runs correctly in Chromium. Proves a compiler can run client-side; says nothing about `TH1D`, which remains partial at G4. |
 | G8 | One existing genuine ROOT Kata exercise executes fully client-side. |
+| M1 | ROOT-owned Hist closure builds with all archive members wasm and selected dictionary/key symbols defined. **PASS, independently reproduced.** |
+| M2 | ROOT side modules load/register/run under Node. **PASS, independently reproduced.** |
+| M2b | The same modules run in Chromium through the approved G7 host. **PASS, independently reproduced.** |
+| M3 | `TInterpreter` backend plus P0 browser/native parity. **PASS, independently reproduced.** |
+| M4a | TF1/TFormula/TGraph browser/native parity, with a loud `TH1::Fit` boundary. **PASS, independently reproduced.** |
 
 ## Out of scope
 
@@ -37,7 +42,7 @@ evidence requires native ROOT I/O.
 
 ## Rules that decide gates
 
-1. **One gate per session.** Do not begin the next gate in the same session.
+1. **One approved milestone at a time.** The user-approved M1/M2 review covers their accumulated evidence; do not begin M3 implementation during that review.
 2. A gate is **not** complete because code compiled once. It requires a deterministic
    reproduction command that passes from a clean state.
 3. Prefer **removing** dependencies and features over patching them.
@@ -140,3 +145,22 @@ em++; no Core runtime or browser TH1D result exists. Configuration-preserving
 initialization, target ABI, codec toolchains and single-threaded packaging
 remain open. See [p0deps/CODEX-REVIEW.md](gates/p0deps/CODEX-REVIEW.md); this does
 not promote G4 or G5.
+
+## M1/M2 milestone entry points
+
+The approved milestone sequence extends the historical G ladder:
+`G7 → M1 (Hist closure) → M2 (Node, then G7 Chromium loading) → M3
+(TInterpreter backend) → M4 (TF1/Fit) → M5 (graphics) → M6 (product parity)`.
+This does not promote G5 or G8 before their browser/learner claims run.
+
+```bash
+bash wasm/gates/p0deps/xbuild/run.sh # configure + Hist graph + Hist build + inspect
+bash wasm/gates/p0deps/dictprobe/run.sh MathCore
+bash wasm/gates/p0deps/dictprobe/run.sh Core
+bash wasm/gates/rootlight/run.sh # Node subgate, expected ROOT exit 1 at CreateInterpreter
+```
+
+The [M1–M4a review](gates/CODEX-REVIEW-M3-M4.md) supersedes the historical P0
+compile-blocker status above. Empty-PCM registration and the two parity programs
+remain narrower than general PCM/streamer correctness or full interpreter
+coverage; NEXT scopes TClass reflection and `TH1::Fit`.

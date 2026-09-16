@@ -1,0 +1,6 @@
+smoke.start
+tstring=root-wasm len=9
+tnamed=n/title
+tmath.gaus=0.35206532676429952
+classtable.TH1D=1
+staticroot=1

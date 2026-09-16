@@ -2,19 +2,27 @@
 
 ## Current gate
 
-**G7 — compile genuine ROOT C++ client-side in the browser: PASS** (narrowed, pulled
-forward ahead of the `TH1D` build-system decision). `TH1D` is **PARTIAL** at G4 and
-**BLOCKED** at G5's cheap interpreter path:
-native `rootcling` generated a genuine dictionary and Emscripten compiled it plus
-upstream `TH1.cxx` to wasm objects, but the ROOT runtime closure does not yet link;
-the pinned interpreter probe also fails at `#include <TH1D.h>` on
-`TVersionCheck::TVersionCheck(int)` before any `TH1D` code runs.
+**M4a — TF1/TFormula/TGraph: PASS, independently reproduced.** `TH1::Fit` is the boundary.
 
-**P0 Core-fix review: PARTIAL; Core target build PASS.** ROOT's own patched
-Core target builds with a host rootcling parsing the wasm32/libc++ environment.
-Its `libCore.so` is Emscripten 4.0.9's relocatable object output, not a loaded
-side module. No running wasm TH1D exists; interpreter initialization,
-no-pthread packaging and runtime dictionary behavior remain open.
+Run everything with `bash wasm/run-gates.sh`. Open it yourself with
+`bash wasm/gates/rootweb/run.sh serve`.
+
+| milestone | gate | state |
+| --- | --- | --- |
+| M1 ROOT-owned Hist closure built for wasm | `gates/p0deps/xbuild` | **PASS**, independently reproduced |
+| M2 those libraries loading and running under Node | `gates/rootlight` | **PASS**, independently reproduced |
+| M2b the same in Chromium, plus an interactive page | [`gates/rootweb`](gates/rootweb/FINDINGS.md) | **PASS**, independently reproduced |
+| M3 ROOT's TInterpreter over CppInterOp; P0 parity | [`gates/rootinterp`](gates/rootinterp/FINDINGS.md) | **PASS**, independently reproduced |
+| M4a TF1/TFormula/TGraph parity | [`gates/rootformula`](gates/rootformula/FINDINGS.md) | **PASS**, independently reproduced |
+
+Genuine CERN ROOT 6.40.04 now runs in Chromium over plain static HTTP with no
+COOP/COEP, and matches native ROOT byte for byte on both probes: 39 TH1D/TAxis
+values (P0) and 21 TF1/TFormula/TGraph values (P1), all at `%.17g`.
+
+Not established: `TH1::Fit` (blocked on TClass reflection, which is where M4
+stops), `TFile`, `TTree`, graphics, any product/kata integration, and loud
+failure for inherited non-pure `TInterpreter` defaults outside the exercised
+surface.
 
 ## Confirmed facts
 
@@ -76,7 +84,7 @@ bash wasm/gates/g7/run.sh # G7 PASS
 bash wasm/gates/g4/interpreter-probe/probe.sh # BLOCKED-AT-SYMBOL (evidence)
 ```
 
-## Last verified commit
+## Historical G7 verified commit
 
 `9fa5f547` — G7 implementation and close-out state, independently reproduced from
 clean twice by Codex Sol High on 2026-09-13. The review also corrected the browser
@@ -85,6 +93,9 @@ the omission, while a direct throw/catch probe did.
 
 ## Reviewer verdict
 
-**P0 Core-fix session: PARTIAL; Core build PASS**, independently reviewed 2026-09-15. See
-[gates/p0deps/CODEX-REVIEW-CORE.md](gates/p0deps/CODEX-REVIEW-CORE.md). G7 remains **PASS**;
-its historical verification above is unchanged.
+**M1 through M4a executable gates: PASS; interpreter-wide review: PARTIAL**, independently
+reviewed 2026-09-16. All five gate commands and both native/browser parity comparisons
+reproduced. The qualification is the broader loud-failure invariant: 128 unimplemented pure
+virtuals fail loudly, but unexercised inherited non-pure defaults can still return silent
+null/zero/no-op values. See [M1–M4a review](gates/CODEX-REVIEW-M3-M4.md); the earlier
+[M1/M2 review](gates/rootlight/CODEX-REVIEW-M2.md) is historical.

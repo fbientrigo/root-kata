@@ -1,3 +1,20 @@
+# M1 dictionary transfer (2026-09-15)
+
+The same parameterized script now probes the exact ROOT-generated Core or
+MathCore rule, including its upstream empty-PCM options and target flags:
+
+```bash
+bash wasm/gates/p0deps/dictprobe/run.sh MathCore
+bash wasm/gates/p0deps/dictprobe/run.sh Core
+```
+
+The current xbuild uses the pinned CERN ROOT 6.40.04 host installation,
+matching the 6.40.04 source, with wasm32/libc++ parsing and target compilation
+using `-fwasm-exceptions` without `-pthread`. The earlier conda 6.40.02 results
+below are historical. Generation and whole-dictionary compilation establish
+these two dictionary paths; they do not prove PCM/streamer round trips or
+interpreter-backed reflection. See the [M1/M2 review](../../rootlight/CODEX-REVIEW-M2.md).
+
 # Core dictionary for wasm32 from a host rootcling (Codex NEXT SINGLE EXPERIMENT)
 
 ## Verdict: PASS (generate + em++ compile of the entire `G__Core.cxx`)
