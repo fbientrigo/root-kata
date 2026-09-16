@@ -1,18 +1,16 @@
-# Independent review — ROOT WebAssembly M1 through M4a
+# Independent review — ROOT WebAssembly M1 through M6a
 
 Reviewed on 2026-09-16 against `experiment/root-wasm-subset`, pinned CERN ROOT
 6.40.04 and Emscripten 4.0.9.
 
-## Verdict: PARTIAL
+## Verdict: PASS
 
-All five executable milestone gates pass independently: M1, M2, M2b, M3 and
-M4a. The two numerical parity claims are real byte-for-byte comparisons against
-freshly rebuilt native executables: 39 P0 lines and 21 P1 lines, all printed at
-`%.17g`. The remaining review qualification is the interpreter's global loud-
-failure rule: all 128 unimplemented **pure virtuals** fail loudly, and the
-non-pure defaults needed by the proven TFormula path are overridden, but many
-other inherited non-pure `TInterpreter` defaults still return silent null/zero/
-no-op values outside the tested surface.
+The original M1–M4a review was PARTIAL because non-pure `TInterpreter` defaults
+could fail silently. The follow-up closes that objection: 284 unimplemented
+service declarations now fail loudly, all overloads behind the 18 implemented
+names are checked, and the four browser gates pass together. M6a also passes:
+11 shipped exercises are byte-identical to native ROOT and pass their own
+validators; the remaining two stop specifically at `TInterpreter::SetClassInfo`.
 
 ## Reproduced gates
 
@@ -23,7 +21,9 @@ no-op values outside the tested surface.
 | `bash wasm/gates/rootweb/run.sh` | `rootweb M2b PASS`; Chromium output matches Node, `CreateInterpreter` resolves, and the broken-cell control fails |
 | `bash wasm/gates/rootinterp/run.sh` | `rootinterp M3 PASS`; 39 native/browser output lines byte-identical; unsupported runtime dictionary generation fails by name |
 | `bash wasm/gates/rootformula/run.sh` | `rootformula M4a PASS`; 21 native/browser lines byte-identical; `TH1::Fit` stops at loud `SetClassInfo` failure |
-| `bash wasm/rootlight/interpreter/build.sh` | `interpreter build PASS`; 128 generated loud overrides, 10 implemented names, exported `CreateInterpreter` and `DestroyInterpreter` |
+| `bash wasm/rootlight/interpreter/build.sh` | `interpreter build PASS`; 284 generated loud overrides, 18 implemented names, exported `CreateInterpreter` and `DestroyInterpreter` |
+| `bash wasm/gates/rootkatas/run.sh` | `rootkatas M6a PASS`; 11/13 raw `rk` JSON lines byte-identical to native and validator-passing; two expected reflection blockers |
+| `bash wasm/run-gates.sh rootweb rootinterp rootformula rootkatas` | all four browser gates pass together after the interpreter and shared-stage changes |
 
 The M3 and M4 entry points now build the interpreter themselves instead of
 silently relying on a cached `libCling.so`.
@@ -79,21 +79,21 @@ callable resolution and ROOT call-interface wrapper are implementations of the
 reimplementation of ROOT's scientific/domain behavior; the source already
 documents the places where its behavior is narrower than TCling.
 
-`gen_fatal.py` reads the pinned ROOT header at build time and produced 128 loud
-pure-virtual overrides while `implemented.txt` selected 10 names. A missed pure
-virtual cannot produce a usable plugin: compilation of `new
-TCppInterOpInterpreter` would fail because the class remained abstract. Name-
-based exclusions cover every overload of an implemented name, so those
-overloads were also inspected; unsupported vector-prototype and DeclId forms
-explicitly call `rkUnsupported`.
+`gen_fatal.py` now reads every explicit virtual declaration in the pinned ROOT
+header, including `override = 0` declarations without a `virtual` keyword. It
+produces 284 loud overrides; the 18 implemented names account for 26 overload
+declarations. `ClassInfo_Init(ClassInfo_t*, int)` and
+`ClassInfo_Delete(ClassInfo_t*, void*)` are explicitly unsupported rather than
+inherited from ROOT's silent defaults.
 
-The non-pure defaults used by the proven formula path are overridden by real
-handle implementations: `ClassInfo_Init/Delete/IsValid`,
-`CallFunc_Factory/Init/Delete/IsValid/IFacePtr`, and the two string-prototype
-`CallFunc_SetFuncProto` overloads. Other non-pure base defaults remain silent.
-Consequently the accurate claim is "loud for all unimplemented pure virtuals
-and for the asserted boundaries," not "every possible unimplemented
-TInterpreter service is loud."
+The name-based skip was a real regression risk: adding a sibling overload could
+otherwise inherit a non-pure base default. Generation now compares the overload
+count in ROOT with the adapter's explicit `override` declarations. Removing the
+tag-number `ClassInfo_Init` overload was tested and fails generation with
+`(ROOT, adapter): (2, 1)`. Independent Clang AST inspection found four additional
+macro-expanded `ClassDefOverride` virtuals (`IsA`, `Streamer`, `ShowMembers`,
+`CheckTObjectHashConsistency`); these have real ROOT dictionary implementations
+and are not unsupported interpreter services.
 
 `MakeRootCallable` does what it claims: it emits an `extern "C"` wrapper with
 ROOT's generic call shape, compiles it through `Cpp::Declare`, and obtains its
@@ -118,11 +118,33 @@ the correct observable failure mechanism here.
 - `wasm/build/` remains ignored and contributes nothing to the commit.
 - `wasm/gates/gcore/FINDINGS.md` now labels the manual Core slice clearly as retired, diagnostic-only evidence.
 
+## M6a curriculum ruling
+
+The 13 gate solutions implement the stated exercise contracts without bypassing
+the harnesses; all pass their own validators under native ROOT. The browser arm
+substitutes the literal contents of `rk.h` and the solution at the harness's two local include
+sites, leaving translation-unit order and behavior unchanged for these sources.
+The gate now compares the raw final JSON lines as well as parsed values, so the
+byte-identity claim is executable rather than prose.
+
+The blocked assertion cannot pass on an arbitrary later failure. Both
+`cpp-root-fit-gaussian` and `cpp-root-histogram` must name `SetClassInfo` or the
+wasm-ROOT unsupported-service diagnostic. The correction is reproduced:
+`cpp-root-histogram` reaches reflection before its `TCanvas`; graphics may still
+become the next boundary after M4b.
+
+## Shared-stage safety
+
+The staged `$ROOTSYS` is shared mutable state. `rootlight` now holds an exclusive
+`flock` while rebuilding or using it; the interpreter builder and rootweb payload
+stager hold shared locks while reading it. A held producer lock delayed the
+interpreter build until release, and the subsequent four-gate run passed.
+
 ## Remaining boundary
 
-M1 through M4a are verified for their stated programs. `TH1::Fit`, general
-TClass reflection, `TFile`, `TTree`, graphics, repeated-cell/concurrency
-behavior, deployable payload size, and the full inherited non-pure
-`TInterpreter` surface are not established.
+M1 through M6a are verified for their stated programs. General TClass
+reflection, `TFile`, `TTree`, graphics, wrong/malformed student programs,
+in-browser Python grading, repeated-cell behavior and cold-load performance are
+not established.
 
-REVIEW VERDICT: PARTIAL — the most important unproven claim is that every unimplemented `TInterpreter` service fails loudly rather than inheriting a silent non-pure base default.
+REVIEW VERDICT: PASS — the single most important remaining unproven claim is that M4b TClass reflection is sufficient to complete both blocked katas; `cpp-root-histogram` may expose an M5 graphics boundary afterward.

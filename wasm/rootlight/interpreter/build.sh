@@ -14,9 +14,13 @@ REPO="$(cd -- "$HERE/../../.." >/dev/null 2>&1 && pwd -P)"
 OUT="${1:-$HOME/.cache/rootwasm-p0/interpreter}"
 R="${ROOTSYS_STAGE:-$HOME/.cache/rootwasm-p0/rootlight/rootsys}"
 XCPP="${XCPP_STAGE:-$HOME/.root-kata-wasm/xcpp-toolchain}"
+ROOTSYS_LOCK="${ROOTSYS_LOCK:-$(dirname "$R")/.rootsys.lock}"
 
 fail() { echo "interpreter build FAIL: $*" >&2; exit 1; }
 
+mkdir -p "$(dirname "$ROOTSYS_LOCK")"
+exec {rootsys_lockfd}> "$ROOTSYS_LOCK"
+flock -s -w 3600 "$rootsys_lockfd" || fail "another process is rebuilding $R"
 [[ -d $R/include ]] || fail "no staged ROOTSYS at $R (run wasm/gates/rootlight/run.sh stage)"
 [[ -d $XCPP/cppinterop-extract/include ]] || fail "no CppInterOp headers at $XCPP"
 

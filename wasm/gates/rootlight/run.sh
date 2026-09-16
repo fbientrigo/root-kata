@@ -11,6 +11,11 @@ emcc --version | head -1 | grep -q ' 4\.0\.9 ' || { echo "rootlight FAIL: need e
 LIBS=(Core Thread RIO MathCore Matrix Hist)
 step=${1:-all}
 R=$OUT/rootsys   # staged ROOTSYS tree (lib/ include/ etc/), mounted as $ROOTSYS at runtime
+ROOTSYS_LOCK=${ROOTSYS_LOCK:-$OUT/.rootsys.lock}
+mkdir -p "$OUT"
+exec {rootsys_lockfd}> "$ROOTSYS_LOCK"
+flock -w 3600 "$rootsys_lockfd" \
+  || { echo "rootlight FAIL: another process is using $R"; exit 1; }
 
 # Staged ROOTSYS: lib/ holds one Emscripten side module per ROOT library, with the same
 # NEEDED graph as native ROOT.

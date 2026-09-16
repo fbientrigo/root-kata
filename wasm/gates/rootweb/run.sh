@@ -26,6 +26,7 @@ ROOTLIGHT="$REPO/wasm/gates/rootlight"
 BUILD="${BUILD:-$REPO/wasm/build/rootweb}"
 WEB="$BUILD/web"
 R="${ROOTSYS_STAGE:-$HOME/.cache/rootwasm-p0/rootlight/rootsys}"
+ROOTSYS_LOCK="${ROOTSYS_LOCK:-$(dirname "$R")/.rootsys.lock}"
 LIBS=(Core Thread RIO MathCore Matrix Hist)
 DONE_TITLE="ROOTWEB-DONE"
 TIMEOUT_MS="${TIMEOUT_MS:-300000}"
@@ -56,6 +57,9 @@ if [[ $reuse == 1 && $step == cell ]]; then
   python3 "$HERE/build_cells.py" "$CELL_SRC" "$WEB/cells.js" "$HERE/welcome.cxx" \
     || fail "cell packaging failed"
 elif [[ $step == payload || $step == serve || $step == all || $step == cell ]]; then
+  mkdir -p "$(dirname "$ROOTSYS_LOCK")"
+  exec {rootsys_lockfd}> "$ROOTSYS_LOCK"
+  flock -s -w 3600 "$rootsys_lockfd" || fail "another process is rebuilding $R"
   [[ -d $R/include && -d $R/etc ]] \
     || fail "no staged ROOTSYS at $R -- run: bash wasm/gates/rootlight/run.sh stage"
   for l in "${LIBS[@]}"; do
@@ -117,6 +121,7 @@ elif [[ $step == payload || $step == serve || $step == all || $step == cell ]]; 
   total=0
   for f in "$WEB"/*; do total=$((total + $(stat -c '%s' "$f"))); done
   echo "    staged $WEB: $(ls "$WEB" | wc -l) files, $total bytes"
+  flock -u "$rootsys_lockfd"
 fi
 
 serve_web() {  # sets $port, $server_pid

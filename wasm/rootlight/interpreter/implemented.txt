@@ -8,10 +8,8 @@ RegisterModule
 ShutDown
 
 # M4: what TFormula and TMethodCall call to compile and invoke a formula.
-# (Only pure virtuals are listed here; gen_fatal.py generates overrides for
-# those alone. The non-pure TInterpreter methods in the same path -- the
-# ClassInfo_/CallFunc_ handle management -- are overridden by hand in the .cxx
-# because ROOT's own base-class defaults for them are silent no-ops.)
+# The ClassInfo_/CallFunc_ handle methods below are non-pure, but are overridden
+# by hand because ROOT's base-class defaults for them are silent no-ops.
 Declare
 ProcessLine
 ProcessLineSynch
@@ -19,3 +17,17 @@ Calc
 ClassInfo_Factory
 CallFunc_SetFuncProto
 CheckClassInfo
+
+# Non-pure TInterpreter virtuals overridden by hand. ROOT's base class gives
+# these silent inline defaults, so they must be named here or gen_fatal.py would
+# redeclare them. Overloads of these names that are NOT supported are declared
+# explicitly in the header and call rkUnsupported, so skipping the name never
+# reintroduces a silent default.
+ClassInfo_Init
+ClassInfo_Delete
+ClassInfo_IsValid
+CallFunc_Factory
+CallFunc_Init
+CallFunc_Delete
+CallFunc_IsValid
+CallFunc_IFacePtr

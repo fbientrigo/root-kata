@@ -31,8 +31,9 @@ comparison is against a ROOT you can rebuild.
 | `implemented.txt` | the short list implemented by hand; everything else is generated |
 | `build.sh` | builds `libCling.so` as an Emscripten side module |
 
-The M3 split was **3 implemented, 139 loud failures**. M4a now builds the same adapter with
-**10 implemented names and 128 loud failures**; see [the M4a findings](../rootformula/FINDINGS.md).
+The M3 split was 3 implemented names against the pure virtuals only. The adapter now stands at
+**18 implemented names and 284 loud failures**, covering ROOT's non-pure virtuals as well; see
+[the M4a findings](../rootformula/FINDINGS.md).
 The original three were the measured P0 surface
 ([interp-probe](../rootlight/interp-probe/FINDINGS.md)): a P0 program calls only
 `CreateInterpreter`, the constructor, `RegisterModule` (once per dictionary) and `Initialize`.

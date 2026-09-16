@@ -2,53 +2,88 @@
 """Generate the loud-failure overrides of TCppInterOpInterpreter from ROOT's own
 TInterpreter.h.
 
-Every pure virtual that is not implemented by hand in TCppInterOpInterpreter.cxx
-gets an override that fails unambiguously. Nothing returns a plausible-looking
+Every virtual that is not implemented by hand in TCppInterOpInterpreter.cxx gets
+an override that fails unambiguously. Nothing returns a plausible-looking
 default: the project rules forbid a ROOT operation that silently does nothing,
 and an interpreter that answered "no such class" to every question would be
 exactly that.
+
+**Both pure and non-pure virtuals are covered.** ROOT's TInterpreter base class
+supplies inline bodies for ~167 of its methods that return 0, nullptr or nothing
+at all. Overriding only the pure virtuals would leave every one of those as a
+silent no-op inherited from ROOT — the precise gap the M3/M4 review recorded as
+this project's most important unproven claim.
 
 The list is generated from the pinned header rather than maintained by hand, so
 it cannot drift from the TInterpreter ROOT actually calls.
 
 Usage: gen_fatal.py <TInterpreter.h> <implemented-names-file> > fatal_methods.inc
 """
+import pathlib
 import re
 import sys
 
 
-def parse(hdr_path):
-    src = open(hdr_path, encoding="utf-8").read()
-    src = re.sub(r"//[^\n]*", "", src)
-    src = re.sub(r"/\*.*?\*/", "", src, flags=re.S)
-    decls = []
-    for m in re.finditer(r"([^;{}]*?)=\s*0\s*;", src, flags=re.S):
-        d = " ".join(m.group(1).split())
-        if "(" not in d or d.startswith("#"):
-            continue
-        d = re.sub(r"^\s*(public|protected|private)\s*:\s*", "", d)
-        d = re.sub(r"^virtual\s+", "", d)
-        decls.append(d)
-    return decls
+def strip_comments(text):
+    text = re.sub(r"//[^\n]*", "", text)
+    return re.sub(r"/\*.*?\*/", "", text, flags=re.S)
 
 
-def split_ret_name_args(d):
-    i = d.index("(")
-    head, rest = d[:i].strip(), d[i:]
+def match_forward(text, start, open_ch, close_ch):
+    """Index just past the balanced group that begins at text[start]."""
     depth = 0
-    for j, c in enumerate(rest):
-        if c == "(":
+    for i in range(start, len(text)):
+        if text[i] == open_ch:
             depth += 1
-        elif c == ")":
+        elif text[i] == close_ch:
             depth -= 1
             if depth == 0:
-                args, tail = rest[1:j], rest[j + 1:].strip()
-                break
-    # type and name are not always separated, e.g. "ClassInfo_t*ClassInfo_Factory"
-    m2 = re.search(r"([A-Za-z_~]\w*)\s*$", head)
-    name = m2.group(1)
-    ret = head[:m2.start(1)].strip()
-    return ret, name, args, tail.replace("override", "").strip()
+                return i + 1
+    raise ValueError("unbalanced")
+
+
+def parse(hdr_path):
+    """Yield (ret, name, args, is_const) for every virtual member declaration.
+
+    Two scans, because ROOT declares them both ways: most say `virtual`, but a
+    few re-declare an inherited method as `void Execute(...) override = 0;` with
+    no `virtual` keyword at all. Missing those leaves the class abstract.
+    """
+    src = strip_comments(open(hdr_path, encoding="utf-8").read())
+    starts = [m.end() for m in re.finditer(r"\bvirtual\b", src)]
+    for m in re.finditer(r"\boverride\b|=\s*0\s*;", src):
+        # Walk back to the start of this declaration.
+        begin = max(src.rfind(";", 0, m.start()), src.rfind("{", 0, m.start()),
+                    src.rfind("}", 0, m.start())) + 1
+        starts.append(begin)
+    for start in sorted(set(starts)):
+        # Return type and name run up to the parameter list. A '(' can also open
+        # a function-pointer parameter, but never before the method's own name.
+        paren = src.find("(", start)
+        if paren < 0:
+            continue
+        head = src[start:paren].strip()
+        if not head or ";" in head or "{" in head or "}" in head:
+            continue
+        head = re.sub(r"^\s*(public|protected|private)\s*:\s*", "", head)
+        head = re.sub(r"^\s*virtual\s+", "", head)
+        name_m = re.search(r"([A-Za-z_~]\w*)\s*$", head)
+        if not name_m:
+            continue
+        name = name_m.group(1)
+        ret = head[:name_m.start(1)].strip()
+        try:
+            end = match_forward(src, paren, "(", ")")
+        except ValueError:
+            continue
+        args = src[paren + 1:end - 1]
+        # Everything up to the body or the ';' tells us const-ness and purity.
+        tail_end = len(src)
+        for stop in (src.find("{", end), src.find(";", end)):
+            if stop != -1:
+                tail_end = min(tail_end, stop)
+        tail = src[end:tail_end]
+        yield ret, name, args, bool(re.search(r"\bconst\b", tail))
 
 
 def strip_defaults(args):
@@ -68,11 +103,6 @@ def strip_defaults(args):
     return ", ".join(re.sub(r"=\s*[^,]+$", "", a).strip() for a in out)
 
 
-def fail_body(ret, name):
-    """Never return. rkUnsupported is [[noreturn]], so no value is invented."""
-    return 'rkUnsupported("%s");' % name
-
-
 def main():
     if len(sys.argv) != 3:
         print(f"usage: {sys.argv[0]} <TInterpreter.h> <implemented-names-file>", file=sys.stderr)
@@ -86,30 +116,48 @@ def main():
 
     print("// GENERATED by gen_fatal.py from ROOT's own TInterpreter.h -- do not edit.")
     print("// Every service below is NOT implemented and fails loudly when called.")
+    print("// Covers non-pure virtuals too: ROOT's base class gives those silent")
+    print("// inline defaults, which would be exactly the no-op the rules forbid.")
     seen, skipped = set(), set()
-    for d in parse(hdr):
-        try:
-            ret, name, args, tail = split_ret_name_args(d)
-        except Exception:
-            print("// UNPARSED: " + d, file=sys.stderr)
+    base_overloads = {}
+    for ret, name, args, is_const in parse(hdr):
+        if name.startswith("~") or name == "TInterpreter":
             continue
-        if name.startswith("~"):
-            continue
+        args_nd = strip_defaults(args)
+        # Normalise whitespace and pointer spelling so "void*" and "void *" do
+        # not look like two different overloads and produce a redeclaration.
+        key = (name, re.sub(r"\s+", "", args_nd), is_const)
+        base_overloads.setdefault(name, set()).add(key)
         if name in implemented:
             skipped.add(name)
             continue
-        args_nd = strip_defaults(args)
-        const = " const" if re.search(r"\bconst\b", tail.split("=")[0]) else ""
-        key = (name, args_nd, const)
         if key in seen:
             continue
         seen.add(key)
-        print("   %s %s(%s)%s override { %s }" % (ret, name, args_nd, const, fail_body(ret, name)))
+        print("   %s %s(%s)%s override { rkUnsupported(\"%s\"); }"
+              % (ret, name, args_nd, " const" if is_const else "", name))
 
     missing = implemented - skipped
     if missing:
-        print(f"gen_fatal: FATAL these names are not pure virtuals in {hdr}: {sorted(missing)}",
+        print(f"gen_fatal: FATAL these names are not virtuals in {hdr}: {sorted(missing)}",
               file=sys.stderr)
+        return 1
+    # implemented.txt excludes a name, not one overload. Verify the adapter
+    # explicitly overrides every sibling so a new non-pure ROOT overload cannot
+    # silently fall back to its base-class default.
+    adapter = pathlib.Path(__file__).with_name("TCppInterOpInterpreter.h")
+    adapter_overloads = {}
+    for _, name, args, is_const in parse(adapter):
+        key = (name, re.sub(r"\s+", "", strip_defaults(args)), is_const)
+        adapter_overloads.setdefault(name, set()).add(key)
+    uncovered = {
+        name: (len(base_overloads[name]), len(adapter_overloads.get(name, ())))
+        for name in implemented
+        if len(base_overloads[name]) != len(adapter_overloads.get(name, ()))
+    }
+    if uncovered:
+        print("gen_fatal: FATAL implemented names must override every overload "
+              f"(ROOT, adapter): {uncovered}", file=sys.stderr)
         return 1
     print(f"// unimplemented: {len(seen)}; implemented by hand: {len(skipped)}")
     print(f"gen_fatal: {len(seen)} loud-failure overrides, {len(skipped)} implemented by hand",

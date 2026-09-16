@@ -17,11 +17,12 @@ Per exercise:
                validator.grade() passes on the browser's JSON.
 
 Two exercises are expected to be BLOCKED and are asserted as such, so they
-cannot pass by accident and cannot be forgotten:
-  cpp-root-histogram    its harness draws into a TCanvas; no graphics library
-                        is built for wasm yet (M5).
-  cpp-root-fit-gaussian a correct solution calls TH1::Fit, which stops at
-                        TInterpreter::SetClassInfo (M4b).
+cannot pass by accident and cannot be forgotten. Both stop at the same place,
+TInterpreter::SetClassInfo:
+  cpp-root-fit-gaussian a correct solution calls TH1::Fit, which needs TClass
+                        reflection to resolve its minimizer.
+  cpp-root-histogram    its harness draws into a TCanvas, but reflection is
+                        reached before any graphics symbol is.
 
 Usage: sweep.py [exercise-id ...]   (default: every exercise with a solution)
 """
@@ -44,9 +45,16 @@ HOST_ROOT = pathlib.Path.home() / ".cache/rootwasm-p0/xbuild/root-6.40.04-host/r
 OUT = pathlib.Path.home() / ".cache/rootwasm-p0/rootkatas"
 
 # Exercise -> the milestone that unblocks it. These must fail, and must say why.
+#
+# Measured, not assumed: both stop at the *same* place, TInterpreter::SetClassInfo.
+# cpp-root-histogram was expected to fail on its TCanvas, but TClass reflection is
+# reached first, so M4b is what unblocks both. Whether the canvas then needs M5
+# graphics is unknown until reflection lands.
+_REFLECTION = ("SetClassInfo", "not implemented in wasm ROOT")
 BLOCKED = {
-    "cpp-root-histogram": ("M5 graphics", ("TCanvas", "Gpad", "Graf", "SaveAs")),
-    "cpp-root-fit-gaussian": ("M4b TClass reflection", ("SetClassInfo", "not implemented in wasm ROOT")),
+    "cpp-root-histogram": ("M4b TClass reflection (its TCanvas may then need M5)",
+                           _REFLECTION),
+    "cpp-root-fit-gaussian": ("M4b TClass reflection", _REFLECTION),
 }
 
 
@@ -58,14 +66,14 @@ def last_json_line(stdout):
     """rk::done() prints the results as the last line of stdout."""
     lines = [ln for ln in (stdout or "").splitlines() if ln.strip()]
     if not lines:
-        return None, "no output"
+        return None, "no output", None
     try:
         value = json.loads(lines[-1])
     except json.JSONDecodeError as exc:
-        return None, f"last stdout line is not JSON ({exc}): {lines[-1][:120]!r}"
+        return None, f"last stdout line is not JSON ({exc}): {lines[-1][:120]!r}", None
     if not isinstance(value, dict):
-        return None, f"last stdout line is not a JSON object: {lines[-1][:120]!r}"
-    return value, None
+        return None, f"last stdout line is not a JSON object: {lines[-1][:120]!r}", None
+    return value, None, lines[-1]
 
 
 def native_json(eid, solution, workdir):
@@ -87,10 +95,10 @@ def native_json(eid, solution, workdir):
            str(workdir / harness.name), *libs]
     r = run(cmd, cwd=workdir)
     if r.returncode != 0:
-        return None, "native compile failed: " + (r.stderr.strip().splitlines() or ["?"])[-1][:200]
+        return None, "native compile failed: " + (r.stderr.strip().splitlines() or ["?"])[-1][:200], None
     r = run([str(workdir / "harness")], cwd=workdir)
     if r.returncode != 0:
-        return None, f"native run failed (exit {r.returncode}): {r.stderr.strip()[-200:]}"
+        return None, f"native run failed (exit {r.returncode}): {r.stderr.strip()[-200:]}", None
     return last_json_line(r.stdout)
 
 
@@ -112,11 +120,11 @@ def browser_json(eid, solution, workdir):
     env = dict(os.environ, ROOTWEB_REUSE="1")
     r = run(["bash", str(ROOTWEB), "cell", str(cell)], env=env)
     if r.returncode != 0:
-        return None, "browser run failed: " + (r.stdout + r.stderr).strip()[-300:], ""
+        return None, "browser run failed: " + (r.stdout + r.stderr).strip()[-300:], "", None
     stdout = (WEB_BUILD / "cell_stdout.txt").read_text()
     diag = (WEB_BUILD / "cell_diag.txt").read_text()
-    value, err = last_json_line(stdout)
-    return value, err, diag
+    value, err, raw = last_json_line(stdout)
+    return value, err, diag, raw
 
 
 def grade(eid, results):
@@ -135,23 +143,30 @@ def check(eid):
     detail = []
     with tempfile.TemporaryDirectory(prefix=f"rootkatas-{eid}-") as tmp:
         work = pathlib.Path(tmp)
-        bjson, berr, bdiag = browser_json(eid, solution, work)
+        bjson, berr, bdiag, braw = browser_json(eid, solution, work)
 
         if eid in BLOCKED:
             milestone, needles = BLOCKED[eid]
+            njson, nerr, _ = native_json(eid, solution, work)
+            if njson is None:
+                return False, f"blocked fixture failed natively: {nerr}", []
+            native_failed = [c for c in grade(eid, njson) if not c["passed"]]
+            if native_failed:
+                detail += [f"    - {c['name']}: {c['message']}" for c in native_failed]
+                return False, "blocked fixture is not a valid native solution", detail
             haystack = (bdiag or "") + json.dumps(bjson or {})
             if bjson is not None and all(c["passed"] for c in grade(eid, bjson)):
                 return False, f"unexpectedly PASSED, but {milestone} is not implemented", []
             if not any(n in haystack for n in needles):
                 detail.append("    diag: " + (bdiag or berr or "").strip()[:300])
                 return False, f"blocked, but did not say why (expected one of {needles})", detail
-            return True, f"BLOCKED as expected, awaiting {milestone}", []
+            return True, f"valid natively; BLOCKED as expected, awaiting {milestone}", []
 
         if bjson is None:
             detail.append("    diag: " + (bdiag or "").strip()[:400])
             return False, f"browser produced no rk JSON: {berr}", detail
 
-        njson, nerr = native_json(eid, solution, work)
+        njson, nerr, nraw = native_json(eid, solution, work)
         if njson is None:
             return False, f"native arm failed: {nerr}", []
 
@@ -160,6 +175,10 @@ def check(eid):
                 if njson.get(key) != bjson.get(key):
                     detail.append(f"    {key}: native={njson.get(key)!r} browser={bjson.get(key)!r}")
             return False, "browser rk JSON differs from native ROOT", detail
+
+        if nraw != braw:
+            detail += [f"    native={nraw!r}", f"    browser={braw!r}"]
+            return False, "browser rk JSON is not byte-identical to native ROOT", detail
 
         cases = grade(eid, bjson)
         failed = [c for c in cases if not c["passed"]]
@@ -180,7 +199,7 @@ def main():
             print(line, flush=True)
         if not ok:
             failures.append(eid)
-    print(f"\n    {len(wanted) - len(failures)}/{len(wanted)} exercises behave identically in the browser")
+    print(f"\n    {len(wanted) - len(failures)}/{len(wanted)} exercise checks passed")
     return 1 if failures else 0
 
 

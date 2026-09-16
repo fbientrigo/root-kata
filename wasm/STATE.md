@@ -2,7 +2,10 @@
 
 ## Current gate
 
-**M4a — TF1/TFormula/TGraph: PASS, independently reproduced.** `TH1::Fit` is the boundary.
+**M6a — the shipped curriculum runs in the browser: PASS, independently reviewed.**
+11 of the 13 katas are completed in Chromium with output byte-identical to
+native ROOT and graded passed by their own validators. The remaining two are
+blocked on `TClass` reflection (M4b).
 
 Run everything with `bash wasm/run-gates.sh`. Open it yourself with
 `bash wasm/gates/rootweb/run.sh serve`.
@@ -14,15 +17,23 @@ Run everything with `bash wasm/run-gates.sh`. Open it yourself with
 | M2b the same in Chromium, plus an interactive page | [`gates/rootweb`](gates/rootweb/FINDINGS.md) | **PASS**, independently reproduced |
 | M3 ROOT's TInterpreter over CppInterOp; P0 parity | [`gates/rootinterp`](gates/rootinterp/FINDINGS.md) | **PASS**, independently reproduced |
 | M4a TF1/TFormula/TGraph parity | [`gates/rootformula`](gates/rootformula/FINDINGS.md) | **PASS**, independently reproduced |
+| M6a the shipped ROOT Kata curriculum, in the browser | [`gates/rootkatas`](gates/rootkatas/FINDINGS.md) | **PASS**, independently reviewed |
 
 Genuine CERN ROOT 6.40.04 now runs in Chromium over plain static HTTP with no
 COOP/COEP, and matches native ROOT byte for byte on both probes: 39 TH1D/TAxis
 values (P0) and 21 TF1/TFormula/TGraph values (P1), all at `%.17g`.
 
-Not established: `TH1::Fit` (blocked on TClass reflection, which is where M4
-stops), `TFile`, `TTree`, graphics, any product/kata integration, and loud
-failure for inherited non-pure `TInterpreter` defaults outside the exercised
-surface.
+The interpreter now has **284** loud-failure overrides against 18 implemented
+names, covering ROOT's non-pure `TInterpreter` defaults as well as
+its pure virtuals — the gap the M3/M4 review recorded as the most important
+unproven claim. Re-running every gate against the stricter adapter changed
+nothing, so no proven path was relying on a silent default.
+
+Not established: `TH1::Fit` and `cpp-root-histogram` (both blocked on `TClass`
+reflection — measured, not assumed: each stops at `TInterpreter::SetClassInfo`,
+so M4b unblocks both), `TFile`, `TTree`, graphics, in-browser grading (the
+validators still run in CPython on the developer's machine), and the product
+runner at `docs/site.js:238`, which is untouched.
 
 ## Confirmed facts
 
@@ -93,9 +104,9 @@ the omission, while a direct throw/catch probe did.
 
 ## Reviewer verdict
 
-**M1 through M4a executable gates: PASS; interpreter-wide review: PARTIAL**, independently
-reviewed 2026-09-16. All five gate commands and both native/browser parity comparisons
-reproduced. The qualification is the broader loud-failure invariant: 128 unimplemented pure
-virtuals fail loudly, but unexercised inherited non-pure defaults can still return silent
-null/zero/no-op values. See [M1–M4a review](gates/CODEX-REVIEW-M3-M4.md); the earlier
-[M1/M2 review](gates/rootlight/CODEX-REVIEW-M2.md) is historical.
+**M1 through M6a review: PASS**, independently reviewed 2026-09-16. The earlier
+non-pure `TInterpreter` qualification is closed by 284 generated loud failures
+plus an overload-coverage check. The four browser gates pass together; M6a
+reproduces 11 native-identical, validator-passing exercises and two exact
+`SetClassInfo` blockers. See [M1–M6a review](gates/CODEX-REVIEW-M3-M4.md); the
+earlier [M1/M2 review](gates/rootlight/CODEX-REVIEW-M2.md) is historical.

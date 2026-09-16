@@ -25,8 +25,25 @@ and `TGraph` construction, `Eval`, `GetPoint` and `GetMean`.
 
 ## What was implemented
 
-Added to [`wasm/rootlight/interpreter`](../../rootlight/interpreter): **10 services implemented
-by hand, 128 loud failures** (M3 ended at 3 and 139).
+Added to [`wasm/rootlight/interpreter`](../../rootlight/interpreter): **18 names implemented
+by hand, 284 loud failures** (M3 ended at 3 implemented). Ten of the eighteen are the formula
+path below; the other eight are the `ClassInfo_`/`CallFunc_` handle methods, which ROOT
+declares non-pure and which therefore had to be named explicitly once non-pure coverage
+landed.
+
+That count grew after the [M3/M4 review](../CODEX-REVIEW-M3-M4.md) recorded this project's most
+important unproven claim: only ROOT's **pure** virtuals were being overridden, so the ~167
+non-pure `TInterpreter` methods kept ROOT's own inline defaults, which silently return `0`,
+`nullptr` or nothing. Inheriting a silent no-op is the same defect as writing one.
+`gen_fatal.py` now parses every explicit service virtual — including the ones ROOT declares
+as `override = 0` with no `virtual` keyword — and unsupported *overloads* of names implemented
+by hand (`ClassInfo_Init(tagnum)`, `ClassInfo_Delete(arena)`) are spelled out explicitly rather
+than left to the base class. Generation also checks that the adapter overrides every overload
+behind each excluded name, so a new sibling cannot silently inherit ROOT's default.
+
+**Re-running the gates against the stricter adapter changed nothing**: `rootinterp M3 PASS`,
+`rootformula M4a PASS` and `rootkatas M6a PASS` all still hold, so no proven path was relying
+on a silent default.
 
 | service | over CppInterOp |
 | --- | --- |

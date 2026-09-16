@@ -72,6 +72,11 @@ public:
    void ClassInfo_Init(ClassInfo_t *info, const char *name) const override;
    void ClassInfo_Delete(ClassInfo_t *info) const override;
    Bool_t ClassInfo_IsValid(ClassInfo_t *info) const override;
+   // Overloads of the names above that this adapter does NOT support. They are
+   // spelled out rather than left to ROOT's base class, whose inline defaults
+   // would silently do nothing.
+   void ClassInfo_Init(ClassInfo_t *, int) const override { rkUnsupported("ClassInfo_Init(tagnum)"); }
+   void ClassInfo_Delete(ClassInfo_t *, void *) const override { rkUnsupported("ClassInfo_Delete(arena)"); }
 
    CallFunc_t *CallFunc_Factory() const override;
    void CallFunc_Init(CallFunc_t *func) const override;
