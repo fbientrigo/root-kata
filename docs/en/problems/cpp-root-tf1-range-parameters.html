@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Repair a decay model whose formula is valid but whose parameter mapping and domain make its predictions misleading.">
+  <title>Diagnose a plausible but wrong TF1 · ROOT Kata</title>
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../index.html">ROOT Kata</a>
+    <span>short C++/ROOT practice in Jupyter</span>
+    <nav class="lang-switch" aria-label="Language"><a href="../../problems/cpp-root-tf1-range-parameters.html" lang="es" hreflang="es">ES</a></nav>
+  </header>
+  
+  <main class="problem-layout">
+    <a class="back-link" href="../index.html">← All katas</a>
+    <article class="problem">
+      <header class="problem-header">
+        <div class="problem-meta">
+          <span class="difficulty">Hard</span>
+          <span>≈ 15 min</span>
+          <span>ROOT + C++</span>
+        </div>
+        <h1>Diagnose a plausible but wrong TF1</h1>
+        <p class="lead">Repair a decay model whose formula is valid but whose parameter mapping and domain make its predictions misleading.</p>
+        <div class="chips"><span class="chip">TF1</span><span class="chip">model range</span><span class="chip">parameters</span><span class="chip">diagnosis</span><span class="chip">exponential</span></div>
+      </header>
+
+      <section>
+        <h2>Problem</h2>
+        <p>Repair TF1* build_decay_model(double amplitude, double tau). It must represent A*exp(-x/tau) on the analysis domain [0,10], with amplitude in parameter 0 and tau in parameter 1.</p>
+        <div class="contract"><span>Implement</span><code>build_decay_model(…)</code></div>
+      </section>
+
+      <section>
+        <h2>Example</h2>
+        
+        <div class="example-box">
+          <div><span>Input</span><code>amplitude=12, tau=2</code></div>
+          <div><span>Output</span><code>f(0)=12, f(4)=12*exp(-2)</code></div>
+          <p>The same formula gives the wrong interpretation if the parameters are swapped or the intended model range is misconfigured.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Requirements</h2>
+        <ul><li>Name the function decay_model.</li><li>Use [0]*exp(-x/[1]) for A*exp(-x/tau).</li><li>Use the intended model domain [0,10].</li><li>Map amplitude to parameter 0 and tau to parameter 1.</li></ul>
+      </section>
+
+      <section>
+        <h2>What this practices</h2>
+        <p>Diagnose model configuration separately from formula syntax by checking parameter meaning, range, and numerical predictions.</p>
+      </section>
+
+      <section>
+        <h2>References</h2>
+        <ul class="resource-list"><li><a href="https://root.cern.ch/doc/master/classTF1.html" target="_blank" rel="noopener">TF1 — ROOT reference</a></li></ul>
+      </section>
+
+      <section class="start-panel">
+        <div>
+          <h2>Start in Jupyter</h2>
+          <p>Open your local Jupyter and paste the command below. The button tries to copy it for you.</p>
+          <pre><code>import root_kata as rk
+rk.start(&quot;cpp-root-tf1-range-parameters&quot;)</code></pre>
+        </div>
+        <a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-tf1-range-parameters.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-tf1-range-parameters&quot;)">Open in Jupyter</a>
+      </section>
+    </article>
+  </main>
+  <footer class="site-footer">Unofficial educational prototype · no accounts · runs on your machine</footer>
+  <script src="../../site.js" defer></script>
+</body>
+</html>

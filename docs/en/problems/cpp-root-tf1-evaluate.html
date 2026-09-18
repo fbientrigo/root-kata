@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Build a parameterized TF1 and observe how changing one parameter changes the model.">
+  <title>Turn a formula into a ROOT model · ROOT Kata</title>
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../index.html">ROOT Kata</a>
+    <span>short C++/ROOT practice in Jupyter</span>
+    <nav class="lang-switch" aria-label="Language"><a href="../../problems/cpp-root-tf1-evaluate.html" lang="es" hreflang="es">ES</a></nav>
+  </header>
+  
+  <main class="problem-layout">
+    <a class="back-link" href="../index.html">← All katas</a>
+    <article class="problem">
+      <header class="problem-header">
+        <div class="problem-meta">
+          <span class="difficulty">Intermediate</span>
+          <span>≈ 10 min</span>
+          <span>ROOT + C++</span>
+        </div>
+        <h1>Turn a formula into a ROOT model</h1>
+        <p class="lead">Build a parameterized TF1 and observe how changing one parameter changes the model.</p>
+        <div class="chips"><span class="chip">TF1</span><span class="chip">parameters</span><span class="chip">Eval</span><span class="chip">SetParameter</span><span class="chip">model</span></div>
+      </header>
+
+      <section>
+        <h2>Problem</h2>
+        <p>Implement TF1* build_linear_model(double intercept, double slope). Build f(x) = intercept + slope*x on the domain [0,10], store intercept in parameter 0 and slope in parameter 1, and name the function calibration_model.</p>
+        <div class="contract"><span>Implement</span><code>build_linear_model(…)</code></div>
+      </section>
+
+      <section>
+        <h2>Example</h2>
+        
+        <div class="example-box">
+          <div><span>Input</span><code>intercept=2, slope=3</code></div>
+          <div><span>Output</span><code>f(0)=2, f(2)=8</code></div>
+          <p>The parameters carry the model state; changing the slope changes later evaluations.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Requirements</h2>
+        <ul><li>Name the TF1 calibration_model.</li><li>Use the model [0] + [1]*x on the domain [0,10].</li><li>Set parameter 0 to the intercept argument.</li><li>Set parameter 1 to the slope argument.</li></ul>
+      </section>
+
+      <section>
+        <h2>What this practices</h2>
+        <p>Connect a mathematical model, its parameter values, and the numerical predictions produced by TF1.</p>
+      </section>
+
+      <section>
+        <h2>References</h2>
+        <ul class="resource-list"><li><a href="https://root.cern.ch/doc/master/classTF1.html" target="_blank" rel="noopener">TF1 — ROOT reference</a></li></ul>
+      </section>
+
+      <section class="start-panel">
+        <div>
+          <h2>Start in Jupyter</h2>
+          <p>Open your local Jupyter and paste the command below. The button tries to copy it for you.</p>
+          <pre><code>import root_kata as rk
+rk.start(&quot;cpp-root-tf1-evaluate&quot;)</code></pre>
+        </div>
+        <a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-tf1-evaluate.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-tf1-evaluate&quot;)">Open in Jupyter</a>
+      </section>
+    </article>
+  </main>
+  <footer class="site-footer">Unofficial educational prototype · no accounts · runs on your machine</footer>
+  <script src="../../site.js" defer></script>
+</body>
+</html>

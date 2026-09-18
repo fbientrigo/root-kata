@@ -121,6 +121,28 @@ class ReadOnlyApiTests(unittest.TestCase):
         self.assertIn(payload["starter_code"], decoded)
         self.assertIn('href="/kata/cpp-hello-world?lang=es"', markup)
 
+    def test_workspace_exposes_browser_wasm_capability(self):
+        inspect_markup = self.get_html("/kata/cpp-root-histogram-inspect")
+        self.assertIn('data-browser-wasm="supported"', inspect_markup)
+        self.assertIn('data-exercise-id="cpp-root-histogram-inspect"', inspect_markup)
+
+        hello_markup = self.get_html("/kata/cpp-hello-world")
+        self.assertIn('data-browser-wasm="native"', hello_markup)
+
+        fit_markup = self.get_html("/kata/cpp-root-fit-gaussian")
+        self.assertIn('data-browser-wasm="blocked"', fit_markup)
+
+    def test_static_server_serves_engine_modules(self):
+        with urlopen(self.base + "/engine/root_wasm_engine.js", timeout=2) as resp:
+            self.assertEqual(resp.status, 200)
+            self.assertIn(b"RootWasmEngine", resp.read())
+        with urlopen(self.base + "/engine/exercise_runner.js", timeout=2) as resp:
+            self.assertEqual(resp.status, 200)
+            self.assertIn(b"ExerciseRunner", resp.read())
+        with urlopen(self.base + "/engine/browser_grader.js", timeout=2) as resp:
+            self.assertEqual(resp.status, 200)
+            self.assertIn(b"BrowserGrader", resp.read())
+
     def test_unknown_workspace_is_404(self):
         with self.assertRaises(HTTPError) as caught:
             urlopen(self.base + "/kata/not-real", timeout=2)

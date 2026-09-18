@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Combina un corte numérico estricto con el llenado de un histograma y distingue entradas seleccionadas de entradas visibles.">
+  <title>Convierte una selección en una distribución · ROOT Kata</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../index.html">ROOT Kata</a>
+    <span>práctica corta de C++/ROOT en Jupyter</span>
+    <nav class="lang-switch" aria-label="Language"><a href="../en/problems/cpp-root-histogram-selected-sample.html" lang="en" hreflang="en">EN</a></nav>
+  </header>
+  
+  <main class="problem-layout">
+    <a class="back-link" href="../index.html">← Todos los katas</a>
+    <article class="problem">
+      <header class="problem-header">
+        <div class="problem-meta">
+          <span class="difficulty">Difícil</span>
+          <span>≈ 15 min</span>
+          <span>ROOT + C++</span>
+        </div>
+        <h1>Convierte una selección en una distribución</h1>
+        <p class="lead">Combina un corte numérico estricto con el llenado de un histograma y distingue entradas seleccionadas de entradas visibles.</p>
+        <div class="chips"><span class="chip">selection</span><span class="chip">TH1D</span><span class="chip">strict cut</span><span class="chip">overflow</span><span class="chip">integration</span></div>
+      </header>
+
+      <section>
+        <h2>Problema</h2>
+        <p>Implementa TH1D* build_selected_histogram(const std::vector&lt;double&gt;&amp; values, double threshold). Conserva solo los valores estrictamente mayores que threshold y llénalos en h_selected con 5 bins que cubren [0,150].</p>
+        <div class="contract"><span>Implementa</span><code>build_selected_histogram(…)</code></div>
+      </section>
+
+      <section>
+        <h2>Ejemplo</h2>
+        
+        <div class="example-box">
+          <div><span>Entrada</span><code>values={20,50,50.1,80,120}, threshold=50</code></div>
+          <div><span>Salida</span><code>3 entradas</code></div>
+          <p>El valor de borde 50 no sobrevive a un corte estricto &gt; 50.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Requisitos</h2>
+        <ul><li>Crea h_selected con 5 bins que cubren [0,150].</li><li>Aplica la condición estricta value &gt; threshold.</li><li>Llena cada valor que sobrevive exactamente una vez y rechaza los demás.</li><li>No descartes valores seleccionados solo porque caigan en underflow u overflow.</li></ul>
+      </section>
+
+      <section>
+        <h2>Qué practicas</h2>
+        <p>Componer una selección numérica y un histograma manteniendo separadas la semántica del corte y la del rango.</p>
+      </section>
+
+      <section>
+        <h2>Referencias</h2>
+        <ul class="resource-list"><li><a href="https://root.cern.ch/doc/master/classTH1.html" target="_blank" rel="noopener">TH1 — ROOT reference</a></li></ul>
+      </section>
+
+      <section class="start-panel">
+        <div>
+          <h2>Empieza en Jupyter</h2>
+          <p>Abre tu Jupyter local y pega el comando de abajo. El botón intenta copiarlo.</p>
+          <pre><code>import root_kata as rk
+rk.start(&quot;cpp-root-histogram-selected-sample&quot;)</code></pre>
+        </div>
+        <a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-histogram-selected-sample.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-histogram-selected-sample&quot;)">Abrir en Jupyter</a>
+      </section>
+    </article>
+  </main>
+  <footer class="site-footer">Prototipo educativo no oficial · sin cuentas · corre en tu máquina</footer>
+  <script src="../site.js" defer></script>
+</body>
+</html>

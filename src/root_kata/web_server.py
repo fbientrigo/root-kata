@@ -138,7 +138,7 @@ class RootKataHandler(SimpleHTTPRequestHandler):
   </header>
   <main class="workspace">
     <a class="back-link" href="/">{esc(ui["back"])}</a>
-    <div class="workspace-grid">
+    <div class="workspace-grid" data-exercise-id="{esc(exercise_id)}" data-browser-wasm="{esc(view.get('browser_wasm', 'native'))}">
       <article class="workspace-problem" aria-labelledby="kata-title">
         <div class="problem-meta">
           <span class="difficulty">{esc(view.get("difficulty", ""))}</span>

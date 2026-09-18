@@ -3,36 +3,89 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Read a small problem, open it in Jupyter, edit one function, run the visible tests. No account and no cloud runner.">
+  <meta name="description" content="Begin with elementary C++ and advance to a first ROOT operation. Each kata introduces one useful idea.">
   <title>Katas · ROOT Kata</title>
-  <link rel="stylesheet" href="en/styles.css">
+  <link rel="stylesheet" href="../styles.css">
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="en/index.html">ROOT Kata</a>
+    <a class="brand" href="index.html">ROOT Kata</a>
     <span>short C++/ROOT practice in Jupyter</span>
     <nav class="lang-switch" aria-label="Language"><a href="../index.html" lang="es" hreflang="es">ES</a></nav>
   </header>
   
   <main class="home">
     <section class="hero">
-      <h1>Practice the operations you will actually reuse.</h1>
-      <p>Read a small problem, open it in Jupyter, edit one function, run the visible tests. No account and no cloud runner.</p>
-      <div class="flow" aria-label="Learning path"><span>1 · accumulate</span><span aria-hidden="true">→</span><span>2 · select</span><span aria-hidden="true">→</span><span>3 · histogram</span></div>
+      <h1>Start small. Reach ROOT understanding every step.</h1>
+      <p>Begin with elementary C++ and advance to a first ROOT operation. Each kata introduces one useful idea.</p>
+      <div class="flow" aria-label="Learning path"><span>1 · print</span><span aria-hidden="true">→</span><span>2 · arrays</span><span aria-hidden="true">→</span><span>3 · analyze</span></div>
     </section>
 
-    <section class="progress-panel" data-total="3" aria-labelledby="progress-title">
+    <section class="progress-panel" data-total="13" aria-labelledby="progress-title">
       <h2 id="progress-title">Your progress</h2>
       <div class="progress-row">
-        <progress id="overall-progress" value="0" max="3" aria-hidden="true"></progress>
-        <span id="progress-count" role="status" aria-live="polite">0 / 3</span>
+        <progress id="overall-progress" value="0" max="13" aria-hidden="true"></progress>
+        <span id="progress-count" role="status" aria-live="polite">0 / 13</span>
       </div>
       <ul id="badge-list" class="badge-list"></ul>
     </section>
 
+    <div class="catalog-tools">
+      <label for="difficulty-filter">Difficulty</label>
+      <select id="difficulty-filter">
+        <option value="all">All</option><option value="introductory">Introductory</option><option value="easy">Easy</option><option value="intermediate">Intermediate</option><option value="hard">Hard</option>
+      </select>
+      <span id="filter-count" role="status" aria-live="polite">13 of 13 exercises</span>
+    </div>
+
     <section class="kata-list" aria-label="Exercises">
       
-      <article class="kata-row" data-eid="cpp-sum-positive">
+      <article class="kata-row" data-eid="cpp-hello-world" data-difficulty="introductory">
+        <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
+        <div class="row-body">
+          <div class="row-topline"><span class="difficulty">Introductory</span><span aria-hidden="true">·</span><span>≈ 2 min</span></div>
+          <h2>Hello, world</h2>
+          <p>Run the smallest possible C++ kata and verify that your local setup works.</p>
+          <div class="chips"><span class="chip">std::cout</span><span class="chip">function</span><span class="chip">string literal</span></div>
+        </div>
+        <div class="row-actions">
+          <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-hello-world.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-hello-world&quot;)">Open in Jupyter</a>
+          <a class="button secondary problem-link" href="problems/cpp-hello-world.html">View problem</a>
+          <span class="completed-label" hidden>Completed</span>
+        </div>
+      </article>
+      <article class="kata-row" data-eid="cpp-array-index" data-difficulty="introductory">
+        <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
+        <div class="row-body">
+          <div class="row-topline"><span class="difficulty">Introductory</span><span aria-hidden="true">·</span><span>≈ 3 min</span></div>
+          <h2>Read from an array</h2>
+          <p>Use [] once: read one value from a fixed C++ array.</p>
+          <div class="chips"><span class="chip">C++ array</span><span class="chip">index []</span><span class="chip">return</span></div>
+        </div>
+        <div class="row-actions">
+          <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-array-index.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-array-index&quot;)">Open in Jupyter</a>
+          <a class="button secondary problem-link" href="problems/cpp-array-index.html">View problem</a>
+          <span class="completed-label" hidden>Completed</span>
+        </div>
+      </article>
+      <article class="kata-row" data-eid="cpp-array-print" data-difficulty="introductory">
+        <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
+        <div class="row-body">
+          <div class="row-topline"><span class="difficulty">Introductory</span><span aria-hidden="true">·</span><span>≈ 4 min</span></div>
+          <h2>Print an array</h2>
+          <p>Print the values already stored in a tiny C++ array.</p>
+          <div class="chips"><span class="chip">C++ array</span><span class="chip">std::cout</span><span class="chip">iteration</span></div>
+        </div>
+        <div class="row-actions">
+          <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-array-print.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-array-print&quot;)">Open in Jupyter</a>
+          <a class="button secondary problem-link" href="problems/cpp-array-print.html">View problem</a>
+          <span class="completed-label" hidden>Completed</span>
+        </div>
+      </article>
+      <article class="kata-row" data-eid="cpp-sum-positive" data-difficulty="easy">
         <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
         <div class="row-body">
           <div class="row-topline"><span class="difficulty">Easy</span><span aria-hidden="true">·</span><span>≈ 5 min</span></div>
@@ -47,7 +100,7 @@ rk.start(&quot;cpp-sum-positive&quot;)">Open in Jupyter</a>
           <span class="completed-label" hidden>Completed</span>
         </div>
       </article>
-      <article class="kata-row" data-eid="cpp-count-above">
+      <article class="kata-row" data-eid="cpp-count-above" data-difficulty="easy">
         <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
         <div class="row-body">
           <div class="row-topline"><span class="difficulty">Easy</span><span aria-hidden="true">·</span><span>≈ 7 min</span></div>
@@ -62,7 +115,7 @@ rk.start(&quot;cpp-count-above&quot;)">Open in Jupyter</a>
           <span class="completed-label" hidden>Completed</span>
         </div>
       </article>
-      <article class="kata-row" data-eid="cpp-root-histogram">
+      <article class="kata-row" data-eid="cpp-root-histogram" data-difficulty="easy">
         <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
         <div class="row-body">
           <div class="row-topline"><span class="difficulty">Easy</span><span aria-hidden="true">·</span><span>≈ 10 min</span></div>
@@ -77,11 +130,116 @@ rk.start(&quot;cpp-root-histogram&quot;)">Open in Jupyter</a>
           <span class="completed-label" hidden>Completed</span>
         </div>
       </article>
+      <article class="kata-row" data-eid="cpp-root-histogram-inspect" data-difficulty="easy">
+        <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
+        <div class="row-body">
+          <div class="row-topline"><span class="difficulty">Easy</span><span aria-hidden="true">·</span><span>≈ 10 min</span></div>
+          <h2>Inspect a ROOT histogram</h2>
+          <p>Read what a TH1D actually contains: total entries, a chosen bin, and summary statistics.</p>
+          <div class="chips"><span class="chip">TH1D</span><span class="chip">GetEntries</span><span class="chip">GetBinContent</span><span class="chip">GetMean</span><span class="chip">GetStdDev</span></div>
+        </div>
+        <div class="row-actions">
+          <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-histogram-inspect.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-histogram-inspect&quot;)">Open in Jupyter</a>
+          <a class="button secondary problem-link" href="problems/cpp-root-histogram-inspect.html">View problem</a>
+          <span class="completed-label" hidden>Completed</span>
+        </div>
+      </article>
+      <article class="kata-row" data-eid="cpp-root-histogram-range" data-difficulty="intermediate">
+        <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
+        <div class="row-body">
+          <div class="row-topline"><span class="difficulty">Intermediate</span><span aria-hidden="true">·</span><span>≈ 12 min</span></div>
+          <h2>Keep calibration values visible</h2>
+          <p>Diagnose a histogram range that silently sends a boundary measurement to overflow.</p>
+          <div class="chips"><span class="chip">TH1D</span><span class="chip">binning</span><span class="chip">underflow</span><span class="chip">overflow</span><span class="chip">GetBinContent</span></div>
+        </div>
+        <div class="row-actions">
+          <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-histogram-range.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-histogram-range&quot;)">Open in Jupyter</a>
+          <a class="button secondary problem-link" href="problems/cpp-root-histogram-range.html">View problem</a>
+          <span class="completed-label" hidden>Completed</span>
+        </div>
+      </article>
+      <article class="kata-row" data-eid="cpp-root-tgraph-points" data-difficulty="intermediate">
+        <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
+        <div class="row-body">
+          <div class="row-topline"><span class="difficulty">Intermediate</span><span aria-hidden="true">·</span><span>≈ 10 min</span></div>
+          <h2>Preserve paired measurements with TGraph</h2>
+          <p>Represent measured x-y pairs without turning their x coordinates into implicit bin numbers.</p>
+          <div class="chips"><span class="chip">TGraph</span><span class="chip">paired data</span><span class="chip">GetPoint</span><span class="chip">coordinates</span></div>
+        </div>
+        <div class="row-actions">
+          <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-tgraph-points.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-tgraph-points&quot;)">Open in Jupyter</a>
+          <a class="button secondary problem-link" href="problems/cpp-root-tgraph-points.html">View problem</a>
+          <span class="completed-label" hidden>Completed</span>
+        </div>
+      </article>
+      <article class="kata-row" data-eid="cpp-root-tf1-evaluate" data-difficulty="intermediate">
+        <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
+        <div class="row-body">
+          <div class="row-topline"><span class="difficulty">Intermediate</span><span aria-hidden="true">·</span><span>≈ 10 min</span></div>
+          <h2>Turn a formula into a ROOT model</h2>
+          <p>Build a parameterized TF1 and observe how changing one parameter changes the model.</p>
+          <div class="chips"><span class="chip">TF1</span><span class="chip">parameters</span><span class="chip">Eval</span><span class="chip">SetParameter</span><span class="chip">model</span></div>
+        </div>
+        <div class="row-actions">
+          <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-tf1-evaluate.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-tf1-evaluate&quot;)">Open in Jupyter</a>
+          <a class="button secondary problem-link" href="problems/cpp-root-tf1-evaluate.html">View problem</a>
+          <span class="completed-label" hidden>Completed</span>
+        </div>
+      </article>
+      <article class="kata-row" data-eid="cpp-root-histogram-selected-sample" data-difficulty="hard">
+        <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
+        <div class="row-body">
+          <div class="row-topline"><span class="difficulty">Hard</span><span aria-hidden="true">·</span><span>≈ 15 min</span></div>
+          <h2>Turn a selection into a distribution</h2>
+          <p>Combine a strict numerical cut with histogram filling, then distinguish selected entries from visible entries.</p>
+          <div class="chips"><span class="chip">selection</span><span class="chip">TH1D</span><span class="chip">strict cut</span><span class="chip">overflow</span><span class="chip">integration</span></div>
+        </div>
+        <div class="row-actions">
+          <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-histogram-selected-sample.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-histogram-selected-sample&quot;)">Open in Jupyter</a>
+          <a class="button secondary problem-link" href="problems/cpp-root-histogram-selected-sample.html">View problem</a>
+          <span class="completed-label" hidden>Completed</span>
+        </div>
+      </article>
+      <article class="kata-row" data-eid="cpp-root-tf1-range-parameters" data-difficulty="hard">
+        <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
+        <div class="row-body">
+          <div class="row-topline"><span class="difficulty">Hard</span><span aria-hidden="true">·</span><span>≈ 15 min</span></div>
+          <h2>Diagnose a plausible but wrong TF1</h2>
+          <p>Repair a decay model whose formula is valid but whose parameter mapping and domain make its predictions misleading.</p>
+          <div class="chips"><span class="chip">TF1</span><span class="chip">model range</span><span class="chip">parameters</span><span class="chip">diagnosis</span><span class="chip">exponential</span></div>
+        </div>
+        <div class="row-actions">
+          <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-tf1-range-parameters.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-tf1-range-parameters&quot;)">Open in Jupyter</a>
+          <a class="button secondary problem-link" href="problems/cpp-root-tf1-range-parameters.html">View problem</a>
+          <span class="completed-label" hidden>Completed</span>
+        </div>
+      </article>
+      <article class="kata-row" data-eid="cpp-root-fit-gaussian" data-difficulty="hard">
+        <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
+        <div class="row-body">
+          <div class="row-topline"><span class="difficulty">Hard</span><span aria-hidden="true">·</span><span>≈ 20 min</span></div>
+          <h2>Recover a peak with a Gaussian fit</h2>
+          <p>Fit a deterministic peak and report the fit status, fitted location, and fitted width instead of judging the curve by eye.</p>
+          <div class="chips"><span class="chip">TH1D</span><span class="chip">TF1</span><span class="chip">Fit</span><span class="chip">Gaussian</span><span class="chip">fit status</span><span class="chip">parameters</span></div>
+        </div>
+        <div class="row-actions">
+          <a class="button primary jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-fit-gaussian.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-fit-gaussian&quot;)">Open in Jupyter</a>
+          <a class="button secondary problem-link" href="problems/cpp-root-fit-gaussian.html">View problem</a>
+          <span class="completed-label" hidden>Completed</span>
+        </div>
+      </article>
     </section>
 
     <aside class="local-note"><strong>Open in Jupyter</strong><span>The button opens the kata notebook at <code>127.0.0.1:8888</code> (needs <code>root-kata lab</code> running) and tries to copy the command.</span></aside>
   </main>
   <footer class="site-footer">Unofficial educational prototype · no accounts · runs on your machine</footer>
-  <script src="en/site.js" defer></script>
+  <script src="../site.js" defer></script>
 </body>
 </html>

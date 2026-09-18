@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Fit a deterministic peak and report the fit status, fitted location, and fitted width instead of judging the curve by eye.">
+  <title>Recover a peak with a Gaussian fit · ROOT Kata</title>
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../index.html">ROOT Kata</a>
+    <span>short C++/ROOT practice in Jupyter</span>
+    <nav class="lang-switch" aria-label="Language"><a href="../../problems/cpp-root-fit-gaussian.html" lang="es" hreflang="es">ES</a></nav>
+  </header>
+  
+  <main class="problem-layout">
+    <a class="back-link" href="../index.html">← All katas</a>
+    <article class="problem">
+      <header class="problem-header">
+        <div class="problem-meta">
+          <span class="difficulty">Hard</span>
+          <span>≈ 20 min</span>
+          <span>ROOT + C++</span>
+        </div>
+        <h1>Recover a peak with a Gaussian fit</h1>
+        <p class="lead">Fit a deterministic peak and report the fit status, fitted location, and fitted width instead of judging the curve by eye.</p>
+        <div class="chips"><span class="chip">TH1D</span><span class="chip">TF1</span><span class="chip">Fit</span><span class="chip">Gaussian</span><span class="chip">fit status</span><span class="chip">parameters</span></div>
+      </header>
+
+      <section>
+        <h2>Problem</h2>
+        <p>Implement PeakFit fit_peak(TH1D&amp; hist). Fit the supplied peaked histogram with a Gaussian TF1 over x in [2,8], then return the fit status, fitted mean, and positive sigma.</p>
+        <div class="contract"><span>Implement</span><code>fit_peak(…)</code></div>
+      </section>
+
+      <section>
+        <h2>Example</h2>
+        
+        <div class="example-box">
+          <div><span>Input</span><code>deterministic peak centered near 5 with width near 0.8</code></div>
+          <div><span>Output</span><code>status=0, mean≈5, sigma≈0.8</code></div>
+          <p>The numerical fit result is the evidence; a visually plausible curve is not enough.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Requirements</h2>
+        <ul><li>Use a Gaussian TF1 over the fit range [2,8].</li><li>Fit the supplied histogram rather than replacing its contents.</li><li>Return the fit status so failure is observable.</li><li>Return the fitted Gaussian mean and a positive fitted sigma.</li></ul>
+      </section>
+
+      <section>
+        <h2>What this practices</h2>
+        <p>Use a fitted model as a numerical result: check status and interpret location and width from fitted parameters.</p>
+      </section>
+
+      <section>
+        <h2>References</h2>
+        <ul class="resource-list"><li><a href="https://root.cern.ch/doc/master/classTH1.html" target="_blank" rel="noopener">TH1 — ROOT reference</a></li><li><a href="https://root.cern/manual/fitting/" target="_blank" rel="noopener">ROOT fitting manual</a></li></ul>
+      </section>
+
+      <section class="start-panel">
+        <div>
+          <h2>Start in Jupyter</h2>
+          <p>Open your local Jupyter and paste the command below. The button tries to copy it for you.</p>
+          <pre><code>import root_kata as rk
+rk.start(&quot;cpp-root-fit-gaussian&quot;)</code></pre>
+        </div>
+        <a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-fit-gaussian.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-fit-gaussian&quot;)">Open in Jupyter</a>
+      </section>
+    </article>
+  </main>
+  <footer class="site-footer">Unofficial educational prototype · no accounts · runs on your machine</footer>
+  <script src="../../site.js" defer></script>
+</body>
+</html>

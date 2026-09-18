@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Run the smallest possible C++ kata and verify that your local setup works.">
+  <title>Hello, world · ROOT Kata</title>
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../index.html">ROOT Kata</a>
+    <span>short C++/ROOT practice in Jupyter</span>
+    <nav class="lang-switch" aria-label="Language"><a href="../../problems/cpp-hello-world.html" lang="es" hreflang="es">ES</a></nav>
+  </header>
+  
+  <main class="problem-layout">
+    <a class="back-link" href="../index.html">← All katas</a>
+    <article class="problem">
+      <header class="problem-header">
+        <div class="problem-meta">
+          <span class="difficulty">Introductory</span>
+          <span>≈ 2 min</span>
+          <span>C++17</span>
+        </div>
+        <h1>Hello, world</h1>
+        <p class="lead">Run the smallest possible C++ kata and verify that your local setup works.</p>
+        <div class="chips"><span class="chip">std::cout</span><span class="chip">function</span><span class="chip">string literal</span></div>
+      </header>
+
+      <section>
+        <h2>Problem</h2>
+        <p>Implement void say_hello(). Print exactly Hello, world! followed by a newline using std::cout.</p>
+        <div class="contract"><span>Implement</span><code>say_hello(…)</code></div>
+      </section>
+
+      <section>
+        <h2>Example</h2>
+        
+        <div class="example-box">
+          <div><span>Input</span><code>(no input)</code></div>
+          <div><span>Output</span><code>Hello, world!</code></div>
+          <p>The function only writes one line to standard output.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Requirements</h2>
+        <ul><li>Use std::cout.</li><li>Print exactly Hello, world!</li><li>End the line with a newline or std::endl.</li></ul>
+      </section>
+
+      <section>
+        <h2>What this practices</h2>
+        <p>Write one line of C++ output and confirm the full ROOT Kata compile/run/test loop works.</p>
+      </section>
+
+      <section>
+        <h2>References</h2>
+        <ul class="resource-list"><li><a href="https://en.cppreference.com/w/cpp/io/cout" target="_blank" rel="noopener">std::cout — cppreference</a></li></ul>
+      </section>
+
+      <section class="start-panel">
+        <div>
+          <h2>Start in Jupyter</h2>
+          <p>Open your local Jupyter and paste the command below. The button tries to copy it for you.</p>
+          <pre><code>import root_kata as rk
+rk.start(&quot;cpp-hello-world&quot;)</code></pre>
+        </div>
+        <a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-hello-world.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-hello-world&quot;)">Open in Jupyter</a>
+      </section>
+    </article>
+  </main>
+  <footer class="site-footer">Unofficial educational prototype · no accounts · runs on your machine</footer>
+  <script src="../../site.js" defer></script>
+</body>
+</html>

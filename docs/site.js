@@ -228,6 +228,9 @@
       }
     });
 
+    const grid = document.querySelector('.workspace-grid');
+    const browserWasm = grid?.dataset?.browserWasm || (exerciseId === 'cpp-root-histogram-inspect' ? 'supported' : 'native');
+
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (button.disabled) return;
@@ -235,13 +238,26 @@
       form.setAttribute('aria-busy', 'true');
       status.textContent = lang === 'es' ? 'Ejecutando…' : 'Running…';
       try {
-        const response = await fetch('/api/run', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({exercise_id: exerciseId, code: editor.value, lang}),
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message || result.error || 'Request failed');
+        let result;
+        if (browserWasm === 'supported') {
+          const { ExerciseRunner } = await import('/engine/exercise_runner.js');
+          const onStatusChange = (st, detail) => {
+            if (st === 'booting') {
+              status.textContent = lang === 'es' ? 'Cargando compilador y ROOT…' : 'Loading compiler and ROOT…';
+            } else if (st === 'running') {
+              status.textContent = lang === 'es' ? 'Ejecutando en WebAssembly…' : 'Running in WebAssembly…';
+            }
+          };
+          result = await ExerciseRunner.runExercise(exerciseId, editor.value, { lang, onStatusChange });
+        } else {
+          const response = await fetch('/api/run', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({exercise_id: exerciseId, code: editor.value, lang}),
+          });
+          result = await response.json();
+          if (!response.ok) throw new Error(result.message || result.error || 'Request failed');
+        }
         render(result);
         status.textContent = result.summary || (lang === 'es' ? 'Ejecución terminada' : 'Run complete');
       } catch (error) {

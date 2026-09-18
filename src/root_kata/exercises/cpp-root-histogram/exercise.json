@@ -27,6 +27,7 @@
   "harness": "harness.cpp",
   "validator": "validator.py",
   "requires": ["ROOT"],
+  "browser_wasm": "blocked",
   "preview": {"file": "preview.png", "alt": "Histogram produced by your code"},
   "topics": ["TH1D", "Fill", "binning", "underflow/overflow"],
   "learning_goal": "Create a ROOT histogram with an explicit binning and fill it once for every input value.",

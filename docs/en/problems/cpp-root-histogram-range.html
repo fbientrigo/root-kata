@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Diagnose a histogram range that silently sends a boundary measurement to overflow.">
+  <title>Keep calibration values visible · ROOT Kata</title>
+  <link rel="stylesheet" href="../../styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="../index.html">ROOT Kata</a>
+    <span>short C++/ROOT practice in Jupyter</span>
+    <nav class="lang-switch" aria-label="Language"><a href="../../problems/cpp-root-histogram-range.html" lang="es" hreflang="es">ES</a></nav>
+  </header>
+  
+  <main class="problem-layout">
+    <a class="back-link" href="../index.html">← All katas</a>
+    <article class="problem">
+      <header class="problem-header">
+        <div class="problem-meta">
+          <span class="difficulty">Intermediate</span>
+          <span>≈ 12 min</span>
+          <span>ROOT + C++</span>
+        </div>
+        <h1>Keep calibration values visible</h1>
+        <p class="lead">Diagnose a histogram range that silently sends a boundary measurement to overflow.</p>
+        <div class="chips"><span class="chip">TH1D</span><span class="chip">binning</span><span class="chip">underflow</span><span class="chip">overflow</span><span class="chip">GetBinContent</span></div>
+      </header>
+
+      <section>
+        <h2>Problem</h2>
+        <p>Repair TH1D* build_calibration_histogram(const std::vector&lt;double&gt;&amp; values). Calibration measurements span 0 through 100 inclusive and must stay in visible 10-unit bins rather than disappearing into underflow or overflow.</p>
+        <div class="contract"><span>Implement</span><code>build_calibration_histogram(…)</code></div>
+      </section>
+
+      <section>
+        <h2>Example</h2>
+        
+        <div class="example-box">
+          <div><span>Input</span><code>{0, 10, ..., 100}</code></div>
+          <div><span>Output</span><code>11 visible entries, overflow = 0</code></div>
+          <p>In ROOT the upper histogram edge belongs to overflow, so a [0,100) visible range does not contain x = 100.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Requirements</h2>
+        <ul><li>Name the histogram h_calibration.</li><li>Keep 10-unit-wide visible bins.</li><li>Make the intended 0 through 100 calibration range visible, including the value 100.</li><li>Fill every input value exactly once.</li></ul>
+      </section>
+
+      <section>
+        <h2>What this practices</h2>
+        <p>Use underflow and overflow as evidence that a histogram range does not represent the intended sample.</p>
+      </section>
+
+      <section>
+        <h2>References</h2>
+        <ul class="resource-list"><li><a href="https://root.cern.ch/doc/master/classTH1.html" target="_blank" rel="noopener">TH1 — ROOT reference</a></li></ul>
+      </section>
+
+      <section class="start-panel">
+        <div>
+          <h2>Start in Jupyter</h2>
+          <p>Open your local Jupyter and paste the command below. The button tries to copy it for you.</p>
+          <pre><code>import root_kata as rk
+rk.start(&quot;cpp-root-histogram-range&quot;)</code></pre>
+        </div>
+        <a class="button primary large jupyter-link" href="http://127.0.0.1:8888/lab/tree/notebooks/cpp-root-histogram-range.ipynb" target="_blank" rel="noopener" data-command="import root_kata as rk
+rk.start(&quot;cpp-root-histogram-range&quot;)">Open in Jupyter</a>
+      </section>
+    </article>
+  </main>
+  <footer class="site-footer">Unofficial educational prototype · no accounts · runs on your machine</footer>
+  <script src="../../site.js" defer></script>
+</body>
+</html>
