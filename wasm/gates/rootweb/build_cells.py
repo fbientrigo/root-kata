@@ -48,6 +48,44 @@ def main():
         json.dump(open(welcome_path, encoding="utf-8").read() if welcome_path else good, f)
         f.write(";\n")
 
+        import pathlib
+        repo = pathlib.Path(__file__).resolve().parents[3]
+        ex_dir = repo / "src/root_kata/exercises"
+        sol_dir = repo / "wasm/gates/rootkatas/solutions"
+        rk_h_path = repo / "src/root_kata/include/rk.h"
+        katas = []
+        if ex_dir.is_dir() and sol_dir.is_dir() and rk_h_path.is_file():
+            rk_h = rk_h_path.read_text(encoding="utf-8")
+            for p in sorted(sol_dir.glob("*.cpp")):
+                eid = p.stem
+                ed = ex_dir / eid
+                meta_file = ed / "exercise.json"
+                if not meta_file.is_file():
+                    continue
+                meta = json.loads(meta_file.read_text(encoding="utf-8"))
+                sol = p.read_text(encoding="utf-8")
+                starter_file = ed / meta.get("starter", "solution.cpp")
+                starter = starter_file.read_text(encoding="utf-8") if starter_file.is_file() else sol
+                harness_file = ed / meta.get("harness", "harness.cpp")
+                if not harness_file.is_file():
+                    continue
+                harness = harness_file.read_text(encoding="utf-8")
+                sol_cell = harness.replace('#include "rk.h"', rk_h, 1).replace('#include "solution.cpp"', sol, 1)
+                starter_cell = harness.replace('#include "rk.h"', rk_h, 1).replace('#include "solution.cpp"', starter, 1)
+                is_blocked = eid in ("cpp-root-histogram", "cpp-root-fit-gaussian")
+                katas.append({
+                    "id": eid,
+                    "title": meta.get("title", eid),
+                    "summary": meta.get("summary", ""),
+                    "difficulty": meta.get("difficulty", "Medium"),
+                    "blocked": is_blocked,
+                    "solution_cell": sol_cell,
+                    "starter_cell": starter_cell,
+                })
+        f.write("var ROOTWEB_KATAS = ")
+        json.dump(katas, f)
+        f.write(";\n")
+
     print(f"build_cells: wrote {out_path} ({len(good)} good, {len(broken)} broken bytes)", file=sys.stderr)
     return 0
 

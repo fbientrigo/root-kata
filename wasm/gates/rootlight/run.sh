@@ -8,7 +8,7 @@ OUT=${OUT:-$HOME/.cache/rootwasm-p0/rootlight}
 EMSDK=${EMSDK:-$HOME/.root-kata-wasm/emsdk}
 source "$EMSDK/emsdk_env.sh" >/dev/null 2>&1
 emcc --version | head -1 | grep -q ' 4\.0\.9 ' || { echo "rootlight FAIL: need emcc 4.0.9"; exit 1; }
-LIBS=(Core Thread RIO MathCore Matrix Hist)
+LIBS=(Core Thread RIO MathCore Matrix Hist Minuit2)
 step=${1:-all}
 R=$OUT/rootsys   # staged ROOTSYS tree (lib/ include/ etc/), mounted as $ROOTSYS at runtime
 ROOTSYS_LOCK=${ROOTSYS_LOCK:-$OUT/.rootsys.lock}
@@ -83,7 +83,7 @@ Module.preRun = (Module.preRun || []).concat([() => {
 Module.locateFile = (p, prefix) => p.endsWith('.so') ? process.env.ROOTSYS + '/lib/' + p : prefix + p;
 JS
   em++ -std=c++17 -fwasm-exceptions -O1 -I "$R/include" -sMAIN_MODULE=1 -sNODERAWFS=1 -sALLOW_MEMORY_GROWTH=1 --pre-js "$OUT/env-pre.js" \
-    "$HERE/smoke.cxx" -L"$R/lib" "$R/lib/libroota.so" "$R/lib/libHist.so" "$R/lib/libMatrix.so" "$R/lib/libMathCore.so" "$R/lib/libRIO.so" "$R/lib/libThread.so" "$R/lib/libCore.so" -o "$OUT/smoke.js" > "$OUT/smoke-link.log" 2>&1 \
+    "$HERE/smoke.cxx" -L"$R/lib" "$R/lib/libroota.so" "$R/lib/libMinuit2.so" "$R/lib/libHist.so" "$R/lib/libMatrix.so" "$R/lib/libMathCore.so" "$R/lib/libRIO.so" "$R/lib/libThread.so" "$R/lib/libCore.so" -o "$OUT/smoke.js" > "$OUT/smoke-link.log" 2>&1 \
     || { grep -E "error" "$OUT/smoke-link.log" | head; echo "rootlight FAIL: smoke link"; exit 1; }
   (cd "$R/lib" && ROOTSYS=$R timeout 300 node "$OUT/smoke.js") > "$OUT/smoke.out" 2>&1; rc=$?; echo "node exit=$rc" >> "$OUT/smoke.out"
   cat "$OUT/smoke.out"

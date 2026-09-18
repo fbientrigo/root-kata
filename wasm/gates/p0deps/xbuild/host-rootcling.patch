@@ -206,3 +206,17 @@
     // If URL is a file on an EOS FUSE mount, attempt redirection to XRootD protocol.
     if (gEnv->GetValue("TFile.CrossProtocolRedirects", 1) == 1) {
        TUrl fileurl(expandedUrl, /* default is file */ kTRUE);
+--- a/core/meta/inc/TClass.h
++++ b/core/meta/inc/TClass.h
+@@ -84,6 +84,10 @@
+ class TClass : public TDictionary {
+
+ friend class TCling;
++// M4b Family A: TCppInterOpInterpreter::SetClassInfo (wasm ROOT's TInterpreter,
++// wasm/rootlight/interpreter/TCppInterOpInterpreter.cxx) needs the same write
++// access to fClassInfo that TCling has, to give ROOT real ClassInfo/DeclId
++// identity instead of the "no info available" fallback.
++friend class TCppInterOpInterpreter;
+ friend void ROOT::ResetClassVersion(TClass*, const char*, Short_t);
+ friend class ROOT::TGenericClassInfo;
+ friend class TProtoClass;

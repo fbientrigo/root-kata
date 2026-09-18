@@ -18,7 +18,7 @@ if (!webDir || !stageDir || !cellPath) {
   process.exit(2);
 }
 
-const ROOT_LIBS = ['Core', 'Thread', 'RIO', 'MathCore', 'Matrix', 'Hist'];
+const ROOT_LIBS = ['Core', 'Thread', 'RIO', 'MathCore', 'Matrix', 'Hist', 'Minuit2'];
 const MOUNT = '/rootsys';
 
 const createXeusModule = require(path.resolve(webDir, 'xcpp.js'));
@@ -47,30 +47,43 @@ function mountDir(FS, src, dst) {
   }
 }
 
-const Module = await createXeusModule({
+// Fix 2 (M4b): the FS mount and ENV assignment must happen in a preRun
+// callback, not after createXeusModule() resolves -- TROOT's global ctor
+// (core/base/src/TROOT.cxx:790-810) reads getenv("ROOTSYS") as soon as
+// libCore.so's ctors run, which Emscripten's run()/preRun()/initRuntime()
+// sequencing guarantees happens strictly after preRun() completes, but which
+// already happens *during* createXeusModule()'s own dynamicLibraries preload
+// -- i.e. before this script gets control back. Setting Module.ENV
+// afterward is too late: GetRootSys() would already have cached the wrong,
+// getenv-empty fallback ("/usr/local/root") for the life of the kernel. See
+// page/kernel-worker.js for the same fix and the fuller citation.
+const moduleOpts = {
   print: (t) => console.log('[out]', t),
   printErr: (t) => console.log('[err]', t),
   locateFile: (f) => base + f,
   noInitialRun: true,
   dynamicLibraries: (useRoota ? ['libroota.so'] : []).concat(ROOT_LIBS.map((n) => 'lib' + n + '.so')),
-});
+  preRun: [() => {
+    const FS = moduleOpts.FS;
+    for (const sub of ['include', 'etc']) {
+      FS.mkdirTree(MOUNT + '/' + sub);
+      mountDir(FS, path.join(stageDir, sub), MOUNT + '/' + sub);
+    }
+    FS.mkdirTree(MOUNT + '/lib');
+    for (const f of fs.readdirSync(path.join(stageDir, 'lib'))) {
+      if (f.endsWith('.rootmap') || f.endsWith('_rdict.pcm') || ROOT_LIBS.some((n) => f === 'lib' + n + '.so')) {
+        FS.writeFile(MOUNT + '/lib/' + f, new Uint8Array(fs.readFileSync(path.join(stageDir, 'lib', f))));
+      }
+    }
+    moduleOpts.ENV.ROOTSYS = MOUNT;
+    moduleOpts.ENV.ROOT_LDSYSPATH = MOUNT + '/lib';
+    moduleOpts.ENV.LD_LIBRARY_PATH = MOUNT + '/lib';
+    console.log('[probe] mounted', MOUNT);
+  }],
+};
+const Module = await createXeusModule(moduleOpts);
 console.log('[probe] module ready, roota =', useRoota);
 
-const FS = Module.FS;
-for (const sub of ['include', 'etc']) {
-  FS.mkdirTree(MOUNT + '/' + sub);
-  mountDir(FS, path.join(stageDir, sub), MOUNT + '/' + sub);
-}
-FS.mkdirTree(MOUNT + '/lib');
-for (const f of fs.readdirSync(path.join(stageDir, 'lib'))) {
-  if (f.endsWith('.rootmap') || f.endsWith('_rdict.pcm') || ROOT_LIBS.some((n) => f === 'lib' + n + '.so')) {
-    FS.writeFile(MOUNT + '/lib/' + f, new Uint8Array(fs.readFileSync(path.join(stageDir, 'lib', f))));
-  }
-}
-Module.ENV.ROOTSYS = MOUNT;
-Module.ENV.ROOT_LDSYSPATH = MOUNT + '/lib';
-Module.ENV.LD_LIBRARY_PATH = MOUNT + '/lib';
-console.log('[probe] mounted', MOUNT);
 console.log('[probe] loadedLibsByName:', Object.keys(Module.LDSO.loadedLibsByName).join(' '));
 
 const xkernel = new Module.xkernel(['xcpp', '-std=c++17', '-fwasm-exceptions',

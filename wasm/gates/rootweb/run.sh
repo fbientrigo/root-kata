@@ -27,7 +27,7 @@ BUILD="${BUILD:-$REPO/wasm/build/rootweb}"
 WEB="$BUILD/web"
 R="${ROOTSYS_STAGE:-$HOME/.cache/rootwasm-p0/rootlight/rootsys}"
 ROOTSYS_LOCK="${ROOTSYS_LOCK:-$(dirname "$R")/.rootsys.lock}"
-LIBS=(Core Thread RIO MathCore Matrix Hist)
+LIBS=(Core Thread RIO MathCore Matrix Hist Minuit2)
 DONE_TITLE="ROOTWEB-DONE"
 TIMEOUT_MS="${TIMEOUT_MS:-300000}"
 
@@ -125,8 +125,9 @@ elif [[ $step == payload || $step == serve || $step == all || $step == cell ]]; 
 fi
 
 serve_web() {  # sets $port, $server_pid
-  port="$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()')"
-  (cd "$WEB" && exec python3 -m http.server "$port" --bind 127.0.0.1) > "$BUILD/http_server.log" 2>&1 &
+  bind_host="${BIND_HOST:-0.0.0.0}"
+  port="${PORT:-$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()')}"
+  (cd "$WEB" && exec python3 -m http.server "$port" --bind "$bind_host") > "$BUILD/http_server.log" 2>&1 &
   server_pid=$!
   for _ in $(seq 1 50); do
     curl -s -o /dev/null "http://127.0.0.1:$port/index.html" && return 0
@@ -138,9 +139,13 @@ serve_web() {  # sets $port, $server_pid
 if [[ $step == serve ]]; then
   serve_web || fail "local HTTP server did not come up"
   trap 'kill $server_pid 2>/dev/null' EXIT
+  tailscale_ip="$(tailscale ip -4 2>/dev/null || true)"
   echo
   echo "    ROOT (wasm) is being served. Open:"
   echo "        http://127.0.0.1:$port/"
+  if [[ -n $tailscale_ip ]]; then
+    echo "        http://$tailscale_ip:$port/  (Tailscale)"
+  fi
   echo "    Type C++ with a main(), press Run. Ctrl-C to stop."
   echo
   wait $server_pid

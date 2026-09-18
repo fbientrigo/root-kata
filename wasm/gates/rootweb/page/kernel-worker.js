@@ -15,7 +15,7 @@
 //                                                posted by xeus itself
 'use strict';
 
-const ROOT_LIBS = ['Core', 'Thread', 'RIO', 'MathCore', 'Matrix', 'Hist'];
+const ROOT_LIBS = ['Core', 'Thread', 'RIO', 'MathCore', 'Matrix', 'Hist', 'Minuit2'];
 
 // ROOT's own roota.cxx, compiled unmodified. Its single extern "C" symbol tells
 // TROOT::InitInterpreter that ROOT is already linked into this process, so ROOT
@@ -59,7 +59,23 @@ async function boot() {
   log('[rootweb] fetched ' + Object.keys(libBytes).length + ' side modules; interpreter: ' +
       (haveInterpreter ? 'present' : 'absent'));
 
-  const Module = await createXeusModule({
+  // Fix 2 (M4b): TROOT's global ctor (core/base/src/TROOT.cxx:790-810) calls
+  // GetRootSys()/GetEtcDir() unconditionally, and that ctor runs as part of
+  // dlopen'ing libCore.so -- which "dynamicLibraries" below preloads and
+  // relocates during Emscripten's own runtime init (initRuntime(), called
+  // from run() strictly after preRun() finishes; verified by reading the
+  // generated glue's own run()/preRun() sequencing in xcpp.js). Setting
+  // Module.ENV *after* createXeusModule() resolves is too late: by then
+  // TROOT's ctor already ran and cached GetRootSys()'s empty-getenv result in
+  // its own function-local static, and the plugin manager's FindHandler
+  // could never find $ROOTSYS/etc/plugins again for the life of the kernel
+  // (measured: TROOT::GetEtcDir() returned "/usr/local/root/etc/", the
+  // hardcoded FoundationUtils.cxx fallback, not "/rootsys/etc/"). Emscripten's
+  // documented fix for exactly this class of race is a preRun callback,
+  // which the run()/preRun()/initRuntime() ordering guarantees completes
+  // before any ctor -- so both the FS materialisation and the ENV
+  // assignment move into one, running before dynamicLibraries' ctors do.
+  const moduleOpts = {
     print: (t) => log('[stdout-raw] ' + t),
     printErr: (t) => log('[stderr-raw] ' + t),
     locateFile: (f) => f,
@@ -69,31 +85,33 @@ async function boot() {
     dynamicLibraries: (useRoota ? [STATIC_ROOT_MARKER] : [])
       .concat(ROOT_LIBS.map((n) => 'lib' + n + '.so'))
       .concat(haveInterpreter ? [INTERPRETER] : []),
-  });
+    preRun: [() => {
+      // Materialise $ROOTSYS. ROOT finds its resources by path at runtime, so
+      // the tree has to have the same shape in MEMFS that it has on disk.
+      const FS = moduleOpts.FS;
+      const mkdirFor = (p) => FS.mkdirTree(p.substring(0, p.lastIndexOf('/')));
+      for (const [p, text] of Object.entries(ROOTSYS_TEXT)) { mkdirFor(p); FS.writeFile(p, text); }
+      for (const [p, b64] of Object.entries(ROOTSYS_BINARY)) {
+        mkdirFor(p);
+        FS.writeFile(p, Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)));
+      }
+      FS.mkdirTree(ROOTSYS_MOUNT + '/lib');
+      for (const [name, bytes] of Object.entries(libBytes)) {
+        FS.writeFile(ROOTSYS_MOUNT + '/lib/' + name, bytes);
+      }
+      log('[rootweb] mounted ' + ROOTSYS_MOUNT);
+
+      // Emscripten does not inherit a host environment. ROOTSYS is how ROOT
+      // finds everything above; ROOT_LDSYSPATH is ROOT's own documented
+      // override (TUnixSystem.cxx, DynamicPath) for the popen("LD_DEBUG=libs
+      // ... ls") system-library probe, which no browser can run.
+      moduleOpts.ENV.ROOTSYS = ROOTSYS_MOUNT;
+      moduleOpts.ENV.ROOT_LDSYSPATH = ROOTSYS_MOUNT + '/lib';
+      moduleOpts.ENV.LD_LIBRARY_PATH = ROOTSYS_MOUNT + '/lib';
+    }],
+  };
+  const Module = await createXeusModule(moduleOpts);
   log('[rootweb] kernel module ready');
-
-  // Materialise $ROOTSYS. ROOT finds its resources by path at runtime, so the
-  // tree has to have the same shape in MEMFS that it has on disk.
-  const FS = Module.FS;
-  const mkdirFor = (p) => FS.mkdirTree(p.substring(0, p.lastIndexOf('/')));
-  for (const [p, text] of Object.entries(ROOTSYS_TEXT)) { mkdirFor(p); FS.writeFile(p, text); }
-  for (const [p, b64] of Object.entries(ROOTSYS_BINARY)) {
-    mkdirFor(p);
-    FS.writeFile(p, Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)));
-  }
-  FS.mkdirTree(ROOTSYS_MOUNT + '/lib');
-  for (const [name, bytes] of Object.entries(libBytes)) {
-    FS.writeFile(ROOTSYS_MOUNT + '/lib/' + name, bytes);
-  }
-  log('[rootweb] mounted ' + ROOTSYS_MOUNT);
-
-  // Emscripten does not inherit a host environment. ROOTSYS is how ROOT finds
-  // everything above; ROOT_LDSYSPATH is ROOT's own documented override
-  // (TUnixSystem.cxx, DynamicPath) for the popen("LD_DEBUG=libs ... ls")
-  // system-library probe, which no browser can run.
-  Module.ENV.ROOTSYS = ROOTSYS_MOUNT;
-  Module.ENV.ROOT_LDSYSPATH = ROOTSYS_MOUNT + '/lib';
-  Module.ENV.LD_LIBRARY_PATH = ROOTSYS_MOUNT + '/lib';
 
   const argv = [
     'xcpp', '-std=c++17', '-fwasm-exceptions',
