@@ -29,11 +29,9 @@ its pure virtuals — the gap the M3/M4 review recorded as the most important
 unproven claim. Re-running every gate against the stricter adapter changed
 nothing, so no proven path was relying on a silent default.
 
-Not established: `TH1::Fit` and `cpp-root-histogram` (both blocked on `TClass`
-reflection — measured, not assumed: each stops at `TInterpreter::SetClassInfo`,
-so M4b unblocks both), `TFile`, `TTree`, graphics, in-browser grading (the
-validators still run in CPython on the developer's machine), and the product
-runner at `docs/site.js:238`, which is untouched.
+Not established: `TH1::Fit` (blocked on `TClass` reflection — M4b),
+`TFile`, `TTree`, graphics (decided: out of scope for WebAssembly; see `DECISIONS.md`),
+in-browser grading for remaining milestones, and native fit plugins.
 
 ## Confirmed facts
 

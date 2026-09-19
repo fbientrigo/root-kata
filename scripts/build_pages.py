@@ -179,11 +179,12 @@ def shell(
 def kata_row(meta_view: dict, lang: str) -> str:
     eid = meta_view["id"]
     ui = UI[lang]
+    wasm_badge = '<span class="badge wasm-badge">WASM</span>' if meta_view.get("browser_wasm") == "supported" else ""
     return f'''
-      <article class="kata-row" data-eid="{esc(eid)}" data-difficulty="{esc(meta_view['difficulty_key'])}">
+      <article class="kata-row" data-eid="{esc(eid)}" data-difficulty="{esc(meta_view['difficulty_key'])}" data-browser-wasm="{esc(meta_view.get('browser_wasm', 'native'))}">
         <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
         <div class="row-body">
-          <div class="row-topline"><span class="difficulty">{esc(meta_view['difficulty_label'])}</span><span aria-hidden="true">·</span><span>{esc(ui['minutes'].format(n=meta_view.get('estimated_minutes', '?')))}</span></div>
+          <div class="row-topline"><span class="difficulty">{esc(meta_view['difficulty_label'])}</span><span aria-hidden="true">·</span><span>{esc(ui['minutes'].format(n=meta_view.get('estimated_minutes', '?')))}</span>{(' · ' + wasm_badge) if wasm_badge else ''}</div>
           <h2>{esc(meta_view['title'])}</h2>
           <p>{esc(meta_view['summary'])}</p>
           <div class="chips">{chips(meta_view.get('topics', []))}</div>
@@ -280,6 +281,7 @@ def build_problem(meta: dict, directory: Path, lang: str) -> None:
     )
     runtime = "ROOT + C++" if v.get("requires") else "C++17"
     command = jupyter_command(eid)
+    wasm_badge = '<span class="badge wasm-badge">WASM</span>' if v.get("browser_wasm") == "supported" else ""
     body = f'''
   <main class="problem-layout">
     <a class="back-link" href="{home_href}">{esc(ui["all_katas"])}</a>
@@ -289,6 +291,7 @@ def build_problem(meta: dict, directory: Path, lang: str) -> None:
           <span class="difficulty">{esc(v['difficulty_label'])}</span>
           <span>{esc(ui['minutes'].format(n=v.get('estimated_minutes', '?')))}</span>
           <span>{runtime}</span>
+          {wasm_badge}
         </div>
         <h1>{esc(v['title'])}</h1>
         <p class="lead">{esc(v['summary'])}</p>

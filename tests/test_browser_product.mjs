@@ -222,7 +222,15 @@ async function run() {
     if (!starterCode.includes('// TODO')) {
       throw new Error('Starter code was not loaded into the editor!');
     }
-    console.log('      Starter code loaded cleanly.');
+    const hasWasmBadge = await evalCode('!!document.querySelector(".problem-meta .wasm-badge")');
+    if (!hasWasmBadge) {
+      throw new Error('Expected .wasm-badge in .problem-meta, but not found!');
+    }
+    const runtimeSelectValue = await evalCode('document.getElementById("runtime-target-select")?.value');
+    if (runtimeSelectValue !== 'wasm') {
+      throw new Error(`Expected runtime-target-select to default to "wasm", got: ${runtimeSelectValue}`);
+    }
+    console.log('      Starter code, WASM badge, and runtime selector verified cleanly.');
 
     // Helper to click Run and await completion
     async function submitRun() {
@@ -364,8 +372,88 @@ async function run() {
     evidence.nativeBackendPassed = true;
     console.log('      Native Backend PASS: Unmigrated katas continue using /api/run without disruption.');
 
+    // TEST STEP 9: cpp-root-histogram running in WebAssembly
+    console.log('[9/10] Verifying newly enabled cpp-root-histogram executes in WebAssembly…');
+    const histTabResp = await fetch(`${httpBase}/json/new?${encodeURIComponent(`${SERVER_URL}/kata/cpp-root-histogram?lang=es`)}`, { method: 'PUT' });
+    const histTab = await histTabResp.json();
+    const histCdp = await createCdpClient(histTab.webSocketDebuggerUrl);
+    await histCdp.send('Page.enable');
+    await histCdp.send('Runtime.enable');
+    await histCdp.send('Network.enable');
+
+    let histApiRunCalled = false;
+    histCdp.addEventListener((msg) => {
+      if (msg.method === 'Network.requestWillBeSent' && msg.params.request.url.includes('/api/run')) {
+        histApiRunCalled = true;
+      }
+    });
+
+    await waitForCondition('Hist editor loaded', async () => {
+      const res = await histCdp.send('Runtime.evaluate', { expression: 'document.getElementById("code-editor")?.value', returnByValue: true });
+      return res.result?.result?.value?.includes('build_histogram');
+    });
+
+    // Provide correct solution for cpp-root-histogram
+    const histCorrectSolution = `#include <vector>
+#include "TH1D.h"
+
+TH1D* build_histogram(const std::vector<double>& values) {
+    TH1D* hist = new TH1D("h_pt", "h_pt", 10, 0, 100);
+    for (double value : values) {
+        hist->Fill(value);
+    }
+    return hist;
+}
+`;
+    await histCdp.send('Runtime.evaluate', {
+      expression: `document.getElementById('code-editor').value = ${JSON.stringify(histCorrectSolution)};`,
+    });
+
+    await histCdp.send('Runtime.evaluate', { expression: 'document.getElementById("run-form").requestSubmit()' });
+    await sleep(100);
+    await waitForCondition('Hist run to finish', async () => {
+      const res = await histCdp.send('Runtime.evaluate', { expression: '!document.getElementById("run-button").disabled', returnByValue: true });
+      return res.result?.result?.value;
+    });
+
+    const histResult = await histCdp.send('Runtime.evaluate', {
+      expression: 'document.getElementById("run-feedback")?.className',
+      returnByValue: true,
+    });
+    const histText = await histCdp.send('Runtime.evaluate', {
+      expression: 'document.getElementById("run-feedback")?.innerText',
+      returnByValue: true,
+    });
+
+    if (histApiRunCalled) {
+      throw new Error('cpp-root-histogram should have executed client-side, but called /api/run!');
+    }
+    if (!histResult.result?.result?.value?.includes('status-passed')) {
+      throw new Error(`cpp-root-histogram WASM run failed: ${histResult.result?.result?.value}\n${histText.result?.result?.value}`);
+    }
+    console.log('      cpp-root-histogram PASS: All 3/3 tests passed in-browser WebAssembly with 0 calls to /api/run.');
+
+    // TEST STEP 10: Selector toggle to "native" sends request to /api/run
+    console.log('[10/10] Verifying runtime selector toggle to "native" forces /api/run…');
+    await histCdp.send('Runtime.evaluate', {
+      expression: `const sel = document.getElementById("runtime-target-select"); sel.value = "native"; sel.dispatchEvent(new Event("change"));`,
+    });
+    histApiRunCalled = false;
+    await histCdp.send('Runtime.evaluate', { expression: 'document.getElementById("run-form").requestSubmit()' });
+    await sleep(100);
+    await waitForCondition('Hist native run to finish', async () => {
+      const res = await histCdp.send('Runtime.evaluate', { expression: '!document.getElementById("run-button").disabled', returnByValue: true });
+      return res.result?.result?.value;
+    });
+
+    if (!histApiRunCalled) {
+      throw new Error('When runtime target is set to "native", it MUST call /api/run!');
+    }
+    console.log('      Runtime Selector PASS: Toggling selector to "native" correctly routed to /api/run.');
+
     cdp.close();
     nativeCdp.close();
+    histCdp.close();
 
     console.log('\n================ ACCEPTANCE TEST SUMMARY ================');
     console.log(`Case A (Canonical Correct Solution):  PASS (2/2)`);

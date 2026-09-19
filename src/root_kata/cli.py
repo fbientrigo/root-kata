@@ -38,7 +38,7 @@ def build_parser() -> argparse.ArgumentParser:
     ck = sub.add_parser("check", help="Compile/run/test ./kata/<id>/ solution"); ck.add_argument("exercise_id")
     sub.add_parser("progress", help="Show solved exercises and badges")
     lb = sub.add_parser("lab", help="Start JupyterLab for ROOT Kata (http://127.0.0.1:8888)"); lb.add_argument("--port", type=int, default=8888)
-    sv = sub.add_parser("serve", help="Start the local ROOT Kata web app (http://127.0.0.1:8765)"); sv.add_argument("--port", type=int, default=8765)
+    sv = sub.add_parser("serve", help="Start the local ROOT Kata web app (http://127.0.0.1:8765)"); sv.add_argument("--port", type=int, default=8765); sv.add_argument("--host", default="127.0.0.1", help="Host interface to bind (e.g. 0.0.0.0)")
     cf = sub.add_parser("config", help="Show or set the interface language (es/en)"); cf.add_argument("--lang", choices=["es", "en"]); return parser
 
 
@@ -52,7 +52,7 @@ def main() -> None:
         raise SystemExit(lab(port=args.port))
     if args.command == "serve":
         from .web_server import serve
-        raise SystemExit(serve(port=args.port))
+        raise SystemExit(serve(host=args.host, port=args.port))
     from . import notebook as nb
     if args.command == "start": nb.start(args.exercise_id)
     elif args.command == "check": raise SystemExit(0 if nb.check(args.exercise_id).get("passed") else 1)

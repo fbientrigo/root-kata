@@ -41,6 +41,9 @@ _WORKSPACE_UI = {
         "not_running": "Editor listo",
         "feedback": "Resultado",
         "switch": "EN",
+        "env_wasm": "Navegador (WASM)",
+        "env_native": "ROOT local",
+        "env_label": "Entorno",
     },
     "en": {
         "back": "← All katas",
@@ -56,6 +59,9 @@ _WORKSPACE_UI = {
         "not_running": "Editor ready",
         "feedback": "Result",
         "switch": "ES",
+        "env_wasm": "Browser (WASM)",
+        "env_native": "Local ROOT",
+        "env_label": "Runtime",
     },
 }
 
@@ -76,7 +82,8 @@ class RootKataHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
-        self.wfile.write(body)
+        if self.command != "HEAD":
+            self.wfile.write(body)
 
     def _send_json(self, status: HTTPStatus, payload: object) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -120,6 +127,16 @@ class RootKataHandler(SimpleHTTPRequestHandler):
         other_lang = "en" if lang == "es" else "es"
         runtime = "ROOT + C++" if view.get("requires") else "C++17"
         source = esc(payload["starter_code"])
+        is_wasm_supported = view.get("browser_wasm") == "supported"
+        wasm_badge = '<span class="badge wasm-badge">WASM</span>' if is_wasm_supported else ""
+        runtime_picker = (
+            f'<div class="runtime-selector-wrap">'
+            f'<label for="runtime-target-select" class="runtime-label">{esc(ui["env_label"])}:</label>'
+            f'<select id="runtime-target-select" class="runtime-target-select" title="{esc(ui["env_label"])}">'
+            f'<option value="wasm">{esc(ui["env_wasm"])}</option>'
+            f'<option value="native">{esc(ui["env_native"])}</option>'
+            f'</select></div>'
+        ) if is_wasm_supported else ""
         markup = f"""<!doctype html>
 <html lang="{lang}">
 <head>
@@ -143,6 +160,7 @@ class RootKataHandler(SimpleHTTPRequestHandler):
         <div class="problem-meta">
           <span class="difficulty">{esc(view.get("difficulty", ""))}</span>
           <span>{esc(runtime)}</span>
+          {wasm_badge}
         </div>
         <h1 id="kata-title">{esc(view["title"])}</h1>
         <p class="lead">{esc(view.get("summary", ""))}</p>
@@ -159,7 +177,10 @@ class RootKataHandler(SimpleHTTPRequestHandler):
             <h2 id="editor-title">{esc(ui["code"])}</h2>
             <p>{esc(ui["edit_help"])}</p>
           </div>
-          <span class="workspace-runtime">{esc(runtime)}</span>
+          <div class="workspace-head-right">
+            <span class="workspace-runtime">{esc(runtime)}</span>
+            {runtime_picker}
+          </div>
         </div>
         <label class="visually-hidden" for="code-editor">{esc(ui["code"])}</label>
         <textarea id="code-editor" class="code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off">{source}</textarea>
@@ -294,6 +315,14 @@ class RootKataHandler(SimpleHTTPRequestHandler):
             return
 
         super().do_GET()
+ 
+    def do_HEAD(self) -> None:  # noqa: N802 - stdlib handler API
+        parsed = urlsplit(self.path)
+        path = parsed.path.rstrip("/") or "/"
+        if path.startswith("/kata/") or path.startswith("/api/"):
+            self.do_GET()
+            return
+        super().do_HEAD()
 
 
 def default_site_root() -> Path:

@@ -26,7 +26,41 @@ inline int done(){std::fflush(stdout);std::printf("\\n{%s}\\n",_buf().c_str());s
 }
 `;
 
-const HARNESS_HISTOGRAM_INSPECT = `
+const HARNESSES = {
+  'cpp-root-histogram': `
+#include "TH1D.h"
+#include "TROOT.h"
+
+int main() {
+    gROOT->SetBatch(kTRUE);
+    TH1::AddDirectory(kFALSE);
+
+    TH1D* h = build_histogram({});
+    rk::emit("returned object", h != nullptr);
+    if (h) {
+        rk::emit("name", h->GetName());
+        rk::emit("nbins", h->GetNbinsX());
+        rk::emit("xmin", h->GetXaxis()->GetXmin());
+        rk::emit("xmax", h->GetXaxis()->GetXmax());
+        delete h;
+    }
+    TH1D* f = build_histogram({10.0, 20.0, 30.0});
+    if (f) {
+        rk::emit("entries", f->GetEntries());
+        rk::emit("integral", f->Integral());
+        rk::emit("mean", f->GetMean());
+        delete f;
+    }
+    TH1D* o = build_histogram({-5.0, 50.0, 150.0});
+    if (o) {
+        rk::emit("ovf entries", o->GetEntries());
+        rk::emit("ovf integral", o->Integral());
+        delete o;
+    }
+    return rk::done();
+}
+`,
+  'cpp-root-histogram-inspect': `
 #include "TH1D.h"
 
 int main() {
@@ -46,7 +80,122 @@ int main() {
 
     return rk::done();
 }
-`;
+`,
+  'cpp-root-histogram-range': `
+#include "TH1D.h"
+
+int main() {
+    const std::vector<double> values{0,10,20,30,40,50,60,70,80,90,100};
+    TH1D* h = build_calibration_histogram(values);
+    rk::emit("returned object", h != nullptr);
+    if (h) {
+        rk::emit("name", h->GetName());
+        rk::emit("nbins", h->GetNbinsX());
+        rk::emit("xmin", h->GetXaxis()->GetXmin());
+        rk::emit("xmax", h->GetXaxis()->GetXmax());
+        rk::emit("bin width", h->GetXaxis()->GetBinWidth(1));
+        rk::emit("entries", h->GetEntries());
+        rk::emit("visible integral", h->Integral());
+        rk::emit("underflow", h->GetBinContent(0));
+        rk::emit("overflow", h->GetBinContent(h->GetNbinsX() + 1));
+        delete h;
+    }
+    return rk::done();
+}
+`,
+  'cpp-root-histogram-selected-sample': `
+#include "TH1D.h"
+
+int main() {
+    TH1D* a = build_selected_histogram({20.0, 50.0, 50.1, 80.0, 120.0}, 50.0);
+    rk::emit("a returned", a != nullptr);
+    if (a) {
+        rk::emit("name", a->GetName());
+        rk::emit("nbins", a->GetNbinsX());
+        rk::emit("xmin", a->GetXaxis()->GetXmin());
+        rk::emit("xmax", a->GetXaxis()->GetXmax());
+        rk::emit("a entries", a->GetEntries());
+        rk::emit("a integral", a->Integral());
+        rk::emit("a first bin", a->GetBinContent(1));
+        delete a;
+    }
+    TH1D* b = build_selected_histogram({-10.0, 10.0, 151.0}, 0.0);
+    rk::emit("b returned", b != nullptr);
+    if (b) {
+        rk::emit("b entries", b->GetEntries());
+        rk::emit("b integral", b->Integral());
+        rk::emit("b overflow", b->GetBinContent(b->GetNbinsX() + 1));
+        delete b;
+    }
+    return rk::done();
+}
+`,
+  'cpp-root-tgraph-points': `
+#include "TGraph.h"
+#include <string>
+
+int main() {
+    TGraph* graph = build_graph({0.0, 1.5, 4.0}, {2.0, 3.5, 3.0});
+    rk::emit("returned object", graph != nullptr);
+    if (graph) {
+        rk::emit("n", graph->GetN());
+        for (int i = 0; i < graph->GetN(); ++i) {
+            double x = 0.0, y = 0.0;
+            graph->GetPoint(i, x, y);
+            rk::emit("x" + std::to_string(i), x);
+            rk::emit("y" + std::to_string(i), y);
+        }
+        delete graph;
+    }
+    return rk::done();
+}
+`,
+  'cpp-root-tf1-evaluate': `
+#include "TF1.h"
+
+int main() {
+    TF1* model = build_linear_model(2.0, 3.0);
+    rk::emit("returned object", model != nullptr);
+    if (model) {
+        double xmin = 0.0, xmax = 0.0;
+        model->GetRange(xmin, xmax);
+        rk::emit("name", model->GetName());
+        rk::emit("npar", model->GetNpar());
+        rk::emit("xmin", xmin);
+        rk::emit("xmax", xmax);
+        rk::emit("p0", model->GetParameter(0));
+        rk::emit("p1", model->GetParameter(1));
+        rk::emit("eval0", model->Eval(0.0));
+        rk::emit("eval2", model->Eval(2.0));
+        model->SetParameter(1, -1.0);
+        rk::emit("eval2 changed", model->Eval(2.0));
+        delete model;
+    }
+    return rk::done();
+}
+`,
+  'cpp-root-tf1-range-parameters': `
+#include "TF1.h"
+
+int main() {
+    TF1* model = build_decay_model(12.0, 2.0);
+    rk::emit("returned object", model != nullptr);
+    if (model) {
+        double xmin = 0.0, xmax = 0.0;
+        model->GetRange(xmin, xmax);
+        rk::emit("name", model->GetName());
+        rk::emit("p0", model->GetParameter(0));
+        rk::emit("p1", model->GetParameter(1));
+        rk::emit("xmin", xmin);
+        rk::emit("xmax", xmax);
+        rk::emit("eval0", model->Eval(0.0));
+        rk::emit("eval4", model->Eval(4.0));
+        delete model;
+    }
+    return rk::done();
+}
+`,
+};
 
 // Shared default engine singleton
 let defaultEngine = null;
@@ -65,10 +214,11 @@ export function getDefaultEngine() {
  * @returns {string}
  */
 function composeTranslationUnit(exerciseId, studentCode) {
-  if (exerciseId === 'cpp-root-histogram-inspect') {
-    return `${RK_HEADER}\n#line 1 "solution.cpp"\n${studentCode}\n#line 1 "harness.cpp"\n${HARNESS_HISTOGRAM_INSPECT}`;
+  const harness = HARNESSES[exerciseId];
+  if (!harness) {
+    throw new Error(`Exercise not supported in browser runner: ${exerciseId}`);
   }
-  throw new Error(`Exercise not supported in browser runner: ${exerciseId}`);
+  return `${RK_HEADER}\n#line 1 "solution.cpp"\n${studentCode}\n#line 1 "harness.cpp"\n${harness}`;
 }
 
 /**

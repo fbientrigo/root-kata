@@ -12,3 +12,4 @@ kata/
 root-kata-progress.json
 notebooks/
 docs/wasm/
+graphify-out/

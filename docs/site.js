@@ -115,7 +115,13 @@
   };
 
   const isLocalServe = () =>
-    location.protocol === 'http:' && ['127.0.0.1', 'localhost', '::1'].includes(location.hostname);
+    location.protocol === 'http:' && (
+      ['127.0.0.1', 'localhost', '::1'].includes(location.hostname) ||
+      location.hostname.startsWith('100.') ||
+      location.hostname.startsWith('192.168.') ||
+      location.hostname.startsWith('10.') ||
+      location.hostname.endsWith('.local')
+    );
 
   const exerciseIdForLink = (link) => {
     const fromRow = link.closest('[data-eid]')?.dataset.eid;
@@ -231,6 +237,21 @@
     const grid = document.querySelector('.workspace-grid');
     const browserWasm = grid?.dataset?.browserWasm || (exerciseId === 'cpp-root-histogram-inspect' ? 'supported' : 'native');
 
+    const runtimeSelect = document.getElementById('runtime-target-select');
+    if (runtimeSelect) {
+      try {
+        const savedTarget = localStorage.getItem('root-kata:runtime-target');
+        if (savedTarget && ['wasm', 'native'].includes(savedTarget)) {
+          runtimeSelect.value = savedTarget;
+        }
+      } catch {}
+      runtimeSelect.addEventListener('change', () => {
+        try {
+          localStorage.setItem('root-kata:runtime-target', runtimeSelect.value);
+        } catch {}
+      });
+    }
+
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (button.disabled) return;
@@ -239,7 +260,8 @@
       status.textContent = lang === 'es' ? 'Ejecutando…' : 'Running…';
       try {
         let result;
-        if (browserWasm === 'supported') {
+        const selectedTarget = runtimeSelect ? runtimeSelect.value : 'wasm';
+        if (browserWasm === 'supported' && selectedTarget === 'wasm') {
           const { ExerciseRunner } = await import('/engine/exercise_runner.js');
           const onStatusChange = (st, detail) => {
             if (st === 'booting') {

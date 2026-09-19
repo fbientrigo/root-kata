@@ -23,9 +23,11 @@ class ServeConfigTests(unittest.TestCase):
         args = build_parser().parse_args(["serve"])
         self.assertEqual(args.command, "serve")
         self.assertEqual(args.port, 8765)
+        self.assertEqual(args.host, "127.0.0.1")
 
-        args = build_parser().parse_args(["serve", "--port", "9001"])
+        args = build_parser().parse_args(["serve", "--port", "9001", "--host", "0.0.0.0"])
         self.assertEqual(args.port, 9001)
+        self.assertEqual(args.host, "0.0.0.0")
 
     def test_server_binds_to_localhost_by_default(self):
         server = create_server(port=0, site_root=ROOT / "docs")
@@ -60,6 +62,20 @@ class ReadOnlyApiTests(unittest.TestCase):
         with urlopen(self.base + path, timeout=2) as response:
             self.assertEqual(response.headers.get_content_type(), "text/html")
             return response.read().decode("utf-8")
+
+    def head(self, path):
+        request = Request(self.base + path, method="HEAD")
+        with urlopen(request, timeout=2) as response:
+            return response.status, response.headers
+
+    def test_head_requests_succeed_for_kata_and_api(self):
+        status, headers = self.head("/kata/cpp-root-histogram-inspect")
+        self.assertEqual(status, 200)
+        self.assertEqual(headers.get_content_type(), "text/html")
+
+        status, headers = self.head("/api/health")
+        self.assertEqual(status, 200)
+        self.assertEqual(headers.get_content_type(), "application/json")
 
     def post_json(self, payload, *, raw=False):
         body = payload if raw else json.dumps(payload).encode("utf-8")
