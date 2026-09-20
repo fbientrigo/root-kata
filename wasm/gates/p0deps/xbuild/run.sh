@@ -31,7 +31,19 @@ mkdir -p "$X" "$B"
 
 if [[ $step == configure || $step == all ]]; then
   [[ -d $S ]] || cp -a "$PIN" "$S"
-  (cd "$S" && { patch -p1 -R --dry-run -s < "$HERE/host-rootcling.patch" >/dev/null 2>&1 || patch -p1 < "$HERE/host-rootcling.patch"; })
+  # Accept an already-patched cached tree, otherwise require the complete patch
+  # to apply cleanly. Never continue after a partial/malformed patch.
+  if ! (
+    cd "$S"
+    if patch -p1 -R --dry-run -s < "$HERE/host-rootcling.patch" >/dev/null 2>&1; then
+      exit 0
+    fi
+    patch -p1 --dry-run -s < "$HERE/host-rootcling.patch" >/dev/null &&
+      patch -p1 < "$HERE/host-rootcling.patch"
+  ); then
+    echo "xbuild FAIL: host-rootcling.patch does not apply cleanly" >&2
+    exit 1
+  fi
   cd "$B"; start=$(date +%s)
   emcmake cmake -G "Unix Makefiles" "$S" -DCMAKE_BUILD_TYPE=Release \
     -Dminimal=ON -Dimt=OFF -Druntime_cxxmodules=OFF -Dclad=OFF -Dfail-on-missing=OFF \
@@ -82,7 +94,12 @@ if [[ $step == build || $step == hist || $step == all ]]; then
   [[ -f $X/build.log ]] && mv "$X/build.log" "$X/build.$(date +%s).log"
   timeout ${BUILD_TIMEOUT:-4800} cmake --build . --target "${targets[@]}" -j${JOBS:-4} > "$X/build.log" 2>&1
   rc=$?; echo "exit=$rc seconds=$(($(date +%s)-start))" | tee -a "$X/build.log"
-  [[ $rc -eq 0 ]] || { echo "xbuild FAIL: ${targets[*]} build"; exit "$rc"; }
+  if [[ $rc -ne 0 ]]; then
+    echo "xbuild FAIL: ${targets[*]} build" >&2
+    echo "==> Last 200 lines of $X/build.log" >&2
+    tail -n 200 "$X/build.log" >&2 || true
+    exit "$rc"
+  fi
 fi
 
 if [[ $step == diag-libcxx ]]; then
