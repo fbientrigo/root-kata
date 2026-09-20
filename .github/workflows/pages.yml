@@ -26,6 +26,9 @@ jobs:
   deploy:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    env:
+      ROOT_HOST_TARBALL: root_v6.40.04.Linux-ubuntu24.04-x86_64-gcc13.3.tar.gz
+      ROOT_HOST_SHA256: 0fb35191ed9b3847abd9ab5f25878845545a5acc16a4465ca1f4310bd63191a8
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -44,20 +47,30 @@ jobs:
       - name: Install ROOT host runtime dependency
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libtbb12
 
+      - name: Compute ROOT WASM cache key
+        id: root-wasm-cache-key
+        shell: bash
+        run: |
+          fingerprint="$(
+            {
+              git rev-parse HEAD:wasm
+              git hash-object scripts/build_wasm_runtime.sh
+              printf '%s\n%s\n' "$ROOT_HOST_TARBALL" "$ROOT_HOST_SHA256"
+            } | sha256sum | cut -d' ' -f1
+          )"
+          echo "value=root-wasm-${RUNNER_OS}-${fingerprint}" >> "$GITHUB_OUTPUT"
+
       - name: Cache ROOT WASM toolchain and build
         uses: actions/cache@v4
         with:
           path: |
             ~/.root-kata-wasm
             ~/.cache/rootwasm-p0
-          key: root-wasm-${{ runner.os }}-${{ hashFiles('wasm/**', 'scripts/build_wasm_runtime.sh') }}
+          key: ${{ steps.root-wasm-cache-key.outputs.value }}
           restore-keys: |
             root-wasm-${{ runner.os }}-
 
       - name: Build and stage browser ROOT runtime
-        env:
-          ROOT_HOST_TARBALL: root_v6.40.04.Linux-ubuntu24.04-x86_64-gcc13.3.tar.gz
-          ROOT_HOST_SHA256: 0fb35191ed9b3847abd9ab5f25878845545a5acc16a4465ca1f4310bd63191a8
         run: bash scripts/build_wasm_runtime.sh
 
       - name: Configure Pages
