@@ -1,0 +1,222 @@
+--- a/cmake/modules/RootMacros.cmake
++++ b/cmake/modules/RootMacros.cmake
+@@ -640,7 +640,17 @@
+   endif()
+ 
+   #---what rootcling command to use--------------------------
+-  if(ARG_STAGE1)
++  if(ROOT_HOST_ROOTCLING)
++    # Cross-compiling: run a host rootcling for STAGE1 and non-STAGE1 dictionaries
++    # instead of the in-tree (target-architecture) rootcling_stage1/rootcling.
++    # ROOT_HOST_ROOTCLING_EXTRA_ARGS: target frontend environment for the host generator
++    # (TCling reads EXTRA_CLING_ARGS, core/metacling/src/TCling.cxx:1453).
++    set(command ${CMAKE_COMMAND} -E env "EXTRA_CLING_ARGS=${ROOT_HOST_ROOTCLING_EXTRA_ARGS}" ${ROOT_HOST_ROOTCLING} -rootbuild)
++    set(ROOTCLINGDEP rconfigure)
++    if(ARG_STAGE1)
++      set(pcm_name)
++    endif()
++  elseif(ARG_STAGE1)
+     if(APPLE)
+       set(command ${CMAKE_COMMAND} -E env SDKROOT=${CMAKE_OSX_SYSROOT} $<TARGET_FILE:rootcling_stage1>)
+     else()
+--- a/cmake/modules/CheckCompiler.cmake
++++ b/cmake/modules/CheckCompiler.cmake
+@@ -210,7 +210,9 @@
+ 
+ #---Need to locate thead libraries and options to set properly some compilation flags----------------
+ find_package(Threads)
+-if(CMAKE_USE_PTHREADS_INIT)
++# Emscripten: the browser runtime (xeus-cpp-lite) is single-threaded without SharedArrayBuffer;
++# -pthread would require shared memory.
++if(CMAKE_USE_PTHREADS_INIT AND NOT EMSCRIPTEN)
+   set(CMAKE_THREAD_FLAG -pthread)
+ else()
+   set(CMAKE_THREAD_FLAG)
+--- a/core/CMakeLists.txt
++++ b/core/CMakeLists.txt
+@@ -39,7 +39,11 @@
+   ${CMAKE_BINARY_DIR}/ginclude/TApplicationCommandLineOptionsHelp.h
+ )
+ 
+-add_dependencies(Core CLING rconfigure)
++if(ROOT_HOST_ROOTCLING)
++  add_dependencies(Core rconfigure)
++else()
++  add_dependencies(Core CLING rconfigure)
++endif()
+ 
+ target_link_libraries(Core
+   PRIVATE
+--- a/builtins/lzma/CMakeLists.txt
++++ b/builtins/lzma/CMakeLists.txt
+@@ -35,6 +35,9 @@
+         -DCMAKE_C_FLAGS=${liblzma_flags}
+         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER})
++    if(CMAKE_TOOLCHAIN_FILE)
++        list(APPEND lzma_extra_cmake_args -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
++    endif()
+ endif()
+ 
+ ExternalProject_Add(
+--- a/builtins/zstd/CMakeLists.txt
++++ b/builtins/zstd/CMakeLists.txt
+@@ -34,6 +34,10 @@
+     endif()
+ endif()
+ 
++if(CMAKE_TOOLCHAIN_FILE)
++    list(APPEND zstd_extra_cmake_args -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
++endif()
++
+ ExternalProject_Add(
+     BUILTIN_ZSTD
+     URL ${lcgpackages}/zstd-${ROOT_ZSTD_VERSION}.tar.gz
+@@ -47,6 +51,7 @@
+     -DCMAKE_CXX_VISIBILITY_PRESET=hidden
+     -DCMAKE_C_VISIBILITY_PRESET=hidden
+     -DZSTD_BUILD_SHARED=OFF
++    ${zstd_extra_cmake_args}
+     BUILD_COMMAND ${CMAKE_COMMAND} --build "<SOURCE_DIR>/<SOURCE_SUBDIR>" ${ROOT_ZSTD_BUILD_COMMAND_FLAGS}
+     INSTALL_COMMAND ${CMAKE_COMMAND} --install "<SOURCE_DIR>/<SOURCE_SUBDIR>" ${ROOT_ZSTD_BUILD_COMMAND_FLAGS}
+     LOG_DOWNLOAD 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1 LOG_OUTPUT_ON_FAILURE 1
+@@ -58,6 +63,7 @@
+ set(ZSTD_INCLUDE_DIR ${ROOT_ZSTD_PREFIX}/include)
+ file(MAKE_DIRECTORY ${ZSTD_INCLUDE_DIR})
+ add_library(ZSTD::ZSTD IMPORTED STATIC GLOBAL)
++add_dependencies(ZSTD::ZSTD BUILTIN_ZSTD)
+ set_target_properties(ZSTD::ZSTD PROPERTIES
+     IMPORTED_LOCATION ${ROOT_ZSTD_LIBRARY}
+     INTERFACE_INCLUDE_DIRECTORIES ${ZSTD_INCLUDE_DIR}
+--- a/builtins/lz4/CMakeLists.txt
++++ b/builtins/lz4/CMakeLists.txt
+@@ -30,6 +30,10 @@
+     endif()
+ endif()
+ 
++if(CMAKE_TOOLCHAIN_FILE)
++    list(APPEND lz4_extra_cmake_args -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
++endif()
++
+ ExternalProject_Add(
+     BUILTIN_LZ4
+     URL ${lcgpackages}/lz4-${ROOT_LZ4_VERSION}.tar.gz
+--- a/builtins/zlib/CMakeLists.txt
++++ b/builtins/zlib/CMakeLists.txt
+@@ -35,6 +35,10 @@
+     set(ROOT_ZLIB_LIBRARY ${ROOT_ZLIB_PREFIX}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}z${CMAKE_STATIC_LIBRARY_SUFFIX})
+ endif()
+ 
++if(CMAKE_TOOLCHAIN_FILE)
++    list(APPEND zlib_extra_cmake_args -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
++endif()
++
+ ExternalProject_Add(
+     BUILTIN_ZLIB
+     URL ${lcgpackages}/zlib-${ROOT_ZLIB_VERSION}.tar.gz
+--- a/core/foundation/inc/ROOT/RConfig.hxx
++++ b/core/foundation/inc/ROOT/RConfig.hxx
+@@ -238,6 +238,14 @@
+ #   define NEED_SIGJMP
+ #endif
+ 
++#if defined(__EMSCRIPTEN__) && defined(__wasm32__)
++/* WebAssembly (Emscripten, musl libc): POSIX-like, little-endian by spec, ILP32. */
++#   define R__EMSCRIPTEN
++#   define R__UNIX
++#   define R__BYTESWAP
++#   define NEED_SIGJMP
++#endif
++
+ #if defined(linux) && defined(__loongarch_lp64)
+ #   define R__LINUX
+ #   define R__UNIX
+--- a/core/unix/src/TUnixSystem.cxx
++++ b/core/unix/src/TUnixSystem.cxx
+@@ -64,7 +64,8 @@
+ #endif
+ #if defined(R__AIX) || defined(R__LINUX) || \
+     defined(R__FBSD) || defined(R__OBSD) || \
+-    defined(R__LYNXOS) || defined(R__MACOSX) || defined(R__HURD)
++    defined(R__LYNXOS) || defined(R__MACOSX) || defined(R__HURD) || \
++    defined(R__EMSCRIPTEN)
+ #   include <sys/ioctl.h>
+ #endif
+ #if defined(R__AIX) || defined(R__SOLARIS)
+@@ -722,7 +723,7 @@
+       return GetLastErrorString();
+ 
+ #if defined(R__SOLARIS) || defined (R__LINUX) || defined(R__AIX) || \
+-    defined(R__FBSD) || defined(R__OBSD) || defined(R__HURD)
++    defined(R__FBSD) || defined(R__OBSD) || defined(R__HURD) || defined(R__EMSCRIPTEN)
+    return strerror(err);
+ #else
+    if (err < 0 || err >= sys_nerr)
+--- a/core/base/src/TROOT.cxx
++++ b/core/base/src/TROOT.cxx
+@@ -3308,6 +3308,13 @@
+       }
+    }
+ 
++#elif defined(R__EMSCRIPTEN)
++
++   // WebAssembly has no ELF program headers to iterate (no dl_iterate_phdr). The ROOT
++   // tree is mounted in the virtual filesystem at $ROOTSYS, so use its lib directory.
++   rootlibdir = TROOT::GetRootSys();
++   rootlibdir += "/lib";
++
+ #else
+ 
+    auto callback = +[](struct dl_phdr_info *info, size_t /*size*/, void *data) -> int {
+--- a/core/base/src/TUUID.cxx
++++ b/core/base/src/TUUID.cxx
+@@ -466,7 +466,13 @@
+          struct ifaddrs *ifAddrStruct = nullptr;
+          struct ifaddrs *ifa = nullptr;
+ 
++#ifndef R__EMSCRIPTEN
+          if (getifaddrs(&ifAddrStruct) != 0) {
++#else
++         // Browsers expose no network interfaces and Emscripten's netlink-based
++         // getifaddrs is unsupported: take ROOT's own no-interface path.
++         if (true) {
++#endif
+             adr = 1;
+          } else {
+             for (ifa = ifAddrStruct; ifa != nullptr; ifa = ifa->ifa_next) {
+--- a/io/io/src/TMapFile.cxx
++++ b/io/io/src/TMapFile.cxx
+@@ -102,7 +102,7 @@
+ 
+ #include <cmath>
+ 
+-#if defined(R__UNIX) && !defined(R__WINGCC)
++#if defined(R__UNIX) && !defined(R__WINGCC) && !defined(R__EMSCRIPTEN)
+ #define HAVE_SEMOP
+ #include <sys/types.h>
+ #include <sys/ipc.h>
+--- a/io/io/src/TFile.cxx
++++ b/io/io/src/TFile.cxx
+@@ -3801,7 +3801,7 @@
+    TString expandedUrl(url);
+    gSystem->ExpandPathName(expandedUrl);
+ 
+-#ifdef R__UNIX
++#if defined(R__UNIX) && !defined(R__EMSCRIPTEN)
+    // If URL is a file on an EOS FUSE mount, attempt redirection to XRootD protocol.
+    if (gEnv->GetValue("TFile.CrossProtocolRedirects", 1) == 1) {
+       TUrl fileurl(expandedUrl, /* default is file */ kTRUE);
+--- a/core/meta/inc/TClass.h
++++ b/core/meta/inc/TClass.h
+@@ -84,6 +84,10 @@
+ class TClass : public TDictionary {
+
+ friend class TCling;
++// M4b Family A: TCppInterOpInterpreter::SetClassInfo (wasm ROOT's TInterpreter,
++// wasm/rootlight/interpreter/TCppInterOpInterpreter.cxx) needs the same write
++// access to fClassInfo that TCling has, to give ROOT real ClassInfo/DeclId
++// identity instead of the "no info available" fallback.
++friend class TCppInterOpInterpreter;
+ friend void ROOT::ResetClassVersion(TClass*, const char*, Short_t);
+ friend class ROOT::TGenericClassInfo;
+ friend class TProtoClass;

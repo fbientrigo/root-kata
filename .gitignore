@@ -11,3 +11,4 @@ kata/
 .root-kata/
 root-kata-progress.json
 notebooks/
+docs/wasm/
