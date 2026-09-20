@@ -8,8 +8,10 @@ PIN=$HOME/.root-kata-wasm/src/root-6.40.04
 S=$X/src B=$X/build
 # Pinned host generator: official CERN ROOT 6.40.04 binary release (same version as the source).
 # root.cern publishes no .sha256 for it; this is the locally verified (gzip -t) tarball hash.
-HOST_TARBALL=root_v6.40.04.Linux-debian13-x86_64-gcc14.2.tar.gz
-HOST_SHA256=287ff87deef0eed0fedd32e7d59bdadd22dcb45a5c592c9e08d8d140212ef261
+# Defaults preserve the Debian 13 local setup; CI overrides both with the
+# matching Ubuntu 24.04 CERN binary for the pinned GitHub runner.
+HOST_TARBALL=${ROOT_HOST_TARBALL:-root_v6.40.04.Linux-debian13-x86_64-gcc14.2.tar.gz}
+HOST_SHA256=${ROOT_HOST_SHA256:-287ff87deef0eed0fedd32e7d59bdadd22dcb45a5c592c9e08d8d140212ef261}
 if [[ -z ${HOST_ROOTCLING:-} ]]; then
   HOST_ROOTCLING=$X/root-6.40.04-host/root/bin/rootcling
   if [[ ! -x $HOST_ROOTCLING ]]; then
