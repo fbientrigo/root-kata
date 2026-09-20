@@ -42,6 +42,24 @@ class GitHubPagesTests(unittest.TestCase):
         self.assertIn("https://root.cern.ch/doc/master/classTH1.html", markup)
         self.assertIn('rk.start(&quot;cpp-root-histogram&quot;)', markup)
 
+    def test_supported_root_problem_embeds_browser_workspace(self):
+        markup = (ROOT / "docs" / "problems" / "cpp-root-histogram.html").read_text(encoding="utf-8")
+        self.assertIn('data-browser-wasm="supported"', markup)
+        self.assertIn('data-exercise-id="cpp-root-histogram"', markup)
+        self.assertIn('id="code-editor"', markup)
+        self.assertIn('id="run-button"', markup)
+        self.assertIn('class="badge wasm-badge">WASM</span>', markup)
+
+        blocked = (ROOT / "docs" / "problems" / "cpp-root-fit-gaussian.html").read_text(encoding="utf-8")
+        self.assertNotIn('id="code-editor"', blocked)
+
+    def test_browser_engine_paths_are_project_site_safe(self):
+        site = (ROOT / "docs" / "site.js").read_text(encoding="utf-8")
+        engine = (ROOT / "docs" / "engine" / "root_wasm_engine.js").read_text(encoding="utf-8")
+        self.assertIn("new URL('engine/exercise_runner.js', siteRoot)", site)
+        self.assertIn("new URL('./worker.js', import.meta.url)", engine)
+        self.assertIn("new URL('../wasm/', import.meta.url)", engine)
+
     def test_intro_problem_is_generated_in_spanish_and_english(self):
         es = (ROOT / "docs" / "problems" / "cpp-hello-world.html").read_text(encoding="utf-8")
         en = (ROOT / "docs" / "en" / "problems" / "cpp-hello-world.html").read_text(encoding="utf-8")

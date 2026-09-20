@@ -33,6 +33,7 @@
   "requires": [
     "ROOT"
   ],
+  "browser_wasm": "supported",
   "topics": [
     "TF1",
     "parameters",

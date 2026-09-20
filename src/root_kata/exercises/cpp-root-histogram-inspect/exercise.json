@@ -27,6 +27,7 @@
   "harness": "harness.cpp",
   "validator": "validator.py",
   "requires": ["ROOT"],
+  "browser_wasm": "supported",
   "topics": ["TH1D", "GetEntries", "GetBinContent", "GetMean", "GetStdDev"],
   "learning_goal": "Distinguish total histogram entries from individual bin contents and inspect numerical summary statistics directly.",
   "resources": [

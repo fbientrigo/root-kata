@@ -20,6 +20,12 @@ UI = {
         "tagline": "práctica corta de C++/ROOT en Jupyter",
         "all_katas": "← Todos los katas",
         "open_in_jupyter": "Abrir en Jupyter",
+        "browser_practice": "Practica aquí en el navegador",
+        "code": "Código",
+        "edit_help": "Edita la función y ejecuta las pruebas sin salir de esta página.",
+        "run": "Ejecutar",
+        "not_running": "Editor listo",
+        "feedback": "Resultado",
         "read_problem": "Leer problema",
         "problem": "Problema",
         "example": "Ejemplo",
@@ -55,6 +61,12 @@ UI = {
         "tagline": "short C++/ROOT practice in Jupyter",
         "all_katas": "← All katas",
         "open_in_jupyter": "Open in Jupyter",
+        "browser_practice": "Practice here in the browser",
+        "code": "Code",
+        "edit_help": "Edit the function and run the tests without leaving this page.",
+        "run": "Run",
+        "not_running": "Editor ready",
+        "feedback": "Result",
         "read_problem": "Read problem",
         "problem": "Problem",
         "example": "Example",
@@ -180,11 +192,12 @@ def shell(
 def kata_row(meta_view: dict, lang: str) -> str:
     eid = meta_view["id"]
     ui = UI[lang]
+    wasm_badge = '<span class="badge wasm-badge">WASM</span>' if meta_view.get("browser_wasm") == "supported" else ""
     return f'''
-      <article class="kata-row" data-eid="{esc(eid)}" data-difficulty="{esc(meta_view['difficulty_key'])}">
+      <article class="kata-row" data-eid="{esc(eid)}" data-difficulty="{esc(meta_view['difficulty_key'])}" data-browser-wasm="{esc(meta_view.get('browser_wasm', 'native'))}">
         <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
         <div class="row-body">
-          <div class="row-topline"><span class="difficulty">{esc(meta_view['difficulty_label'])}</span><span aria-hidden="true">·</span><span>{esc(ui['minutes'].format(n=meta_view.get('estimated_minutes', '?')))}</span></div>
+          <div class="row-topline"><span class="difficulty">{esc(meta_view['difficulty_label'])}</span><span aria-hidden="true">·</span><span>{esc(ui['minutes'].format(n=meta_view.get('estimated_minutes', '?')))}</span>{(' · ' + wasm_badge) if wasm_badge else ''}</div>
           <h2>{esc(meta_view['title'])}</h2>
           <p>{esc(meta_view['summary'])}</p>
           <div class="chips">{chips(meta_view.get('topics', []))}</div>
@@ -259,6 +272,37 @@ def build_index(exercises: list[tuple[dict, Path]], lang: str) -> None:
     )
 
 
+
+def browser_workspace(meta: dict, directory: Path, lang: str) -> str:
+    if meta.get("browser_wasm") != "supported":
+        return ""
+    ui = UI[lang]
+    eid = meta["id"]
+    starter = directory / meta.get("starter", "solution.cpp")
+    source = starter.read_text(encoding="utf-8")
+    return f"""
+      <section class="workspace-grid static-workspace" data-exercise-id="{esc(eid)}" data-browser-wasm="supported" aria-labelledby="browser-editor-title">
+        <section class="workspace-editor-panel">
+          <div class="workspace-editor-head">
+            <div>
+              <h2 id="browser-editor-title">{esc(ui["browser_practice"])}</h2>
+              <p>{esc(ui["edit_help"])}</p>
+            </div>
+            <span class="badge wasm-badge">WASM</span>
+          </div>
+          <label class="visually-hidden" for="code-editor">{esc(ui["code"])}</label>
+          <textarea id="code-editor" class="code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off">{esc(source)}</textarea>
+          <form id="run-form" class="run-form">
+            <button id="run-button" class="button primary large" type="submit">{esc(ui["run"])}</button>
+          </form>
+          <p class="workspace-status" role="status">{esc(ui["not_running"])}</p>
+          <section id="run-feedback" class="run-feedback" aria-live="polite" aria-labelledby="run-feedback-title" hidden>
+            <h2 id="run-feedback-title">{esc(ui["feedback"])}</h2>
+          </section>
+        </section>
+      </section>"""
+
+
 def build_problem(meta: dict, directory: Path, lang: str) -> None:
     eid = meta["id"]
     ui = UI[lang]
@@ -282,6 +326,8 @@ def build_problem(meta: dict, directory: Path, lang: str) -> None:
     )
     runtime = "ROOT + C++" if v.get("requires") else "C++17"
     command = jupyter_command(eid)
+    wasm_badge = '<span class="badge wasm-badge">WASM</span>' if v.get("browser_wasm") == "supported" else ""
+    workspace = browser_workspace(meta, directory, lang)
     body = f'''
   <main class="problem-layout">
     <a class="back-link" href="{home_href}">{esc(ui["all_katas"])}</a>
@@ -291,6 +337,7 @@ def build_problem(meta: dict, directory: Path, lang: str) -> None:
           <span class="difficulty">{esc(v['difficulty_label'])}</span>
           <span>{esc(ui['minutes'].format(n=v.get('estimated_minutes', '?')))}</span>
           <span>{runtime}</span>
+          {wasm_badge}
         </div>
         <h1>{esc(v['title'])}</h1>
         <p class="lead">{esc(v['summary'])}</p>
@@ -322,6 +369,8 @@ def build_problem(meta: dict, directory: Path, lang: str) -> None:
         <h2>{esc(ui["references"])}</h2>
         <ul class="resource-list">{resources}</ul>
       </section>
+
+      {workspace}
 
       <section class="start-panel">
         <div>
