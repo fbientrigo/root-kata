@@ -21,6 +21,7 @@
     },
   };
   const msg = MESSAGES[lang] || MESSAGES.es;
+  const siteRoot = new URL('.', document.currentScript?.src || location.href);
 
   const readSet = (key) => {
     try {
@@ -155,7 +156,21 @@
     const feedback = document.getElementById('run-feedback');
     if (!form || !editor || !button || !status || !feedback) return;
 
-    const exerciseId = decodeURIComponent(location.pathname.replace(/^\/kata\//, '').replace(/\/$/, ''));
+    const grid = document.querySelector('.workspace-grid');
+    const exerciseId = grid?.dataset?.exerciseId ||
+      decodeURIComponent(location.pathname.replace(/^\/kata\//, '').replace(/\/$/, ''));
+    const browserWasm = grid?.dataset?.browserWasm || 'native';
+
+    const runtimeSelect = document.getElementById('runtime-target-select');
+    if (runtimeSelect) {
+      try {
+        const savedTarget = localStorage.getItem('root-kata:runtime-target');
+        if (savedTarget && ['wasm', 'native'].includes(savedTarget)) runtimeSelect.value = savedTarget;
+      } catch {}
+      runtimeSelect.addEventListener('change', () => {
+        try { localStorage.setItem('root-kata:runtime-target', runtimeSelect.value); } catch {}
+      });
+    }
     const make = (tag, text, className) => {
       const element = document.createElement(tag);
       if (className) element.className = className;
@@ -235,13 +250,30 @@
       form.setAttribute('aria-busy', 'true');
       status.textContent = lang === 'es' ? 'Ejecutando…' : 'Running…';
       try {
-        const response = await fetch('/api/run', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({exercise_id: exerciseId, code: editor.value, lang}),
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.message || result.error || 'Request failed');
+        let result;
+        const selectedTarget = runtimeSelect ? runtimeSelect.value : 'wasm';
+        if (browserWasm === 'supported' && selectedTarget === 'wasm') {
+          const moduleUrl = new URL('engine/exercise_runner.js', siteRoot).href;
+          const { ExerciseRunner } = await import(moduleUrl);
+          result = await ExerciseRunner.runExercise(exerciseId, editor.value, {
+            lang,
+            onStatusChange: (engineStatus) => {
+              if (engineStatus === 'booting') {
+                status.textContent = lang === 'es' ? 'Cargando compilador y ROOT…' : 'Loading compiler and ROOT…';
+              } else if (engineStatus === 'running') {
+                status.textContent = lang === 'es' ? 'Ejecutando en WebAssembly…' : 'Running in WebAssembly…';
+              }
+            },
+          });
+        } else {
+          const response = await fetch('/api/run', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({exercise_id: exerciseId, code: editor.value, lang}),
+          });
+          result = await response.json();
+          if (!response.ok) throw new Error(result.message || result.error || 'Request failed');
+        }
         render(result);
         status.textContent = result.summary || (lang === 'es' ? 'Ejecución terminada' : 'Run complete');
       } catch (error) {

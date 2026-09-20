@@ -40,6 +40,9 @@ _WORKSPACE_UI = {
         "running": "Ejecutando…",
         "not_running": "Editor listo",
         "feedback": "Resultado",
+        "env_wasm": "Navegador (WASM)",
+        "env_native": "ROOT local",
+        "env_label": "Entorno",
         "switch": "EN",
     },
     "en": {
@@ -55,6 +58,9 @@ _WORKSPACE_UI = {
         "running": "Running…",
         "not_running": "Editor ready",
         "feedback": "Result",
+        "env_wasm": "Browser (WASM)",
+        "env_native": "Local ROOT",
+        "env_label": "Runtime",
         "switch": "ES",
     },
 }
@@ -120,6 +126,16 @@ class RootKataHandler(SimpleHTTPRequestHandler):
         other_lang = "en" if lang == "es" else "es"
         runtime = "ROOT + C++" if view.get("requires") else "C++17"
         source = esc(payload["starter_code"])
+        is_wasm_supported = view.get("browser_wasm") == "supported"
+        wasm_badge = '<span class="badge wasm-badge">WASM</span>' if is_wasm_supported else ""
+        runtime_picker = (
+            f'<div class="runtime-selector-wrap">'
+            f'<label for="runtime-target-select" class="runtime-label">{esc(ui["env_label"])}:</label>'
+            f'<select id="runtime-target-select" class="runtime-target-select" title="{esc(ui["env_label"])}">'
+            f'<option value="wasm">{esc(ui["env_wasm"])}</option>'
+            f'<option value="native">{esc(ui["env_native"])}</option>'
+            f'</select></div>'
+        ) if is_wasm_supported else ""
         markup = f"""<!doctype html>
 <html lang="{lang}">
 <head>
@@ -138,11 +154,12 @@ class RootKataHandler(SimpleHTTPRequestHandler):
   </header>
   <main class="workspace">
     <a class="back-link" href="/">{esc(ui["back"])}</a>
-    <div class="workspace-grid">
+    <div class="workspace-grid" data-exercise-id="{esc(exercise_id)}" data-browser-wasm="{esc(view.get('browser_wasm', 'native'))}">
       <article class="workspace-problem" aria-labelledby="kata-title">
         <div class="problem-meta">
           <span class="difficulty">{esc(view.get("difficulty", ""))}</span>
           <span>{esc(runtime)}</span>
+          {wasm_badge}
         </div>
         <h1 id="kata-title">{esc(view["title"])}</h1>
         <p class="lead">{esc(view.get("summary", ""))}</p>
@@ -159,7 +176,10 @@ class RootKataHandler(SimpleHTTPRequestHandler):
             <h2 id="editor-title">{esc(ui["code"])}</h2>
             <p>{esc(ui["edit_help"])}</p>
           </div>
-          <span class="workspace-runtime">{esc(runtime)}</span>
+          <div class="workspace-head-right">
+            <span class="workspace-runtime">{esc(runtime)}</span>
+            {runtime_picker}
+          </div>
         </div>
         <label class="visually-hidden" for="code-editor">{esc(ui["code"])}</label>
         <textarea id="code-editor" class="code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off">{source}</textarea>

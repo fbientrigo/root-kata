@@ -1,0 +1,252 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROOT (WebAssembly)</title>
+<!--
+  M2b: run genuine CERN ROOT 6.40.04 in the browser. ROOT's own libraries
+  (built by ROOT's own CMake targets, see wasm/gates/p0deps/xbuild) are loaded
+  as Emscripten side modules into the pinned xeus-cpp-lite / CppInterOp kernel,
+  which compiles whatever C++ is typed below.
+
+  The kernel runs in a Web Worker -- see page/kernel-worker.js for why.
+
+  DOM contract (scraped by wasm/gates/rootweb/drive.mjs, same shape as G7):
+    <pre id="output">   -- exact captured stdout of the executed program
+    <pre id="diag">     -- compiler/runtime diagnostic text
+    <pre id="log">      -- verbose trace of every step
+    document.title      -- "ROOTWEB-DONE" once an automated run is complete
+
+  ?auto=1            run the packaged smoke cell and set the title sentinel
+  ?variant=broken    run a deliberately-corrupted copy of it instead, to prove
+                     this harness can genuinely fail
+  With no query string the page is an interactive ROOT console.
+-->
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  header { padding: 10px 16px; border-bottom: 1px solid #8884; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  h1 { font-size: 15px; margin: 0; font-weight: 600; }
+  #state { opacity: .75; }
+  main { padding: 12px 16px; display: grid; gap: 12px; max-width: 900px; }
+  textarea { width: 100%; min-height: 280px; font: inherit; padding: 8px; box-sizing: border-box; }
+  button { font: inherit; padding: 6px 18px; cursor: pointer; }
+  pre { margin: 0; padding: 8px; background: #8881; overflow-x: auto; white-space: pre-wrap; min-height: 1.5em; }
+  #diag:empty, #log:empty { display: none; }
+  #diag { color: #b00; }
+  details > pre { max-height: 40vh; overflow-y: auto; }
+  label { font-weight: 600; }
+  .control-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+  .meta-box { padding: 8px 12px; background: #8881; border-radius: 4px; font-size: 13px; line-height: 1.4; display: none; }
+  .badge { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+  .badge-pass { background: #0802; color: #080; }
+  .badge-blocked { background: #b002; color: #b00; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ROOT 6.40.04 &mdash; WebAssembly</h1>
+  <span id="state">booting&hellip;</span>
+</header>
+<main>
+  <div id="editor-pane" hidden>
+    <div class="control-row">
+      <label for="kata-select">Kata / Example:</label>
+      <select id="kata-select" style="font: inherit; padding: 5px 8px; flex: 1; min-width: 260px;">
+        <option value="default">Interactive ROOT Demo (TH1D + TF1 Gaussian, ASCII plot)</option>
+        <optgroup label="Shipped Katas (11 working in WebAssembly)">
+        </optgroup>
+        <optgroup label="Blocked on M4b TClass Reflection (2)">
+        </optgroup>
+      </select>
+      <label style="display: inline-flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer;">
+        <input type="checkbox" id="starter-toggle"> Starter (unsolved)
+      </label>
+    </div>
+    <div id="kata-meta" class="meta-box"></div>
+    <label for="code">C++ (must define <code>main()</code>)</label>
+    <textarea id="code" spellcheck="false"></textarea>
+    <p style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <button id="run" disabled>Run in WebAssembly ROOT</button>
+      <button id="reset" type="button">Reset Kernel</button>
+      <span id="run-time" style="font-size: 12px; opacity: 0.75;"></span>
+    </p>
+  </div>
+  <div><label for="output">stdout</label><pre id="output"></pre></div>
+  <pre id="diag"></pre>
+  <details><summary>trace</summary><pre id="log"></pre></details>
+</main>
+<script src="./cells.js"></script>
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  const auto = params.has('auto') || params.has('variant');
+  const variant = params.get('variant') || 'good';
+
+  const logEl = $('log'), outEl = $('output'), diagEl = $('diag'), stateEl = $('state');
+  const log = (s) => logEl.appendChild(document.createTextNode(s + '\n'));
+
+  let stdoutText = '', diagText = '', pending = 0, finishWhenIdle = false;
+  let worker = null;
+  let hasRun = false;
+  let pendingRunSrc = null;
+  let runStartTime = 0;
+
+  function render() {
+    outEl.textContent = stdoutText;
+    diagEl.textContent = diagText;
+  }
+
+  function maybeFinish() {
+    if (pending > 0) return;
+    render();
+    $('run').disabled = false;
+    stateEl.textContent = 'ready';
+    if (runStartTime) {
+      const elapsed = ((performance.now() - runStartTime) / 1000).toFixed(2);
+      const timeEl = $('run-time');
+      if (timeEl) timeEl.textContent = `Completed in ${elapsed}s`;
+    }
+    if (finishWhenIdle) document.title = 'ROOTWEB-DONE';
+  }
+
+  function onWorkerMessage(ev) {
+    const data = ev.data;
+    if (!data) return;
+
+    if (data.type === 'log') { log(data.text); return; }
+    if (data.type === 'status') {
+      log('[status] ' + data.text);
+      stateEl.textContent = data.text;
+      if (data.text === 'ready') {
+        $('run').disabled = false;
+        if (auto) {
+          runCode(variant === 'broken' ? ROOTWEB_CELL_BROKEN : ROOTWEB_CELL_GOOD, true);
+        } else if (pendingRunSrc) {
+          const s = pendingRunSrc;
+          pendingRunSrc = null;
+          runCode(s, false);
+        }
+      } else if (data.text.startsWith('boot-failed')) {
+        diagText += data.text;
+        render();
+        document.title = 'ROOTWEB-DONE';
+      }
+      return;
+    }
+
+    if (!data.header) return;
+    const mt = data.header.msg_type;
+    if (mt === 'stream' && data.content && typeof data.content.text === 'string') {
+      log('[stream:' + data.content.name + '] ' + JSON.stringify(data.content.text));
+      if (data.content.name === 'stdout') stdoutText += data.content.text;
+      else diagText += data.content.text;
+      render();
+    } else if (mt === 'error') {
+      log('[error] ' + JSON.stringify(data.content));
+      diagText += (data.content && data.content.evalue) || '';
+      render();
+    } else if (mt === 'execute_reply') {
+      log('[execute_reply] status=' + data.content.status);
+      pending -= 1;
+      maybeFinish();
+    }
+  }
+
+  function initWorker() {
+    if (worker) {
+      worker.terminate();
+      worker = null;
+    }
+    stateEl.textContent = 'booting…';
+    $('run').disabled = true;
+    hasRun = false;
+    worker = new Worker('./kernel-worker.js?roota=' + (params.get('roota') || '1'));
+    worker.onerror = (e) => {
+      log('[worker-error] ' + e.message + ' @ ' + e.filename + ':' + e.lineno);
+      diagText += e.message;
+      render();
+      document.title = 'ROOTWEB-DONE';
+    };
+    worker.onmessage = onWorkerMessage;
+  }
+
+  let msgSeq = 0;
+  function execute(code) {
+    pending += 1;
+    worker.postMessage({ type: 'run', code, msgId: 'm' + (msgSeq++) });
+  }
+
+  function runCode(src, isAuto) {
+    if (hasRun && !isAuto) {
+      // Clang-Repl cannot redefine main() in the same TU; automatically refresh kernel
+      pendingRunSrc = src;
+      initWorker();
+      return;
+    }
+    hasRun = true;
+    stdoutText = ''; diagText = ''; render();
+    $('run').disabled = true;
+    stateEl.textContent = 'running';
+    runStartTime = performance.now();
+    finishWhenIdle = !!isAuto;
+    execute(src);
+    execute('main();');
+  }
+
+  initWorker();
+
+  $('code').value = ROOTWEB_CELL_DEFAULT;
+  $('run').onclick = () => runCode($('code').value, false);
+  $('reset').onclick = () => {
+    initWorker();
+    stdoutText = ''; diagText = ''; render();
+    const timeEl = $('run-time');
+    if (timeEl) timeEl.textContent = 'Kernel reset.';
+  };
+
+  if (window.ROOTWEB_KATAS && Array.isArray(ROOTWEB_KATAS)) {
+    const sel = $('kata-select');
+    const workingGroup = sel.querySelector('optgroup[label*="Shipped Katas"]');
+    const blockedGroup = sel.querySelector('optgroup[label*="Blocked"]');
+
+    ROOTWEB_KATAS.forEach((k) => {
+      const opt = document.createElement('option');
+      opt.value = k.id;
+      opt.textContent = `${k.blocked ? '⚠️ ' : '✓ '}${k.id}: ${k.title}`;
+      if (k.blocked) {
+        blockedGroup.appendChild(opt);
+      } else {
+        workingGroup.appendChild(opt);
+      }
+    });
+
+    function loadKata(id, isStarter) {
+      if (id === 'default') {
+        $('code').value = ROOTWEB_CELL_DEFAULT;
+        $('kata-meta').style.display = 'none';
+        return;
+      }
+      const k = ROOTWEB_KATAS.find((x) => x.id === id);
+      if (!k) return;
+      $('code').value = isStarter ? k.starter_cell : k.solution_cell;
+      const meta = $('kata-meta');
+      meta.style.display = 'block';
+      const badge = k.blocked
+        ? '<span class="badge badge-blocked">BLOCKED ON M4b</span>'
+        : '<span class="badge badge-pass">WORKING IN WASM</span>';
+      meta.innerHTML = `<strong>${k.title}</strong> &mdash; ${k.summary || ''} [${k.difficulty}] ${badge}`;
+    }
+
+    sel.onchange = () => loadKata(sel.value, $('starter-toggle').checked);
+    $('starter-toggle').onchange = () => loadKata(sel.value, $('starter-toggle').checked);
+  }
+
+  if (!auto) $('editor-pane').hidden = false;
+})();
+</script>
+</body>
+</html>
