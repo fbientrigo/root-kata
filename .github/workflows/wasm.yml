@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   browser-wasm:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
       - name: Checkout
@@ -35,6 +35,9 @@ jobs:
       - name: Build static pages
         run: python scripts/build_pages.py
 
+      - name: Install ROOT host runtime dependency
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libtbb12
+
       - name: Cache ROOT WASM toolchain and build
         uses: actions/cache@v4
         with:
@@ -46,6 +49,9 @@ jobs:
             root-wasm-${{ runner.os }}-
 
       - name: Build and stage browser ROOT runtime
+        env:
+          ROOT_HOST_TARBALL: root_v6.40.04.Linux-ubuntu24.04-x86_64-gcc13.3.tar.gz
+          ROOT_HOST_SHA256: 0fb35191ed9b3847abd9ab5f25878845545a5acc16a4465ca1f4310bd63191a8
         run: bash scripts/build_wasm_runtime.sh
 
       - name: Run real-browser acceptance
