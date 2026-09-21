@@ -25,6 +25,7 @@
   "harness": "harness.cpp",
   "validator": "validator.py",
   "requires": [],
+  "browser_wasm": "supported",
   "topics": ["std::cout", "function", "string literal"],
   "learning_goal": "Write one line of C++ output and confirm the full ROOT Kata compile/run/test loop works.",
   "resources": [
