@@ -214,3 +214,283 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
   grid-template-columns: minmax(0, 1fr);
   margin-top: 24px;
 }
+
+
+/* Full-screen browser solve workspace */
+.solve-body {
+  margin: 0;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+}
+.solve-body .button,
+.solve-body textarea,
+.solve-body code,
+.solve-body details,
+.solve-body .badge {
+  border-radius: 0;
+}
+.solve-topbar {
+  min-height: 56px;
+  height: 56px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.solve-brand {
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  border-right: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 850;
+}
+.solve-title {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 0 14px;
+  overflow: hidden;
+}
+.solve-title strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.solve-title > span:not(.badge) {
+  color: var(--muted);
+  font-size: .8rem;
+  white-space: nowrap;
+}
+.solve-actions {
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+}
+.solve-actions .button,
+.solve-lang {
+  min-height: 56px;
+  border: 0;
+  border-left: 1px solid var(--border);
+  padding: 0 14px;
+}
+.solve-lang {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 800;
+}
+.solve-workspace {
+  height: calc(100dvh - 56px);
+  display: grid;
+  grid-template-columns: minmax(300px, 36vw) minmax(0, 1fr);
+  gap: 0;
+  align-items: stretch;
+}
+.solve-workspace.problem-hidden {
+  grid-template-columns: minmax(0, 1fr);
+}
+.solve-workspace.problem-hidden .solve-problem {
+  display: none;
+}
+.solve-problem {
+  min-width: 0;
+  height: 100%;
+  overflow: auto;
+  padding: 24px;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+.solve-problem .back-link {
+  margin: 0 0 18px;
+}
+.solve-problem h1 {
+  margin: 8px 0 10px;
+  font-size: clamp(1.55rem, 3vw, 2.1rem);
+}
+.solve-problem section,
+.solve-hints {
+  padding-top: 22px;
+  margin-top: 22px;
+  border-top: 1px solid var(--border);
+}
+.solve-problem h2 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+.solve-problem p,
+.solve-problem li {
+  line-height: 1.6;
+}
+.solve-problem ul {
+  padding-left: 1.15rem;
+}
+.solve-hints summary {
+  cursor: pointer;
+  font-weight: 750;
+}
+.solve-example {
+  border: 1px solid var(--border);
+  padding: 12px;
+  background: var(--surface-2);
+}
+.solve-example + .solve-example {
+  margin-top: 8px;
+}
+.solve-example > div {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 8px;
+  margin: 4px 0;
+}
+.solve-example span {
+  color: var(--muted);
+  font-size: .8rem;
+}
+.solve-example p {
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: .9rem;
+}
+.solve-code-pane {
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: 42px minmax(0, 1fr) minmax(150px, 32vh);
+  background: var(--code);
+}
+.solve-editor-head,
+.solve-output-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  font-size: .82rem;
+  font-weight: 750;
+}
+.solve-editor-head .workspace-status {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.solve-run-form {
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+}
+.solve-editor {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  resize: none;
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 16px;
+  background: var(--code);
+  color: var(--text);
+  font: 500 .92rem/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  tab-size: 2;
+}
+.solve-editor:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.solve-output {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--surface);
+}
+.solve-output-head {
+  height: 36px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.solve-output .run-feedback {
+  margin: 0;
+  border: 0;
+  padding: 14px;
+}
+.solve-output .run-feedback pre {
+  max-height: none;
+}
+.start-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .solve-title > span:not(.badge),
+  .solve-read-link {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .solve-topbar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .solve-brand {
+    padding-inline: 12px;
+  }
+  .solve-title {
+    padding-inline: 10px;
+  }
+  .solve-title .badge,
+  .solve-lang,
+  .solve-actions .jupyter-link {
+    display: none;
+  }
+  .solve-actions .button {
+    min-width: 48px;
+    padding-inline: 10px;
+    font-size: .8rem;
+  }
+  .solve-workspace {
+    position: relative;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .solve-problem {
+    position: fixed;
+    z-index: 20;
+    inset: 56px 0 0;
+    width: 100%;
+    height: calc(100dvh - 56px);
+    border-right: 0;
+    background: var(--bg);
+    padding: 18px;
+  }
+  .solve-workspace.problem-hidden .solve-problem {
+    display: none;
+  }
+  .solve-code-pane {
+    grid-template-rows: 38px minmax(0, 1fr) minmax(140px, 30vh);
+  }
+  .solve-editor {
+    padding: 12px;
+    font-size: .88rem;
+  }
+  .start-actions {
+    width: 100%;
+  }
+  .start-actions .button {
+    flex: 1 1 12rem;
+  }
+}
