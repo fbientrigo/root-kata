@@ -61,7 +61,7 @@ class GitHubPagesTests(unittest.TestCase):
         self.assertFalse((ROOT / "docs" / "solve" / "cpp-root-fit-gaussian.html").exists())
 
     def test_browser_solve_pages_cover_all_supported_katas(self):
-        supported = sorted(item["id"] for item in list_exercises() if item.get("browser_wasm") == "supported")
+        supported = sorted(eid for eid in public_ids() if eid != "cpp-root-fit-gaussian")
         self.assertEqual(len(supported), 12)
         for solve_dir in (ROOT / "docs" / "solve", ROOT / "docs" / "en" / "solve"):
             pages = sorted(p.stem for p in solve_dir.glob("*.html"))
