@@ -26,6 +26,7 @@
   "harness": "harness.cpp",
   "validator": "validator.py",
   "requires": [],
+  "browser_wasm": "supported",
   "topics": ["std::vector", "range-for", "if", "accumulator"],
   "learning_goal": "Traverse a vector, make a decision for each value, and accumulate a numeric result.",
   "resources": [
