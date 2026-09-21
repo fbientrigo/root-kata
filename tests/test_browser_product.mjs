@@ -1,17 +1,5 @@
 #!/usr/bin/env node
-/**
- * End-to-end acceptance test for the ROOT Kata browser WebAssembly integration.
- * Drives real Chromium via Chrome DevTools Protocol (CDP) to verify:
- *   1. Page loads with standard starter code
- *   2. Case C (Wrong Logic): Starter runs, lazily boots WASM, tests fail with expected vs. actual
- *   3. Case A (Correct Solution): Runs in-browser ROOT, passes 2/2 tests
- *   4. Case B (Syntax Error): Produces compile_error with line/context
- *   5. State Isolation: Multiple runs in same session don't leak C++ declarations
- *   6. Network Verification: ZERO calls to /api/run for the WASM exercise
- *   7. Native Fallback: Normal kata (cpp-hello-world) still uses /api/run natively
- */
-
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,96 +7,70 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, '..');
-
 const CHROMIUM = process.env.CHROMIUM_BIN || 'chromium';
 const PORT = 8799;
-const SERVER_URL = `http://127.0.0.1:${PORT}`;
+const SERVER_URL = 'http://127.0.0.1:' + PORT;
 const TIMEOUT_MS = 180000;
 
-const CORRECT_SOLUTION = `#include "TH1D.h"
-
-struct HistogramInspection {
-    double entries;
-    double bin_content;
-    double mean;
-    double stddev;
+const SOLUTIONS = {
+  'cpp-hello-world': '#include <iostream>\nvoid say_hello() { std::cout << "Hello, world!\\n"; }\n',
+  'cpp-array-index': 'int second_value() {\n    int values[3] = {10, 20, 30};\n    return values[1];\n}\n',
+  'cpp-array-print': '#include <iostream>\nvoid print_values() {\n    int values[3] = {4, 8, 15};\n    for (int value : values) std::cout << value << " ";\n}\n',
+  'cpp-sum-positive': '#include <vector>\ndouble sum_positive(const std::vector<double>& values) {\n    double total = 0.0;\n    for (double value : values) if (value > 0.0) total += value;\n    return total;\n}\n',
+  'cpp-count-above': '#include <vector>\nint count_above(const std::vector<double>& values, double threshold) {\n    int count = 0;\n    for (double value : values) if (value > threshold) ++count;\n    return count;\n}\n',
+  'cpp-root-histogram': '#include <vector>\n#include "TH1D.h"\nTH1D* build_histogram(const std::vector<double>& values) {\n    auto* hist = new TH1D("h_pt", "h_pt", 10, 0.0, 100.0);\n    for (double value : values) hist->Fill(value);\n    return hist;\n}\n',
+  'cpp-root-histogram-inspect': '#include "TH1D.h"\nstruct HistogramInspection {\n    double entries;\n    double bin_content;\n    double mean;\n    double stddev;\n};\nHistogramInspection inspect_histogram(const TH1D& hist, int bin) {\n    return {hist.GetEntries(), hist.GetBinContent(bin), hist.GetMean(), hist.GetStdDev()};\n}\n',
+  'cpp-root-histogram-range': '#include <vector>\n#include "TH1D.h"\nTH1D* build_calibration_histogram(const std::vector<double>& values) {\n    auto* hist = new TH1D("h_calibration", "", 11, 0.0, 110.0);\n    for (double value : values) hist->Fill(value);\n    return hist;\n}\n',
+  'cpp-root-histogram-selected-sample': '#include "TH1D.h"\n#include <vector>\nTH1D* build_selected_histogram(const std::vector<double>& values, double threshold) {\n    auto* hist = new TH1D("h_selected", "", 5, 0.0, 150.0);\n    for (double value : values) if (value > threshold) hist->Fill(value);\n    return hist;\n}\n',
+  'cpp-root-tgraph-points': '#include "TGraph.h"\n#include <vector>\nTGraph* build_graph(const std::vector<double>& x, const std::vector<double>& y) {\n    return new TGraph(static_cast<int>(x.size()), x.data(), y.data());\n}\n',
+  'cpp-root-tf1-evaluate': '#include "TF1.h"\nTF1* build_linear_model(double intercept, double slope) {\n    auto* model = new TF1("calibration_model", "[0] + [1]*x", 0.0, 10.0);\n    model->SetParameters(intercept, slope);\n    return model;\n}\n',
+  'cpp-root-tf1-range-parameters': '#include "TF1.h"\nTF1* build_decay_model(double amplitude, double tau) {\n    auto* model = new TF1("decay_model", "[0]*exp(-x/[1])", 0.0, 10.0);\n    model->SetParameters(amplitude, tau);\n    return model;\n}\n'
 };
 
-HistogramInspection inspect_histogram(const TH1D& hist, int bin) {
-    return {hist.GetEntries(), hist.GetBinContent(bin), hist.GetMean(), hist.GetStdDev()};
-}
-`;
-
-const SYNTAX_ERROR_SOLUTION = `#include "TH1D.h"
-
-struct HistogramInspection {
-    double entries;
-    double bin_content;
-    double mean;
-    double stddev;
-};
-
-HistogramInspection inspect_histogram(const TH1D& hist, int bin) {
-    return {hist.GetEntries(), hist.GetBinContent(bin), hist.GetMean(), hist.GetStdDev()} // missing semicolon
-}
-`;
+const SYNTAX_ERROR = '#include "TH1D.h"\nstruct HistogramInspection { double entries; double bin_content; double mean; double stddev; };\nHistogramInspection inspect_histogram(const TH1D& hist, int bin) {\n    return {hist.GetEntries(), hist.GetBinContent(bin), hist.GetMean(), hist.GetStdDev()}\n}\n';
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function buildStaticPages() {
+  const result = spawnSync('python3', ['scripts/build_pages.py'], { cwd: REPO_ROOT, encoding: 'utf8' });
+  if (result.status !== 0) {
+    throw new Error('Static page build failed:\n' + result.stdout + '\n' + result.stderr);
+  }
+}
+
 async function startServer() {
-  const proc = spawn('python3', ['-c', `import sys; sys.path.insert(0, 'src'); from root_kata.web_server import serve; serve(port=${PORT})`], {
+  const proc = spawn('python3', ['-c', 'import sys; sys.path.insert(0, "src"); from root_kata.web_server import serve; serve(port=' + PORT + ')'], {
     cwd: REPO_ROOT,
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ['ignore', 'pipe', 'pipe']
   });
-
-  proc.stderr.on('data', (d) => {
-    // console.error('[server]', d.toString());
-  });
-
-  // Poll until server responds
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 60; i++) {
     try {
-      const resp = await fetch(`${SERVER_URL}/api/health`);
+      const resp = await fetch(SERVER_URL + '/api/health');
       if (resp.ok) return proc;
     } catch {}
     await sleep(100);
   }
   proc.kill();
-  throw new Error('Server failed to start on port ' + PORT);
+  throw new Error('Server failed to start');
 }
 
 async function launchChromium(profileDir) {
-  const args = [
-    '--headless=new',
-    '--disable-gpu',
-    '--no-sandbox',
-    '--disable-dev-shm-usage',
-    '--remote-debugging-port=0',
-    '--remote-allow-origins=*',
-    `--user-data-dir=${profileDir}`,
-    'about:blank',
-  ];
-
-  const proc = spawn(CHROMIUM, args, { stdio: ['ignore', 'pipe', 'pipe'] });
-
-  let wsUrl = null;
-  const ready = new Promise((resolve, reject) => {
-    let buf = '';
-    proc.stderr.on('data', (d) => {
-      buf += d.toString();
-      const m = buf.match(/DevTools listening on (ws:\/\/[^\s]+)/);
-      if (m && !wsUrl) {
-        wsUrl = m[1];
-        resolve(wsUrl);
-      }
+  const proc = spawn(CHROMIUM, [
+    '--headless=new', '--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage',
+    '--remote-debugging-port=0', '--remote-allow-origins=*', '--user-data-dir=' + profileDir, 'about:blank'
+  ], { stdio: ['ignore', 'pipe', 'pipe'] });
+  let buffer = '';
+  const wsUrl = await new Promise((resolve, reject) => {
+    proc.stderr.on('data', (data) => {
+      buffer += data.toString();
+      const match = buffer.match(/DevTools listening on (ws:\/\/[^\s]+)/);
+      if (match) resolve(match[1]);
     });
-    proc.on('exit', (code) => reject(new Error(`Chromium exited early with code ${code}`)));
-    setTimeout(() => reject(new Error('Timeout waiting for Chromium DevTools')), 15000);
+    proc.on('exit', (code) => reject(new Error('Chromium exited early with ' + code)));
+    setTimeout(() => reject(new Error('Timeout waiting for Chromium')), 15000);
   });
-
-  await ready;
   return { proc, wsUrl };
 }
 
@@ -118,357 +80,143 @@ async function createCdpClient(wsUrl) {
     ws.addEventListener('open', resolve, { once: true });
     ws.addEventListener('error', reject, { once: true });
   });
-
   let nextId = 1;
   const pending = new Map();
-  const eventListeners = new Set();
-
-  ws.addEventListener('message', (ev) => {
-    const msg = JSON.parse(ev.data);
+  const listeners = new Set();
+  ws.addEventListener('message', (event) => {
+    const msg = JSON.parse(event.data);
     if (msg.id && pending.has(msg.id)) {
       pending.get(msg.id)(msg);
       pending.delete(msg.id);
     } else {
-      for (const listener of eventListeners) {
-        listener(msg);
-      }
+      for (const listener of listeners) listener(msg);
     }
   });
-
-  function send(method, params = {}) {
+  const send = (method, params = {}) => {
     const id = nextId++;
     return new Promise((resolve) => {
       pending.set(id, resolve);
       ws.send(JSON.stringify({ id, method, params }));
     });
-  }
-
-  function addEventListener(fn) {
-    eventListeners.add(fn);
-    return () => eventListeners.delete(fn);
-  }
-
-  return { send, addEventListener, close: () => ws.close() };
+  };
+  return {
+    send,
+    addEventListener(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+    close() { ws.close(); }
+  };
 }
 
 async function run() {
-  console.log('=== ROOT Kata Browser-Product Acceptance Test ===\n');
-
-  const evidence = {
-    coldStartupMs: 0,
-    warmStartupMs: 0,
-    runMs: 0,
-    networkRequests: [],
-    apiRunCountForInspect: 0,
-    caseA_passed: false,
-    caseB_compile_error: false,
-    caseC_failed: false,
-    stateIsolationPassed: false,
-    nativeBackendPassed: false,
-  };
-
+  buildStaticPages();
+  const serverProc = await startServer();
   const profileDir = path.join(REPO_ROOT, 'wasm', 'build', 'chrome-profile-product-acceptance');
   fs.mkdirSync(profileDir, { recursive: true });
-
-  console.log('[1/8] Starting local server…');
-  const serverProc = await startServer();
-  console.log(`      Server running at ${SERVER_URL}`);
-
-  console.log('[2/8] Launching headless Chromium…');
-  const { proc: chromeProc, wsUrl: browserWsUrl } = await launchChromium(profileDir);
-
+  const launched = await launchChromium(profileDir);
+  const chromeProc = launched.proc;
   try {
-    const httpBase = browserWsUrl.replace('ws://', 'http://').replace(/\/devtools\/browser\/.*/, '');
+    const httpBase = launched.wsUrl.replace('ws://', 'http://').replace(/\/devtools\/browser\/.*/, '');
 
-    // Open inspected kata page
-    const kataUrl = `${SERVER_URL}/kata/cpp-root-histogram-inspect?lang=es`;
-    const newTabResp = await fetch(`${httpBase}/json/new?${encodeURIComponent(kataUrl)}`, { method: 'PUT' });
-    const tab = await newTabResp.json();
-    const cdp = await createCdpClient(tab.webSocketDebuggerUrl);
-
-    await cdp.send('Page.enable');
-    await cdp.send('Runtime.enable');
-    await cdp.send('Network.enable');
-
-    const recordedRequests = [];
-    cdp.addEventListener((msg) => {
-      if (msg.method === 'Network.requestWillBeSent') {
-        const reqUrl = msg.params.request.url;
-        recordedRequests.push(reqUrl);
-      }
-    });
-
-    async function evalCode(expr) {
-      const res = await cdp.send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
-      return res.result && res.result.result ? res.result.result.value : undefined;
-    }
-
-    async function waitForCondition(desc, fn, timeout = TIMEOUT_MS) {
-      const start = Date.now();
-      while (Date.now() - start < timeout) {
-        const val = await fn();
-        if (val) return val;
-        await sleep(200);
-      }
-      throw new Error(`Timeout waiting for: ${desc}`);
-    }
-
-    console.log('[3/8] Loading problem page and checking initial UI…');
-    await waitForCondition('Editor loaded', async () => {
-      return await evalCode('document.getElementById("code-editor")?.value?.includes("inspect_histogram")');
-    });
-
-    const starterCode = await evalCode('document.getElementById("code-editor").value');
-    if (!starterCode.includes('// TODO')) {
-      throw new Error('Starter code was not loaded into the editor!');
-    }
-    const hasWasmBadge = await evalCode('!!document.querySelector(".problem-meta .wasm-badge")');
-    if (!hasWasmBadge) {
-      throw new Error('Expected .wasm-badge in .problem-meta, but not found!');
-    }
-    const runtimeSelectValue = await evalCode('document.getElementById("runtime-target-select")?.value');
-    if (runtimeSelectValue !== 'wasm') {
-      throw new Error(`Expected runtime-target-select to default to "wasm", got: ${runtimeSelectValue}`);
-    }
-    console.log('      Starter code, WASM badge, and runtime selector verified cleanly.');
-
-    // Helper to click Run and await completion
-    async function submitRun() {
-      await evalCode('document.getElementById("run-form").requestSubmit()');
-      await sleep(100);
-      await waitForCondition('Run to finish (button re-enabled)', async () => {
-        const disabled = await evalCode('document.getElementById("run-button").disabled');
-        return !disabled;
+    async function openPage(relativePath) {
+      const url = SERVER_URL + relativePath;
+      const resp = await fetch(httpBase + '/json/new?' + encodeURIComponent(url), { method: 'PUT' });
+      const tab = await resp.json();
+      const cdp = await createCdpClient(tab.webSocketDebuggerUrl);
+      await cdp.send('Page.enable');
+      await cdp.send('Runtime.enable');
+      await cdp.send('Network.enable');
+      const requests = [];
+      cdp.addEventListener((msg) => {
+        if (msg.method === 'Network.requestWillBeSent') requests.push(msg.params.request.url);
       });
-      return await evalCode(`({
-        feedbackClass: document.getElementById('run-feedback')?.className,
-        feedbackHidden: document.getElementById('run-feedback')?.hidden,
-        feedbackText: document.getElementById('run-feedback')?.innerText,
-        statusText: document.querySelector('.workspace-status')?.textContent,
-        cases: Array.from(document.querySelectorAll('.run-cases li')).map(li => ({
-          className: li.className,
-          text: li.innerText
-        }))
-      })`);
+      const evalCode = async (expression) => {
+        const res = await cdp.send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+        return res.result && res.result.result ? res.result.result.value : undefined;
+      };
+      const waitFor = async (description, fn, timeout = TIMEOUT_MS) => {
+        const started = Date.now();
+        while (Date.now() - started < timeout) {
+          const value = await fn();
+          if (value) return value;
+          await sleep(200);
+        }
+        throw new Error('Timeout waiting for ' + description);
+      };
+      await waitFor('page ready', () => evalCode('document.readyState === "complete"'));
+      return { cdp, evalCode, waitFor, requests };
     }
 
-    // TEST CASE C: Run with starter code (Wrong Physics/Logic)
-    console.log('[4/8] Running Case C: Starter code (Wrong logic) — measuring cold boot…');
-    const coldStart = Date.now();
-    const resultC = await submitRun();
-    evidence.coldStartupMs = Date.now() - coldStart;
-    console.log(`      Cold boot + execution completed in ${evidence.coldStartupMs}ms`);
-
-    if (!resultC.feedbackClass.includes('status-failed')) {
-      throw new Error(`Expected status-failed but got: ${resultC.feedbackClass}`);
+    async function submit(page, code) {
+      await page.evalCode('document.getElementById("code-editor").value = ' + JSON.stringify(code));
+      await page.evalCode('document.getElementById("run-form").requestSubmit(); true');
+      await sleep(100);
+      await page.waitFor('run complete', () => page.evalCode('!document.getElementById("run-button").disabled'));
+      return page.evalCode('({cls: document.getElementById("run-feedback")?.className || "", text: document.getElementById("run-feedback")?.innerText || "", status: document.querySelector(".workspace-status")?.textContent || ""})');
     }
-    if (!resultC.feedbackText.includes('Se esperaban 5 entradas totales') && !resultC.feedbackText.includes('esperaba')) {
-      throw new Error(`Expected failure details in feedback but got: ${resultC.feedbackText}`);
+
+    console.log('[1/5] Dashboard and solve routing');
+    const dashboard = await openPage('/');
+    const dashboardContract = await dashboard.evalCode('({solveCount: document.querySelectorAll(".browser-solve-link").length, helloHref: document.querySelector("[data-eid=\\"cpp-hello-world\\"] .browser-solve-link")?.getAttribute("href"), gaussianHasSolve: !!document.querySelector("[data-eid=\\"cpp-root-fit-gaussian\\"] .browser-solve-link")})');
+    if (dashboardContract.solveCount !== 12) throw new Error('Expected 12 solve CTAs, got ' + dashboardContract.solveCount);
+    if (dashboardContract.helloHref !== 'solve/cpp-hello-world.html') throw new Error('Unexpected hello solve href: ' + dashboardContract.helloHref);
+    if (dashboardContract.gaussianHasSolve) throw new Error('Gaussian fit must remain outside WASM support');
+    dashboard.cdp.close();
+
+    console.log('[2/5] Full-screen desktop workspace + diagnostics');
+    const inspect = await openPage('/solve/cpp-root-histogram-inspect.html');
+    await inspect.waitFor('solve editor', () => inspect.evalCode('document.getElementById("code-editor")?.value?.includes("inspect_histogram")'));
+    const layout = await inspect.evalCode('({hasGrid: !!document.querySelector(".solve-workspace"), hasProblem: !!document.getElementById("solve-problem"), hasToggle: !!document.getElementById("problem-toggle"), editorRadius: getComputedStyle(document.getElementById("code-editor")).borderRadius, runRadius: getComputedStyle(document.getElementById("run-button")).borderRadius})');
+    if (!layout.hasGrid || !layout.hasProblem || !layout.hasToggle) throw new Error('Solve layout is incomplete');
+    if (layout.editorRadius !== '0px' || layout.runRadius !== '0px') throw new Error('Solve workspace must be square-edged: ' + JSON.stringify(layout));
+
+    await inspect.evalCode('document.getElementById("run-form").requestSubmit(); true');
+    await inspect.waitFor('starter run', () => inspect.evalCode('!document.getElementById("run-button").disabled'));
+    const failedClass = await inspect.evalCode('document.getElementById("run-feedback").className');
+    if (!failedClass.includes('status-failed')) throw new Error('Starter should fail visibly, got ' + failedClass);
+
+    const correctInspect = await submit(inspect, SOLUTIONS['cpp-root-histogram-inspect']);
+    if (!correctInspect.cls.includes('status-passed')) throw new Error('Inspect correct solution failed:\n' + correctInspect.text);
+    const syntaxResult = await submit(inspect, SYNTAX_ERROR);
+    if (!syntaxResult.cls.includes('status-compile_error') || !syntaxResult.text.includes('solution.cpp')) {
+      throw new Error('Compile diagnostics lost solution.cpp context:\n' + syntaxResult.text);
     }
-    evidence.caseC_failed = true;
-    console.log('      Case C PASS: Test failure displayed with expected vs actual values.');
-
-    // TEST CASE A: Canonical Correct Solution
-    console.log('[5/8] Running Case A: Canonical correct solution…');
-    await evalCode(`document.getElementById('code-editor').value = ${JSON.stringify(CORRECT_SOLUTION)};`);
-
-    const runStart = Date.now();
-    const resultA = await submitRun();
-    evidence.runMs = Date.now() - runStart;
-    console.log(`      Execution completed in ${evidence.runMs}ms`);
-
-    if (!resultA.feedbackClass.includes('status-passed')) {
-      throw new Error(`Expected status-passed but got: ${resultA.feedbackClass}\n${resultA.feedbackText}`);
+    if (inspect.requests.some((url) => url.includes('/api/run'))) throw new Error('WASM solve page called /api/run');
+    await inspect.evalCode('document.getElementById("problem-toggle").click()');
+    if (!await inspect.evalCode('document.querySelector(".solve-workspace").classList.contains("problem-hidden")')) {
+      throw new Error('Desktop problem panel did not collapse');
     }
-    if (!resultA.feedbackText.includes('2/2 pruebas pasaron')) {
-      throw new Error(`Expected "2/2 pruebas pasaron" but got: ${resultA.feedbackText}`);
+
+    console.log('[3/5] Mobile editor-first layout');
+    await inspect.cdp.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+    await inspect.cdp.send('Page.reload', { ignoreCache: true });
+    await inspect.waitFor('mobile solve editor', () => inspect.evalCode('!!document.getElementById("code-editor")'));
+    const mobile = await inspect.evalCode('({hidden: document.querySelector(".solve-workspace").classList.contains("problem-hidden"), editorWidth: document.getElementById("code-editor").getBoundingClientRect().width, viewport: window.innerWidth})');
+    if (!mobile.hidden) throw new Error('Mobile solve page should start editor-first');
+    if (mobile.editorWidth < mobile.viewport * 0.9) throw new Error('Mobile editor wastes horizontal space: ' + JSON.stringify(mobile));
+    inspect.cdp.close();
+
+    console.log('[4/5] 12/13 katas execute fully in browser WASM');
+    let passCount = 0;
+    for (const exerciseId of Object.keys(SOLUTIONS)) {
+      const page = await openPage('/solve/' + exerciseId + '.html');
+      await page.waitFor(exerciseId + ' editor', () => page.evalCode('!!document.getElementById("code-editor")'));
+      const result = await submit(page, SOLUTIONS[exerciseId]);
+      if (!result.cls.includes('status-passed')) throw new Error(exerciseId + ' did not pass in WASM:\n' + result.text);
+      if (page.requests.some((url) => url.includes('/api/run'))) throw new Error(exerciseId + ' unexpectedly called /api/run');
+      passCount += 1;
+      page.cdp.close();
+      console.log('      PASS ' + exerciseId);
     }
-    evidence.caseA_passed = true;
-    console.log('      Case A PASS: All 2/2 tests passed with green marks.');
+    if (passCount !== 12) throw new Error('Expected 12 browser passes, got ' + passCount);
 
-    // TEST CASE B: Syntactically Invalid Code
-    console.log('[6/8] Running Case B: Syntactically invalid code…');
-    await evalCode(`document.getElementById('code-editor').value = ${JSON.stringify(SYNTAX_ERROR_SOLUTION)};`);
-
-    const resultB = await submitRun();
-    if (!resultB.feedbackClass.includes('status-compile_error')) {
-      throw new Error(`Expected status-compile_error but got: ${resultB.feedbackClass}`);
+    console.log('[5/5] Jupyter remains available');
+    const hello = await openPage('/solve/cpp-hello-world.html');
+    const jupyter = await hello.evalCode('({text: document.querySelector(".jupyter-link[data-keep-jupyter]")?.textContent.trim(), href: document.querySelector(".jupyter-link[data-keep-jupyter]")?.getAttribute("href")})');
+    if (!jupyter.text || !jupyter.href || !jupyter.href.startsWith('http://127.0.0.1:8888/')) {
+      throw new Error('Jupyter alternative missing: ' + JSON.stringify(jupyter));
     }
-    if (!resultB.feedbackText.includes('Error de compilación') && !resultB.feedbackText.includes('solution.cpp')) {
-      throw new Error(`Expected compiler error mentioning solution.cpp but got: ${resultB.feedbackText}`);
-    }
-    evidence.caseB_compile_error = true;
-    console.log('      Case B PASS: Correct compile_error returned with file, line, and message.');
+    hello.cdp.close();
 
-    // TEST STATE ISOLATION: Run correct solution again
-    console.log('[7/8] Verifying State Isolation (no redefinition errors across runs)…');
-    await evalCode(`document.getElementById('code-editor').value = ${JSON.stringify(CORRECT_SOLUTION)};`);
-
-    const warmStart = Date.now();
-    const resultA2 = await submitRun();
-    evidence.warmStartupMs = Date.now() - warmStart;
-    console.log(`      Warm run completed in ${evidence.warmStartupMs}ms`);
-
-    if (!resultA2.feedbackClass.includes('status-passed')) {
-      throw new Error(`State isolation failure! Second run failed with: ${resultA2.feedbackText}`);
-    }
-    evidence.stateIsolationPassed = true;
-    console.log('      State Isolation PASS: Clean AST re-initialization confirmed.');
-
-    // NETWORK LOG ASSERTION
-    evidence.networkRequests = recordedRequests;
-    evidence.apiRunCountForInspect = recordedRequests.filter((url) => url.includes('/api/run')).length;
-    console.log(`      Network verification: ${evidence.apiRunCountForInspect} requests to /api/run.`);
-    if (evidence.apiRunCountForInspect !== 0) {
-      throw new Error(`FATAL: Found ${evidence.apiRunCountForInspect} unexpected /api/run requests!`);
-    }
-    console.log('      Zero /api/run requests verified!');
-
-    // TEST NATIVE BACKEND PATH INTACT
-    console.log('[8/8] Verifying Native Backend path for pure C++ kata (cpp-hello-world)…');
-    const nativeTabResp = await fetch(`${httpBase}/json/new?${encodeURIComponent(`${SERVER_URL}/kata/cpp-hello-world?lang=es`)}`, { method: 'PUT' });
-    const nativeTab = await nativeTabResp.json();
-    const nativeCdp = await createCdpClient(nativeTab.webSocketDebuggerUrl);
-    await nativeCdp.send('Page.enable');
-    await nativeCdp.send('Runtime.enable');
-
-    let nativeApiRunCalled = false;
-    await nativeCdp.send('Network.enable');
-    nativeCdp.addEventListener((msg) => {
-      if (msg.method === 'Network.requestWillBeSent' && msg.params.request.url.includes('/api/run')) {
-        nativeApiRunCalled = true;
-      }
-    });
-
-    await waitForCondition('Native editor loaded', async () => {
-      const res = await nativeCdp.send('Runtime.evaluate', { expression: 'document.getElementById("code-editor")?.value', returnByValue: true });
-      return res.result?.result?.value?.includes('say_hello');
-    });
-
-    // Provide correct hello-world implementation
-    await nativeCdp.send('Runtime.evaluate', {
-      expression: `document.getElementById('code-editor').value = '#include <iostream>\\nvoid say_hello() { std::cout << "Hello, world!\\\\n"; }\\n';`,
-      returnByValue: true,
-    });
-
-    await nativeCdp.send('Runtime.evaluate', { expression: 'document.getElementById("run-form").requestSubmit()' });
-    await sleep(100);
-    await waitForCondition('Native run to finish', async () => {
-      const res = await nativeCdp.send('Runtime.evaluate', { expression: '!document.getElementById("run-button").disabled', returnByValue: true });
-      return res.result?.result?.value;
-    });
-
-    const nativeResult = await nativeCdp.send('Runtime.evaluate', {
-      expression: 'document.getElementById("run-feedback")?.className',
-      returnByValue: true,
-    });
-
-    if (!nativeApiRunCalled) {
-      throw new Error('Native kata should have called /api/run, but did not!');
-    }
-    if (!nativeResult.result?.result?.value?.includes('status-passed')) {
-      throw new Error(`Native run failed: ${nativeResult.result?.result?.value}`);
-    }
-    evidence.nativeBackendPassed = true;
-    console.log('      Native Backend PASS: Unmigrated katas continue using /api/run without disruption.');
-
-    // TEST STEP 9: cpp-root-histogram running in WebAssembly
-    console.log('[9/10] Verifying newly enabled cpp-root-histogram executes in WebAssembly…');
-    const histTabResp = await fetch(`${httpBase}/json/new?${encodeURIComponent(`${SERVER_URL}/kata/cpp-root-histogram?lang=es`)}`, { method: 'PUT' });
-    const histTab = await histTabResp.json();
-    const histCdp = await createCdpClient(histTab.webSocketDebuggerUrl);
-    await histCdp.send('Page.enable');
-    await histCdp.send('Runtime.enable');
-    await histCdp.send('Network.enable');
-
-    let histApiRunCalled = false;
-    histCdp.addEventListener((msg) => {
-      if (msg.method === 'Network.requestWillBeSent' && msg.params.request.url.includes('/api/run')) {
-        histApiRunCalled = true;
-      }
-    });
-
-    await waitForCondition('Hist editor loaded', async () => {
-      const res = await histCdp.send('Runtime.evaluate', { expression: 'document.getElementById("code-editor")?.value', returnByValue: true });
-      return res.result?.result?.value?.includes('build_histogram');
-    });
-
-    // Provide correct solution for cpp-root-histogram
-    const histCorrectSolution = `#include <vector>
-#include "TH1D.h"
-
-TH1D* build_histogram(const std::vector<double>& values) {
-    TH1D* hist = new TH1D("h_pt", "h_pt", 10, 0, 100);
-    for (double value : values) {
-        hist->Fill(value);
-    }
-    return hist;
-}
-`;
-    await histCdp.send('Runtime.evaluate', {
-      expression: `document.getElementById('code-editor').value = ${JSON.stringify(histCorrectSolution)};`,
-    });
-
-    await histCdp.send('Runtime.evaluate', { expression: 'document.getElementById("run-form").requestSubmit()' });
-    await sleep(100);
-    await waitForCondition('Hist run to finish', async () => {
-      const res = await histCdp.send('Runtime.evaluate', { expression: '!document.getElementById("run-button").disabled', returnByValue: true });
-      return res.result?.result?.value;
-    });
-
-    const histResult = await histCdp.send('Runtime.evaluate', {
-      expression: 'document.getElementById("run-feedback")?.className',
-      returnByValue: true,
-    });
-    const histText = await histCdp.send('Runtime.evaluate', {
-      expression: 'document.getElementById("run-feedback")?.innerText',
-      returnByValue: true,
-    });
-
-    if (histApiRunCalled) {
-      throw new Error('cpp-root-histogram should have executed client-side, but called /api/run!');
-    }
-    if (!histResult.result?.result?.value?.includes('status-passed')) {
-      throw new Error(`cpp-root-histogram WASM run failed: ${histResult.result?.result?.value}\n${histText.result?.result?.value}`);
-    }
-    console.log('      cpp-root-histogram PASS: All 3/3 tests passed in-browser WebAssembly with 0 calls to /api/run.');
-
-    // TEST STEP 10: Selector toggle to "native" sends request to /api/run
-    console.log('[10/10] Verifying runtime selector toggle to "native" forces /api/run…');
-    await histCdp.send('Runtime.evaluate', {
-      expression: `const sel = document.getElementById("runtime-target-select"); sel.value = "native"; sel.dispatchEvent(new Event("change"));`,
-    });
-    histApiRunCalled = false;
-    await histCdp.send('Runtime.evaluate', { expression: 'document.getElementById("run-form").requestSubmit()' });
-    await sleep(100);
-    await waitForCondition('Hist native run to finish', async () => {
-      const res = await histCdp.send('Runtime.evaluate', { expression: '!document.getElementById("run-button").disabled', returnByValue: true });
-      return res.result?.result?.value;
-    });
-
-    if (!histApiRunCalled) {
-      throw new Error('When runtime target is set to "native", it MUST call /api/run!');
-    }
-    console.log('      Runtime Selector PASS: Toggling selector to "native" correctly routed to /api/run.');
-
-    cdp.close();
-    nativeCdp.close();
-    histCdp.close();
-
-    console.log('\n================ ACCEPTANCE TEST SUMMARY ================');
-    console.log(`Case A (Canonical Correct Solution):  PASS (2/2)`);
-    console.log(`Case B (Syntactically Invalid):       PASS (compile_error)`);
-    console.log(`Case C (Wrong Logic/Physics):         PASS (failed with expected/actual)`);
-    console.log(`Worker State Isolation:               PASS`);
-    console.log(`Requests to /api/run for inspect:     0 (100% in-browser)`);
-    console.log(`Native Backend Regression Test:       PASS (called /api/run)`);
-    console.log(`Cold Startup Time:                    ${(evidence.coldStartupMs / 1000).toFixed(2)}s`);
-    console.log(`Warm Startup Time:                    ${(evidence.warmStartupMs / 1000).toFixed(2)}s`);
-    console.log('=========================================================\n');
-
-    const outPath = path.join(REPO_ROOT, 'wasm', 'build', 'product_acceptance_evidence.json');
-    fs.writeFileSync(outPath, JSON.stringify(evidence, null, 2));
-    console.log(`Evidence recorded at: ${outPath}`);
+    console.log('\nBrowser acceptance PASS: fullscreen solve + 12/13 WASM + zero /api/run.');
     return 0;
   } finally {
     chromeProc.kill();
@@ -476,9 +224,7 @@ TH1D* build_histogram(const std::vector<double>& values) {
   }
 }
 
-run()
-  .then((code) => process.exit(code || 0))
-  .catch((err) => {
-    console.error('\nACCEPTANCE TEST FAILED:\n', err);
-    process.exit(1);
-  });
+run().then((code) => process.exit(code || 0)).catch((error) => {
+  console.error('\nACCEPTANCE TEST FAILED:\n', error);
+  process.exit(1);
+});

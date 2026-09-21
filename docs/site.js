@@ -9,6 +9,8 @@
       practiceHere: 'Practicar aquí',
       localTitle: 'Servidor local activo',
       localBody: 'Abre un kata y edita el código directamente en esta página.',
+      showProblem: 'Mostrar problema',
+      hideProblem: 'Ocultar problema',
     },
     en: {
       copied: 'Kata command copied. Paste it into a Jupyter cell.',
@@ -18,6 +20,8 @@
       practiceHere: 'Practice here',
       localTitle: 'Local server active',
       localBody: 'Open a kata and edit the code directly on this page.',
+      showProblem: 'Show problem',
+      hideProblem: 'Hide problem',
     },
   };
   const msg = MESSAGES[lang] || MESSAGES.es;
@@ -121,14 +125,14 @@
   const exerciseIdForLink = (link) => {
     const fromRow = link.closest('[data-eid]')?.dataset.eid;
     if (fromRow) return fromRow;
-    const fromPath = location.pathname.match(/\/problems\/([\w-]+)\.html$/)?.[1];
+    const fromPath = location.pathname.match(/\/(?:problems|solve)\/([\w-]+)\.html$/)?.[1];
     if (fromPath) return fromPath;
     return link.dataset.command?.match(/rk\.start\(["']([\w-]+)["']\)/)?.[1] || '';
   };
 
   const enableLocalWorkspace = () => {
     if (!isLocalServe()) return;
-    document.querySelectorAll('.jupyter-link').forEach((link) => {
+    document.querySelectorAll('.jupyter-link:not([data-keep-jupyter])').forEach((link) => {
       const eid = exerciseIdForLink(link);
       if (!eid) return;
       link.href = `/kata/${encodeURIComponent(eid)}?lang=${encodeURIComponent(lang)}`;
@@ -146,6 +150,23 @@
       span.textContent = msg.localBody;
       note.replaceChildren(strong, span);
     }
+  };
+
+  const setupSolveProblemToggle = () => {
+    const workspace = document.querySelector('.solve-workspace');
+    const toggle = document.getElementById('problem-toggle');
+    if (!workspace || !toggle) return;
+
+    const showLabel = toggle.dataset.showLabel || msg.showProblem;
+    const hideLabel = toggle.dataset.hideLabel || msg.hideProblem;
+    const setHidden = (hidden) => {
+      workspace.classList.toggle('problem-hidden', hidden);
+      toggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+      toggle.textContent = hidden ? showLabel : hideLabel;
+    };
+
+    setHidden(window.matchMedia('(max-width: 760px)').matches);
+    toggle.addEventListener('click', () => setHidden(!workspace.classList.contains('problem-hidden')));
   };
 
   const setupWorkspaceRun = () => {
@@ -259,7 +280,7 @@
             lang,
             onStatusChange: (engineStatus) => {
               if (engineStatus === 'booting') {
-                status.textContent = lang === 'es' ? 'Cargando compilador y ROOT…' : 'Loading compiler and ROOT…';
+                status.textContent = lang === 'es' ? 'Cargando compilador…' : 'Loading compiler…';
               } else if (engineStatus === 'running') {
                 status.textContent = lang === 'es' ? 'Ejecutando en WebAssembly…' : 'Running in WebAssembly…';
               }
@@ -290,6 +311,7 @@
   renderProgress();
   renderDifficultyFilter();
   enableLocalWorkspace();
+  setupSolveProblemToggle();
   setupWorkspaceRun();
 
   document.querySelectorAll('.jupyter-link').forEach((link) => {

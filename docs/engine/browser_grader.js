@@ -45,6 +45,26 @@ const UI_STRINGS = {
 };
 
 const EXERCISE_I18N = {
+  'cpp-hello-world': {
+    es: { cases: { 'prints something': 'imprime algo', 'exact output': 'salida exacta' }, messages: { 'Unexpected value': 'Valor inesperado' } },
+    en: { cases: { 'prints something': 'prints something', 'exact output': 'exact output' }, messages: { 'Unexpected value': 'Unexpected value' } },
+  },
+  'cpp-array-print': {
+    es: { cases: { 'value count': 'cantidad de valores', 'first value': 'primer valor', 'second value': 'segundo valor', 'third value': 'tercer valor' }, messages: { 'Unexpected value': 'Valor inesperado' } },
+    en: { cases: { 'value count': 'value count', 'first value': 'first value', 'second value': 'second value', 'third value': 'third value' }, messages: { 'Unexpected value': 'Unexpected value' } },
+  },
+  'cpp-array-index': {
+    es: { cases: { 'second value': 'segundo valor' }, messages: { 'Unexpected value': 'Valor inesperado' } },
+    en: { cases: { 'second value': 'second value' }, messages: { 'Unexpected value': 'Unexpected value' } },
+  },
+  'cpp-count-above': {
+    es: { cases: { 'mixed values': 'valores mixtos', 'strict boundary': 'frontera estricta', 'empty input': 'entrada vacía', 'negative threshold': 'umbral negativo' }, messages: { 'Unexpected value': 'Valor inesperado' } },
+    en: { cases: { 'mixed values': 'mixed values', 'strict boundary': 'strict boundary', 'empty input': 'empty input', 'negative threshold': 'negative threshold' }, messages: { 'Unexpected value': 'Unexpected value' } },
+  },
+  'cpp-sum-positive': {
+    es: { cases: { 'mixed signs': 'signos mixtos', 'all non-positive': 'todos no positivos', 'empty input': 'entrada vacía', 'floats': 'decimales' }, messages: { 'Unexpected value': 'Valor inesperado' } },
+    en: { cases: { 'mixed signs': 'mixed signs', 'all non-positive': 'all non-positive', 'empty input': 'empty input', 'floats': 'floats' }, messages: { 'Unexpected value': 'Unexpected value' } },
+  },
   'cpp-root-histogram': {
     es: {
       cases: {
@@ -319,6 +339,56 @@ function buildGradingResult(cases, lang = 'es') {
   };
 }
 
+function gradeExact(exerciseId, r, lang, specs) {
+  const mkCase = createCaseBuilder(exerciseId, lang);
+  const cases = specs.map(([key, expected, close = false]) => mkCase(key, (fail) => {
+    const actual = r[key];
+    const passed = close
+      ? isClose(Number(actual), Number(expected))
+      : actual === expected;
+    if (!passed) fail('Unexpected value', expected, actual);
+  }));
+  return buildGradingResult(cases, lang);
+}
+
+function gradeHelloWorld(r, lang) {
+  return gradeExact('cpp-hello-world', r, lang, [
+    ['prints something', true],
+    ['exact output', true],
+  ]);
+}
+
+function gradeArrayPrint(r, lang) {
+  return gradeExact('cpp-array-print', r, lang, [
+    ['value count', 3],
+    ['first value', 4],
+    ['second value', 8],
+    ['third value', 15],
+  ]);
+}
+
+function gradeArrayIndex(r, lang) {
+  return gradeExact('cpp-array-index', r, lang, [['second value', 20]]);
+}
+
+function gradeCountAbove(r, lang) {
+  return gradeExact('cpp-count-above', r, lang, [
+    ['mixed values', 1],
+    ['strict boundary', 1],
+    ['empty input', 0],
+    ['negative threshold', 2],
+  ]);
+}
+
+function gradeSumPositive(r, lang) {
+  return gradeExact('cpp-sum-positive', r, lang, [
+    ['mixed signs', 8, true],
+    ['all non-positive', 0, true],
+    ['empty input', 0, true],
+    ['floats', 3.75, true],
+  ]);
+}
+
 // 1. cpp-root-histogram
 function gradeHistogram(r, lang) {
   const mkCase = createCaseBuilder('cpp-root-histogram', lang);
@@ -578,6 +648,11 @@ function gradeTf1RangeParameters(r, lang) {
 }
 
 const GRADERS = {
+  'cpp-hello-world': gradeHelloWorld,
+  'cpp-array-print': gradeArrayPrint,
+  'cpp-array-index': gradeArrayIndex,
+  'cpp-count-above': gradeCountAbove,
+  'cpp-sum-positive': gradeSumPositive,
   'cpp-root-histogram': gradeHistogram,
   'cpp-root-histogram-inspect': gradeHistogramInspect,
   'cpp-root-histogram-range': gradeHistogramRange,

@@ -25,6 +25,7 @@
   "harness": "harness.cpp",
   "validator": "validator.py",
   "requires": [],
+  "browser_wasm": "supported",
   "topics": ["C++ array", "index []", "return"],
   "learning_goal": "Read a value from a fixed-size C++ array using an index.",
   "resources": [

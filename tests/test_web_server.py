@@ -128,8 +128,8 @@ class ReadOnlyApiTests(unittest.TestCase):
         self.assertIn('id="runtime-target-select"', inspect_markup)
 
         hello_markup = self.get_html("/kata/cpp-hello-world")
-        self.assertIn('data-browser-wasm="native"', hello_markup)
-        self.assertNotIn('id="runtime-target-select"', hello_markup)
+        self.assertIn('data-browser-wasm="supported"', hello_markup)
+        self.assertIn('id="runtime-target-select"', hello_markup)
 
         fit_markup = self.get_html("/kata/cpp-root-fit-gaussian")
         self.assertIn('data-browser-wasm="blocked"', fit_markup)
