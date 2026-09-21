@@ -6,22 +6,20 @@
       badges: { first_kata: 'Primer kata', first_root_histogram: 'Primer histograma ROOT', basics_complete: 'Fundamentos completados' },
       completed: 'Completado',
       showing: (visible, total) => `${visible} de ${total} ejercicios`,
-      practiceHere: 'Practicar aquí',
-      localTitle: 'Servidor local activo',
-      localBody: 'Abre un kata y edita el código directamente en esta página.',
       showProblem: 'Mostrar problema',
       hideProblem: 'Ocultar problema',
+      showOutput: 'Mostrar salida',
+      hideOutput: 'Ocultar salida',
     },
     en: {
       copied: 'Kata command copied. Paste it into a Jupyter cell.',
       badges: { first_kata: 'First Kata', first_root_histogram: 'First ROOT Histogram', basics_complete: 'Basics Complete' },
       completed: 'Completed',
       showing: (visible, total) => `${visible} of ${total} exercises`,
-      practiceHere: 'Practice here',
-      localTitle: 'Local server active',
-      localBody: 'Open a kata and edit the code directly on this page.',
       showProblem: 'Show problem',
       hideProblem: 'Hide problem',
+      showOutput: 'Show output',
+      hideOutput: 'Hide output',
     },
   };
   const msg = MESSAGES[lang] || MESSAGES.es;
@@ -119,36 +117,25 @@
     apply();
   };
 
-  const isLocalServe = () =>
-    location.protocol === 'http:' && ['127.0.0.1', 'localhost', '::1'].includes(location.hostname);
+  const setupJupyterOptIn = () => {
+    const params = new URLSearchParams(location.search);
+    let enabled = false;
+    try {
+      if (params.get('jupyter') === '1') localStorage.setItem('root-kata:jupyter-enabled', '1');
+      if (params.get('jupyter') === '0') localStorage.removeItem('root-kata:jupyter-enabled');
+      enabled = localStorage.getItem('root-kata:jupyter-enabled') === '1';
+    } catch {
+      enabled = params.get('jupyter') === '1';
+    }
 
-  const exerciseIdForLink = (link) => {
-    const fromRow = link.closest('[data-eid]')?.dataset.eid;
-    if (fromRow) return fromRow;
-    const fromPath = location.pathname.match(/\/(?:problems|solve)\/([\w-]+)\.html$/)?.[1];
-    if (fromPath) return fromPath;
-    return link.dataset.command?.match(/rk\.start\(["']([\w-]+)["']\)/)?.[1] || '';
-  };
-
-  const enableLocalWorkspace = () => {
-    if (!isLocalServe()) return;
-    document.querySelectorAll('.jupyter-link:not([data-keep-jupyter])').forEach((link) => {
-      const eid = exerciseIdForLink(link);
-      if (!eid) return;
-      link.href = `/kata/${encodeURIComponent(eid)}?lang=${encodeURIComponent(lang)}`;
-      link.removeAttribute('target');
-      link.removeAttribute('rel');
-      link.textContent = msg.practiceHere;
-      link.classList.add('local-workspace-link');
+    document.querySelectorAll('.jupyter-opt-in').forEach((element) => {
+      element.hidden = !enabled;
     });
 
-    const note = document.querySelector('.local-note');
-    if (note) {
-      const strong = document.createElement('strong');
-      const span = document.createElement('span');
-      strong.textContent = msg.localTitle;
-      span.textContent = msg.localBody;
-      note.replaceChildren(strong, span);
+    if (params.has('jupyter')) {
+      params.delete('jupyter');
+      const query = params.toString();
+      history.replaceState(null, '', location.pathname + (query ? '?' + query : '') + location.hash);
     }
   };
 
@@ -167,6 +154,59 @@
 
     setHidden(window.matchMedia('(max-width: 760px)').matches);
     toggle.addEventListener('click', () => setHidden(!workspace.classList.contains('problem-hidden')));
+  };
+
+  const setupSolveOutputPane = () => {
+    const pane = document.querySelector('.solve-code-pane');
+    const output = document.getElementById('solve-output');
+    const resizer = document.getElementById('output-resizer');
+    const toggle = document.getElementById('output-toggle');
+    if (!pane || !output || !resizer || !toggle) return;
+
+    const showLabel = toggle.dataset.showLabel || msg.showOutput;
+    const hideLabel = toggle.dataset.hideLabel || msg.hideOutput;
+
+    const setHidden = (hidden) => {
+      pane.classList.toggle('output-hidden', hidden);
+      toggle.setAttribute('aria-expanded', hidden ? 'false' : 'true');
+      toggle.textContent = hidden ? showLabel : hideLabel;
+    };
+
+    const setHeight = (height) => {
+      const min = 120;
+      const max = Math.max(min, pane.clientHeight - 168);
+      const clamped = Math.min(max, Math.max(min, height));
+      pane.style.setProperty('--output-height', clamped + 'px');
+    };
+
+    const resizeFromY = (clientY) => {
+      const rect = pane.getBoundingClientRect();
+      setHeight(rect.bottom - clientY);
+    };
+
+    resizer.addEventListener('pointerdown', (event) => {
+      if (pane.classList.contains('output-hidden')) return;
+      event.preventDefault();
+      resizer.setPointerCapture?.(event.pointerId);
+      const move = (moveEvent) => resizeFromY(moveEvent.clientY);
+      const stop = () => {
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', stop);
+      };
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', stop, {once: true});
+    });
+
+    resizer.addEventListener('keydown', (event) => {
+      if (!['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+      event.preventDefault();
+      const current = output.getBoundingClientRect().height || 200;
+      setHeight(current + (event.key === 'ArrowUp' ? 24 : -24));
+    });
+
+    toggle.addEventListener('click', () => {
+      setHidden(!pane.classList.contains('output-hidden'));
+    });
   };
 
   const setupWorkspaceRun = () => {
@@ -307,11 +347,12 @@
     });
   };
 
+  setupJupyterOptIn();
   absorbParams();
   renderProgress();
   renderDifficultyFilter();
-  enableLocalWorkspace();
   setupSolveProblemToggle();
+  setupSolveOutputPane();
   setupWorkspaceRun();
 
   document.querySelectorAll('.jupyter-link').forEach((link) => {

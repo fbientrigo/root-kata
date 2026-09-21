@@ -28,9 +28,10 @@ class GitHubPagesTests(unittest.TestCase):
         self.assertTrue((ROOT / "docs" / "index.html").is_file())
         html_es = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
         html_en = (ROOT / "docs" / "en" / "index.html").read_text(encoding="utf-8")
-        expected_actions = len(public_ids()) + 1
-        self.assertEqual(html_es.count("Abrir en Jupyter"), expected_actions)
-        self.assertEqual(html_en.count("Open in Jupyter"), expected_actions)
+        self.assertEqual(html_es.count('jupyter-link jupyter-opt-in" hidden'), len(public_ids()))
+        self.assertEqual(html_en.count('jupyter-link jupyter-opt-in" hidden'), len(public_ids()))
+        self.assertIn('class="local-note jupyter-opt-in" hidden', html_es)
+        self.assertIn('class="local-note jupyter-opt-in" hidden', html_en)
         self.assertNotIn("/api/", html_es)
         self.assertIn('lang="es"', html_es)
         self.assertIn('lang="en"', html_en)
@@ -55,6 +56,10 @@ class GitHubPagesTests(unittest.TestCase):
         self.assertIn('id="code-editor"', solve)
         self.assertIn('id="run-button"', solve)
         self.assertIn('id="problem-toggle"', solve)
+        self.assertIn('id="output-toggle"', solve)
+        self.assertIn('id="output-resizer"', solve)
+        self.assertIn('id="solve-output"', solve)
+        self.assertIn('jupyter-link jupyter-opt-in" hidden', solve)
 
         blocked = (ROOT / "docs" / "problems" / "cpp-root-fit-gaussian.html").read_text(encoding="utf-8")
         self.assertNotIn('browser-solve-link', blocked)
@@ -82,9 +87,10 @@ class GitHubPagesTests(unittest.TestCase):
         self.assertIn("Hello, world", en)
         self.assertIn("Introductory", en)
 
-    def test_open_in_jupyter_targets_the_exact_generated_notebook(self):
+    def test_jupyter_fallback_is_generated_but_hidden_by_default(self):
         markup = (ROOT / "docs" / "problems" / "cpp-hello-world.html").read_text(encoding="utf-8")
         self.assertIn("http://127.0.0.1:8888/lab/tree/notebooks/cpp-hello-world.ipynb", markup)
+        self.assertIn('jupyter-link jupyter-opt-in" hidden', markup)
 
     def test_language_switcher_keeps_the_same_page(self):
         es = (ROOT / "docs" / "problems" / "cpp-sum-positive.html").read_text(encoding="utf-8")
@@ -140,12 +146,23 @@ class DashboardTests(unittest.TestCase):
         self.assertIn("root-kata:solved", js)
         self.assertIn("root-kata:badges", js)
 
-    def test_local_server_retargets_primary_actions_to_workspace(self):
+    def test_jupyter_fallback_requires_explicit_opt_in(self):
         js = (ROOT / "docs" / "site.js").read_text(encoding="utf-8")
-        self.assertIn("enableLocalWorkspace", js)
-        self.assertIn("isLocalServe", js)
-        self.assertIn("/kata/", js)
-        self.assertIn("local-workspace-link", js)
+        self.assertIn("setupJupyterOptIn", js)
+        self.assertIn("root-kata:jupyter-enabled", js)
+        self.assertIn("params.get('jupyter') === '1'", js)
+        self.assertIn("params.get('jupyter') === '0'", js)
+        self.assertNotIn("enableLocalWorkspace", js)
+
+    def test_output_pane_is_resizable_and_hideable(self):
+        js = (ROOT / "docs" / "site.js").read_text(encoding="utf-8")
+        css = (ROOT / "docs" / "styles.css").read_text(encoding="utf-8")
+        self.assertIn("setupSolveOutputPane", js)
+        self.assertIn("setPointerCapture", js)
+        self.assertIn("ArrowUp", js)
+        self.assertIn("--output-height", css)
+        self.assertIn(".solve-code-pane.output-hidden", css)
+        self.assertIn(".solve-output-resizer", css)
 
     def test_workspace_editor_keyboard_shortcuts_are_wired(self):
         js = (ROOT / "docs" / "site.js").read_text(encoding="utf-8")

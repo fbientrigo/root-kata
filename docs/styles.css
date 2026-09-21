@@ -359,11 +359,19 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
   font-size: .9rem;
 }
 .solve-code-pane {
+  --output-height: 32vh;
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: 42px minmax(0, 1fr) minmax(150px, 32vh);
+  grid-template-rows: 42px minmax(0, 1fr) 6px var(--output-height);
   background: var(--code);
+}
+.solve-code-pane.output-hidden {
+  grid-template-rows: 42px minmax(0, 1fr) 0 0;
+}
+.solve-code-pane.output-hidden .solve-output,
+.solve-code-pane.output-hidden .solve-output-resizer {
+  display: none;
 }
 .solve-editor-head,
 .solve-output-head {
@@ -377,6 +385,12 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
   font-size: .82rem;
   font-weight: 750;
 }
+.solve-editor-actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .solve-editor-head .workspace-status {
   margin: 0;
   color: var(--muted);
@@ -384,6 +398,21 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.pane-toggle {
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  min-height: 42px;
+  padding: 0 10px;
+  font: inherit;
+  font-weight: 750;
+  cursor: pointer;
+}
+.pane-toggle:hover,
+.pane-toggle:focus-visible {
+  color: var(--text);
 }
 .solve-run-form {
   min-width: 0;
@@ -408,6 +437,19 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
 .solve-editor:focus {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
+}
+.solve-output-resizer {
+  min-height: 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+  cursor: row-resize;
+  touch-action: none;
+}
+.solve-output-resizer:hover,
+.solve-output-resizer:focus-visible {
+  background: var(--border);
+  outline: none;
 }
 .solve-output {
   min-width: 0;
@@ -481,7 +523,15 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
     display: none;
   }
   .solve-code-pane {
-    grid-template-rows: 38px minmax(0, 1fr) minmax(140px, 30vh);
+    --output-height: 30vh;
+    grid-template-rows: 38px minmax(0, 1fr) 6px var(--output-height);
+  }
+  .solve-code-pane.output-hidden {
+    grid-template-rows: 38px minmax(0, 1fr) 0 0;
+  }
+  .pane-toggle {
+    min-height: 38px;
+    padding-inline: 8px;
   }
   .solve-editor {
     padding: 12px;
