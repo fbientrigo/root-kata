@@ -27,6 +27,74 @@ inline int done(){std::fflush(stdout);std::printf("\\n{%s}\\n",_buf().c_str());s
 `;
 
 const HARNESSES = {
+  'cpp-hello-world': `
+#include <iostream>
+#include <sstream>
+
+int main() {
+    std::ostringstream captured;
+    auto* previous = std::cout.rdbuf(captured.rdbuf());
+    say_hello();
+    std::cout.rdbuf(previous);
+
+    const std::string output = captured.str();
+    rk::emit("prints something", !output.empty());
+    rk::emit("exact output", output == "Hello, world!\\n");
+    return rk::done();
+}
+`,
+  'cpp-array-print': `
+#include <iostream>
+#include <sstream>
+
+int main() {
+    std::ostringstream captured;
+    auto* previous = std::cout.rdbuf(captured.rdbuf());
+    print_values();
+    std::cout.rdbuf(previous);
+
+    std::istringstream input(captured.str());
+    int value = 0;
+    int count = 0;
+    int first = 0, second = 0, third = 0;
+    while (input >> value) {
+        if (count == 0) first = value;
+        if (count == 1) second = value;
+        if (count == 2) third = value;
+        ++count;
+    }
+
+    rk::emit("value count", count);
+    rk::emit("first value", first);
+    rk::emit("second value", second);
+    rk::emit("third value", third);
+    return rk::done();
+}
+`,
+  'cpp-array-index': `
+int main() {
+    rk::emit("second value", second_value());
+    return rk::done();
+}
+`,
+  'cpp-count-above': `
+int main() {
+    rk::emit("mixed values", count_above({20.0, 35.0, 50.0, 35.0}, 35.0));
+    rk::emit("strict boundary", count_above({5.0, 5.0, 5.1}, 5.0));
+    rk::emit("empty input", count_above({}, 10.0));
+    rk::emit("negative threshold", count_above({-3.0, -1.0, 0.0, 2.0}, -1.0));
+    return rk::done();
+}
+`,
+  'cpp-sum-positive': `
+int main() {
+    rk::emit("mixed signs", sum_positive({-2, 3, 0, 5}));
+    rk::emit("all non-positive", sum_positive({-5, -1, 0}));
+    rk::emit("empty input", sum_positive({}));
+    rk::emit("floats", sum_positive({1.5, -8.0, 2.25}));
+    return rk::done();
+}
+`,
   'cpp-root-histogram': `
 #include "TH1D.h"
 #include "TROOT.h"
