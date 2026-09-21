@@ -25,6 +25,7 @@
   "harness": "harness.cpp",
   "validator": "validator.py",
   "requires": [],
+  "browser_wasm": "supported",
   "topics": ["C++ array", "std::cout", "iteration"],
   "learning_goal": "Connect stored values in an array with visible program output.",
   "resources": [
