@@ -42,16 +42,30 @@ class GitHubPagesTests(unittest.TestCase):
         self.assertIn("https://root.cern.ch/doc/master/classTH1.html", markup)
         self.assertIn('rk.start(&quot;cpp-root-histogram&quot;)', markup)
 
-    def test_supported_root_problem_embeds_browser_workspace(self):
-        markup = (ROOT / "docs" / "problems" / "cpp-root-histogram.html").read_text(encoding="utf-8")
-        self.assertIn('data-browser-wasm="supported"', markup)
-        self.assertIn('data-exercise-id="cpp-root-histogram"', markup)
-        self.assertIn('id="code-editor"', markup)
-        self.assertIn('id="run-button"', markup)
-        self.assertIn('class="badge wasm-badge">WASM</span>', markup)
+    def test_supported_problem_links_to_dedicated_browser_workspace(self):
+        problem = (ROOT / "docs" / "problems" / "cpp-root-histogram.html").read_text(encoding="utf-8")
+        self.assertIn('href="../solve/cpp-root-histogram.html"', problem)
+        self.assertIn('class="badge wasm-badge">WASM</span>', problem)
+        self.assertNotIn('id="code-editor"', problem)
+
+        solve = (ROOT / "docs" / "solve" / "cpp-root-histogram.html").read_text(encoding="utf-8")
+        self.assertIn('data-browser-wasm="supported"', solve)
+        self.assertIn('data-exercise-id="cpp-root-histogram"', solve)
+        self.assertIn('class="solve-workspace workspace-grid"', solve)
+        self.assertIn('id="code-editor"', solve)
+        self.assertIn('id="run-button"', solve)
+        self.assertIn('id="problem-toggle"', solve)
 
         blocked = (ROOT / "docs" / "problems" / "cpp-root-fit-gaussian.html").read_text(encoding="utf-8")
-        self.assertNotIn('id="code-editor"', blocked)
+        self.assertNotIn('browser-solve-link', blocked)
+        self.assertFalse((ROOT / "docs" / "solve" / "cpp-root-fit-gaussian.html").exists())
+
+    def test_browser_solve_pages_cover_all_supported_katas(self):
+        supported = sorted(item["id"] for item in list_exercises() if item.get("browser_wasm") == "supported")
+        self.assertEqual(len(supported), 12)
+        for solve_dir in (ROOT / "docs" / "solve", ROOT / "docs" / "en" / "solve"):
+            pages = sorted(p.stem for p in solve_dir.glob("*.html"))
+            self.assertEqual(pages, supported)
 
     def test_browser_engine_paths_are_project_site_safe(self):
         site = (ROOT / "docs" / "site.js").read_text(encoding="utf-8")
