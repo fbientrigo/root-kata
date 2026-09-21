@@ -26,6 +26,7 @@
   "harness": "harness.cpp",
   "validator": "validator.py",
   "requires": [],
+  "browser_wasm": "supported",
   "topics": ["std::vector", "function arguments", "strict comparison", "selection"],
   "learning_goal": "Translate a numerical selection into a precise C++ condition and count the values that survive it.",
   "resources": [
