@@ -17,7 +17,7 @@ DOCS = ROOT / "docs"
 
 UI = {
     "es": {
-        "tagline": "práctica corta de C++/ROOT en Jupyter",
+        "tagline": "práctica corta de C++/ROOT en el navegador",
         "all_katas": "← Todos los katas",
         "open_in_jupyter": "Abrir en Jupyter",
         "browser_practice": "Practica aquí en el navegador",
@@ -26,6 +26,9 @@ UI = {
         "show_problem": "Mostrar problema",
         "solution_file": "solution.cpp",
         "tests_output": "Pruebas y salida",
+        "hide_output": "Ocultar salida",
+        "show_output": "Mostrar salida",
+        "resize_output": "Redimensionar panel de salida",
         "code": "Código",
         "edit_help": "Edita la función y ejecuta las pruebas sin salir de esta página.",
         "run": "Ejecutar",
@@ -40,8 +43,8 @@ UI = {
         "practices": "Qué practicas",
         "references": "Referencias",
         "implement": "Implementa",
-        "start_title": "Empieza en Jupyter",
-        "start_help": "Abre tu Jupyter local y pega el comando de abajo. El botón intenta copiarlo.",
+        "start_title": "Entorno de resolución",
+        "start_help": "Resuelve este kata directamente en el navegador cuando WASM está disponible.",
         "easy": "Fácil",
         "introductory": "Introductorio",
         "intermediate": "Intermedio",
@@ -63,7 +66,7 @@ UI = {
         "footer": "Prototipo educativo no oficial · sin cuentas · corre en tu máquina",
     },
     "en": {
-        "tagline": "short C++/ROOT practice in Jupyter",
+        "tagline": "short C++/ROOT practice in the browser",
         "all_katas": "← All katas",
         "open_in_jupyter": "Open in Jupyter",
         "browser_practice": "Practice here in the browser",
@@ -72,6 +75,9 @@ UI = {
         "show_problem": "Show problem",
         "solution_file": "solution.cpp",
         "tests_output": "Tests and output",
+        "hide_output": "Hide output",
+        "show_output": "Show output",
+        "resize_output": "Resize output panel",
         "code": "Code",
         "edit_help": "Edit the function and run the tests without leaving this page.",
         "run": "Run",
@@ -86,8 +92,8 @@ UI = {
         "practices": "What this practices",
         "references": "References",
         "implement": "Implement",
-        "start_title": "Start in Jupyter",
-        "start_help": "Open your local Jupyter and paste the command below. The button tries to copy it for you.",
+        "start_title": "Solve environment",
+        "start_help": "Solve this kata directly in the browser when WASM is available.",
         "easy": "Easy",
         "introductory": "Introductory",
         "intermediate": "Intermediate",
@@ -203,7 +209,7 @@ def kata_row(meta_view: dict, lang: str) -> str:
     eid = meta_view["id"]
     ui = UI[lang]
     wasm_badge = '<span class="badge wasm-badge">WASM</span>' if meta_view.get("browser_wasm") == "supported" else ""
-    solve_action = (f'<a class="button secondary browser-solve-link" href="solve/{esc(eid)}.html">{esc(ui["solve_browser"])}</a>'
+    solve_action = (f'<a class="button primary browser-solve-link" href="solve/{esc(eid)}.html">{esc(ui["solve_browser"])}</a>'
                     if meta_view.get("browser_wasm") == "supported" else "")
     return f'''
       <article class="kata-row" data-eid="{esc(eid)}" data-difficulty="{esc(meta_view['difficulty_key'])}" data-browser-wasm="{esc(meta_view.get('browser_wasm', 'native'))}">
@@ -216,7 +222,7 @@ def kata_row(meta_view: dict, lang: str) -> str:
         </div>
         <div class="row-actions">
           {solve_action}
-          <a class="button primary jupyter-link" href="{esc(notebook_url(eid))}" target="_blank" rel="noopener" data-command="{esc(jupyter_command(eid))}">{esc(ui['open_in_jupyter'])}</a>
+          <a class="button secondary jupyter-link jupyter-opt-in" hidden href="{esc(notebook_url(eid))}" target="_blank" rel="noopener" data-command="{esc(jupyter_command(eid))}">{esc(ui['open_in_jupyter'])}</a>
           <a class="button secondary problem-link" href="problems/{esc(eid)}.html">{esc(ui['view_problem'])}</a>
           <span class="completed-label" hidden>{esc(ui['completed'])}</span>
         </div>
@@ -266,7 +272,7 @@ def build_index(exercises: list[tuple[dict, Path]], lang: str) -> None:
       {rows}
     </section>
 
-    <aside class="local-note">{ui["local_note"]}</aside>
+    <aside class="local-note jupyter-opt-in" hidden>{ui["local_note"]}</aside>
   </main>'''
     target = DOCS / page_prefix if lang != "es" else DOCS
     target.mkdir(parents=True, exist_ok=True)
@@ -384,7 +390,7 @@ def build_solve(meta: dict, directory: Path, lang: str) -> None:
     <div class="solve-actions">
       <a class="solve-lang" href="{switch_href}" hreflang="{"en" if lang == "es" else "es"}">{other}</a>
       <a class="button secondary solve-read-link" href="{problem_href}">{esc(ui["read_problem"])}</a>
-      <a class="button secondary jupyter-link" data-keep-jupyter="true" href="{esc(notebook_url(eid))}" target="_blank" rel="noopener" data-command="{esc(command)}">{esc(ui["open_in_jupyter"])}</a>
+      <a class="button secondary jupyter-link jupyter-opt-in" hidden data-keep-jupyter="true" href="{esc(notebook_url(eid))}" target="_blank" rel="noopener" data-command="{esc(command)}">{esc(ui["open_in_jupyter"])}</a>
       <button id="problem-toggle" class="button secondary" type="button" aria-controls="solve-problem" aria-expanded="true"
               data-show-label="{esc(ui["show_problem"])}" data-hide-label="{esc(ui["hide_problem"])}">{esc(ui["hide_problem"])}</button>
       <button id="run-button" class="button primary" type="submit" form="run-form">{esc(ui["run"])}</button>
@@ -414,13 +420,19 @@ def build_solve(meta: dict, directory: Path, lang: str) -> None:
     <section class="solve-code-pane" aria-label="{esc(ui["code"])}">
       <div class="solve-editor-head">
         <span>{esc(ui["solution_file"])}</span>
-        <span class="workspace-status" role="status">{esc(ui["not_running"])}</span>
+        <div class="solve-editor-actions">
+          <span class="workspace-status" role="status">{esc(ui["not_running"])}</span>
+          <button id="output-toggle" class="pane-toggle" type="button" aria-controls="solve-output" aria-expanded="true"
+                  data-show-label="{esc(ui["show_output"])}" data-hide-label="{esc(ui["hide_output"])}">{esc(ui["hide_output"])}</button>
+        </div>
       </div>
       <form id="run-form" class="solve-run-form">
         <label class="visually-hidden" for="code-editor">{esc(ui["code"])}</label>
         <textarea id="code-editor" class="code-editor solve-editor" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off">{esc(source)}</textarea>
       </form>
-      <section class="solve-output" aria-labelledby="run-feedback-title">
+      <div id="output-resizer" class="solve-output-resizer" role="separator" tabindex="0"
+           aria-orientation="horizontal" aria-controls="solve-output" aria-label="{esc(ui["resize_output"])}"></div>
+      <section id="solve-output" class="solve-output" aria-labelledby="run-feedback-title">
         <div class="solve-output-head">{esc(ui["tests_output"])}</div>
         <section id="run-feedback" class="run-feedback" aria-live="polite" aria-labelledby="run-feedback-title" hidden>
           <h2 id="run-feedback-title">{esc(ui["feedback"])}</h2>
@@ -466,7 +478,7 @@ def build_problem(meta: dict, directory: Path, lang: str) -> None:
     command = jupyter_command(eid)
     wasm_badge = '<span class="badge wasm-badge">WASM</span>' if v.get("browser_wasm") == "supported" else ""
     workspace = ""
-    solve_action = (f'<a class="button secondary large browser-solve-link" href="../solve/{esc(eid)}.html">{esc(ui["solve_browser"])}</a>'
+    solve_action = (f'<a class="button primary large browser-solve-link" href="../solve/{esc(eid)}.html">{esc(ui["solve_browser"])}</a>'
                     if v.get("browser_wasm") == "supported" else "")
     body = f'''
   <main class="problem-layout">
@@ -520,7 +532,7 @@ def build_problem(meta: dict, directory: Path, lang: str) -> None:
         </div>
         <div class="start-actions">
           {solve_action}
-          <a class="button primary large jupyter-link" href="{esc(notebook_url(eid))}" target="_blank" rel="noopener" data-command="{esc(command)}">{esc(ui['open_in_jupyter'])}</a>
+          <a class="button secondary large jupyter-link jupyter-opt-in" hidden href="{esc(notebook_url(eid))}" target="_blank" rel="noopener" data-command="{esc(command)}">{esc(ui['open_in_jupyter'])}</a>
         </div>
       </section>
     </article>
