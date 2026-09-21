@@ -13,7 +13,7 @@ const SERVER_URL = 'http://127.0.0.1:' + PORT;
 const TIMEOUT_MS = 180000;
 
 const SOLUTIONS = {
-  'cpp-hello-world': '#include <iostream>\nvoid say_hello() { std::cout << "Hello, world!\\\\n"; }\n',
+  'cpp-hello-world': '#include <iostream>\nvoid say_hello() { std::cout << "Hello, world!\\n"; }\n',
   'cpp-array-index': 'int second_value() {\n    int values[3] = {10, 20, 30};\n    return values[1];\n}\n',
   'cpp-array-print': '#include <iostream>\nvoid print_values() {\n    int values[3] = {4, 8, 15};\n    for (int value : values) std::cout << value << " ";\n}\n',
   'cpp-sum-positive': '#include <vector>\ndouble sum_positive(const std::vector<double>& values) {\n    double total = 0.0;\n    for (double value : values) if (value > 0.0) total += value;\n    return total;\n}\n',
