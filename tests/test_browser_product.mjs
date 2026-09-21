@@ -155,17 +155,19 @@ async function run() {
 
     console.log('[1/5] Dashboard and solve routing');
     const dashboard = await openPage('/');
-    const dashboardContract = await dashboard.evalCode('({solveCount: document.querySelectorAll(".browser-solve-link").length, helloHref: document.querySelector("[data-eid=\\"cpp-hello-world\\"] .browser-solve-link")?.getAttribute("href"), gaussianHasSolve: !!document.querySelector("[data-eid=\\"cpp-root-fit-gaussian\\"] .browser-solve-link")})');
+    const dashboardContract = await dashboard.evalCode('({solveCount: document.querySelectorAll(".browser-solve-link").length, helloHref: document.querySelector("[data-eid=\\"cpp-hello-world\\"] .browser-solve-link")?.getAttribute("href"), gaussianHasSolve: !!document.querySelector("[data-eid=\\"cpp-root-fit-gaussian\\"] .browser-solve-link"), visibleJupyter: document.querySelectorAll(".jupyter-opt-in:not([hidden])").length})');
     if (dashboardContract.solveCount !== 12) throw new Error('Expected 12 solve CTAs, got ' + dashboardContract.solveCount);
     if (dashboardContract.helloHref !== 'solve/cpp-hello-world.html') throw new Error('Unexpected hello solve href: ' + dashboardContract.helloHref);
     if (dashboardContract.gaussianHasSolve) throw new Error('Gaussian fit must remain outside WASM support');
+    if (dashboardContract.visibleJupyter !== 0) throw new Error('Jupyter must be hidden by default');
     dashboard.cdp.close();
 
     console.log('[2/5] Full-screen desktop workspace + diagnostics');
     const inspect = await openPage('/solve/cpp-root-histogram-inspect.html');
     await inspect.waitFor('solve editor', () => inspect.evalCode('document.getElementById("code-editor")?.value?.includes("inspect_histogram")'));
-    const layout = await inspect.evalCode('({hasGrid: !!document.querySelector(".solve-workspace"), hasProblem: !!document.getElementById("solve-problem"), hasToggle: !!document.getElementById("problem-toggle"), editorRadius: getComputedStyle(document.getElementById("code-editor")).borderRadius, runRadius: getComputedStyle(document.getElementById("run-button")).borderRadius})');
-    if (!layout.hasGrid || !layout.hasProblem || !layout.hasToggle) throw new Error('Solve layout is incomplete');
+    const layout = await inspect.evalCode('({hasGrid: !!document.querySelector(".solve-workspace"), hasProblem: !!document.getElementById("solve-problem"), hasToggle: !!document.getElementById("problem-toggle"), hasOutputToggle: !!document.getElementById("output-toggle"), hasOutputResizer: !!document.getElementById("output-resizer"), jupyterHidden: document.querySelector(".jupyter-opt-in")?.hidden === true, editorRadius: getComputedStyle(document.getElementById("code-editor")).borderRadius, runRadius: getComputedStyle(document.getElementById("run-button")).borderRadius})');
+    if (!layout.hasGrid || !layout.hasProblem || !layout.hasToggle || !layout.hasOutputToggle || !layout.hasOutputResizer) throw new Error('Solve layout is incomplete');
+    if (!layout.jupyterHidden) throw new Error('Jupyter should be hidden on solve page by default');
     if (layout.editorRadius !== '0px' || layout.runRadius !== '0px') throw new Error('Solve workspace must be square-edged: ' + JSON.stringify(layout));
 
     await inspect.evalCode('document.getElementById("run-form").requestSubmit(); true');
@@ -180,6 +182,18 @@ async function run() {
       throw new Error('Compile diagnostics lost solution.cpp context:\n' + syntaxResult.text);
     }
     if (inspect.requests.some((url) => url.includes('/api/run'))) throw new Error('WASM solve page called /api/run');
+
+    const splitBefore = await inspect.evalCode('document.getElementById("solve-output").getBoundingClientRect().height');
+    await inspect.evalCode('document.getElementById("output-resizer").dispatchEvent(new KeyboardEvent("keydown", {key:"ArrowUp", bubbles:true})); true');
+    const splitAfter = await inspect.evalCode('document.getElementById("solve-output").getBoundingClientRect().height');
+    if (splitAfter <= splitBefore) throw new Error('Output separator did not resize the grid');
+
+    await inspect.evalCode('document.getElementById("output-toggle").click()');
+    if (!await inspect.evalCode('document.querySelector(".solve-code-pane").classList.contains("output-hidden")')) {
+      throw new Error('Output pane did not hide');
+    }
+    await inspect.evalCode('document.getElementById("output-toggle").click()');
+
     await inspect.evalCode('document.getElementById("problem-toggle").click()');
     if (!await inspect.evalCode('document.querySelector(".solve-workspace").classList.contains("problem-hidden")')) {
       throw new Error('Desktop problem panel did not collapse');
@@ -208,13 +222,18 @@ async function run() {
     }
     if (passCount !== 12) throw new Error('Expected 12 browser passes, got ' + passCount);
 
-    console.log('[5/5] Jupyter remains available');
-    const hello = await openPage('/solve/cpp-hello-world.html');
-    const jupyter = await hello.evalCode('({text: document.querySelector(".jupyter-link[data-keep-jupyter]")?.textContent.trim(), href: document.querySelector(".jupyter-link[data-keep-jupyter]")?.getAttribute("href")})');
-    if (!jupyter.text || !jupyter.href || !jupyter.href.startsWith('http://127.0.0.1:8888/')) {
-      throw new Error('Jupyter alternative missing: ' + JSON.stringify(jupyter));
+    console.log('[5/5] Jupyter is opt-in and persistent');
+    const helloDefault = await openPage('/solve/cpp-hello-world.html?jupyter=0');
+    const hiddenDefault = await helloDefault.evalCode('document.querySelector(".jupyter-opt-in")?.hidden === true');
+    if (!hiddenDefault) throw new Error('Jupyter should be hidden after explicit disable');
+    helloDefault.cdp.close();
+
+    const helloOptIn = await openPage('/solve/cpp-hello-world.html?jupyter=1');
+    const jupyter = await helloOptIn.evalCode('({hidden: document.querySelector(".jupyter-link[data-keep-jupyter]")?.hidden, text: document.querySelector(".jupyter-link[data-keep-jupyter]")?.textContent.trim(), href: document.querySelector(".jupyter-link[data-keep-jupyter]")?.getAttribute("href")})');
+    if (jupyter.hidden || !jupyter.text || !jupyter.href || !jupyter.href.startsWith('http://127.0.0.1:8888/')) {
+      throw new Error('Jupyter opt-in failed: ' + JSON.stringify(jupyter));
     }
-    hello.cdp.close();
+    helloOptIn.cdp.close();
 
     console.log('\nBrowser acceptance PASS: fullscreen solve + 12/13 WASM + zero /api/run.');
     return 0;
