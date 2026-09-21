@@ -21,6 +21,11 @@ UI = {
         "all_katas": "← Todos los katas",
         "open_in_jupyter": "Abrir en Jupyter",
         "browser_practice": "Practica aquí en el navegador",
+        "solve_browser": "Resolver en navegador",
+        "hide_problem": "Ocultar problema",
+        "show_problem": "Mostrar problema",
+        "solution_file": "solution.cpp",
+        "tests_output": "Pruebas y salida",
         "code": "Código",
         "edit_help": "Edita la función y ejecuta las pruebas sin salir de esta página.",
         "run": "Ejecutar",
@@ -62,6 +67,11 @@ UI = {
         "all_katas": "← All katas",
         "open_in_jupyter": "Open in Jupyter",
         "browser_practice": "Practice here in the browser",
+        "solve_browser": "Solve in browser",
+        "hide_problem": "Hide problem",
+        "show_problem": "Show problem",
+        "solution_file": "solution.cpp",
+        "tests_output": "Tests and output",
         "code": "Code",
         "edit_help": "Edit the function and run the tests without leaving this page.",
         "run": "Run",
@@ -120,7 +130,7 @@ def view(meta: dict, lang: str) -> dict:
     out = dict(meta)
     overlay = meta.get(lang)
     if lang != "en" and isinstance(overlay, dict):
-        for field in ("title", "track", "difficulty", "summary", "description", "topics", "learning_goal"):
+        for field in ("title", "track", "difficulty", "summary", "description", "topics", "learning_goal", "hints"):
             if field in overlay:
                 out[field] = overlay[field]
         if "requirements" in overlay:
@@ -193,6 +203,8 @@ def kata_row(meta_view: dict, lang: str) -> str:
     eid = meta_view["id"]
     ui = UI[lang]
     wasm_badge = '<span class="badge wasm-badge">WASM</span>' if meta_view.get("browser_wasm") == "supported" else ""
+    solve_action = (f'<a class="button secondary browser-solve-link" href="solve/{esc(eid)}.html">{esc(ui["solve_browser"])}</a>'
+                    if meta_view.get("browser_wasm") == "supported" else "")
     return f'''
       <article class="kata-row" data-eid="{esc(eid)}" data-difficulty="{esc(meta_view['difficulty_key'])}" data-browser-wasm="{esc(meta_view.get('browser_wasm', 'native'))}">
         <div class="row-status"><span class="status-icon" aria-hidden="true">○</span><span class="visually-hidden status-label"></span></div>
@@ -203,6 +215,7 @@ def kata_row(meta_view: dict, lang: str) -> str:
           <div class="chips">{chips(meta_view.get('topics', []))}</div>
         </div>
         <div class="row-actions">
+          {solve_action}
           <a class="button primary jupyter-link" href="{esc(notebook_url(eid))}" target="_blank" rel="noopener" data-command="{esc(jupyter_command(eid))}">{esc(ui['open_in_jupyter'])}</a>
           <a class="button secondary problem-link" href="problems/{esc(eid)}.html">{esc(ui['view_problem'])}</a>
           <span class="completed-label" hidden>{esc(ui['completed'])}</span>
@@ -303,6 +316,131 @@ def browser_workspace(meta: dict, directory: Path, lang: str) -> str:
       </section>"""
 
 
+
+def solve_shell(
+    *,
+    lang: str,
+    title: str,
+    body: str,
+    description: str,
+    asset_prefix: str,
+) -> str:
+    return f'''<!doctype html>
+<html lang="{lang}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="{esc(description)}">
+  <title>{esc(title)} · ROOT Kata</title>
+  <link rel="stylesheet" href="{asset_prefix}styles.css">
+</head>
+<body class="solve-body">
+  {body}
+  <script src="{asset_prefix}site.js" defer></script>
+</body>
+</html>
+'''
+
+
+def build_solve(meta: dict, directory: Path, lang: str) -> None:
+    if meta.get("browser_wasm") != "supported":
+        return
+
+    eid = meta["id"]
+    ui = UI[lang]
+    v = view(meta, lang)
+    asset_prefix = "../" if lang == "es" else "../../"
+    target = DOCS / ("solve" if lang == "es" else "en/solve")
+    target.mkdir(parents=True, exist_ok=True)
+
+    source = (directory / meta.get("starter", "solution.cpp")).read_text(encoding="utf-8")
+    requirements = "".join(f"<li>{esc(x)}</li>" for x in v.get("requirements", []))
+    hints = "".join(f"<li>{esc(x)}</li>" for x in v.get("hints", []))
+    examples = []
+    for item in v.get("examples", []):
+        explanation = f'<p>{esc(item["explanation"])}</p>' if item.get("explanation") else ""
+        examples.append(f'''
+          <div class="solve-example">
+            <div><span>{esc(ui["input"])}</span><code>{esc(item.get("input", ""))}</code></div>
+            <div><span>{esc(ui["output"])}</span><code>{esc(item.get("output", ""))}</code></div>
+            {explanation}
+          </div>''')
+
+    runtime = "ROOT + C++" if v.get("requires") else "C++17"
+    home_href = "../index.html"
+    problem_href = f"../problems/{eid}.html"
+    switch_href = f"../en/solve/{eid}.html" if lang == "es" else f"../../solve/{eid}.html"
+    other = "EN" if lang == "es" else "ES"
+    command = jupyter_command(eid)
+
+    body = f'''
+  <header class="solve-topbar">
+    <a class="solve-brand" href="{home_href}" aria-label="ROOT Kata">ROOT Kata</a>
+    <div class="solve-title">
+      <strong>{esc(v["title"])}</strong>
+      <span>{esc(runtime)}</span>
+      <span class="badge wasm-badge">WASM</span>
+    </div>
+    <div class="solve-actions">
+      <a class="solve-lang" href="{switch_href}" hreflang="{"en" if lang == "es" else "es"}">{other}</a>
+      <a class="button secondary solve-read-link" href="{problem_href}">{esc(ui["read_problem"])}</a>
+      <a class="button secondary jupyter-link" data-keep-jupyter="true" href="{esc(notebook_url(eid))}" target="_blank" rel="noopener" data-command="{esc(command)}">{esc(ui["open_in_jupyter"])}</a>
+      <button id="problem-toggle" class="button secondary" type="button" aria-controls="solve-problem" aria-expanded="true"
+              data-show-label="{esc(ui["show_problem"])}" data-hide-label="{esc(ui["hide_problem"])}">{esc(ui["hide_problem"])}</button>
+      <button id="run-button" class="button primary" type="submit" form="run-form">{esc(ui["run"])}</button>
+    </div>
+  </header>
+  <main class="solve-workspace workspace-grid" data-exercise-id="{esc(eid)}" data-browser-wasm="supported">
+    <aside id="solve-problem" class="solve-problem" aria-labelledby="solve-problem-title">
+      <div class="solve-problem-head">
+        <a class="back-link" href="{home_href}">{esc(ui["all_katas"])}</a>
+        <div class="problem-meta">
+          <span class="difficulty">{esc(v["difficulty_label"])}</span>
+          <span>{esc(ui["minutes"].format(n=v.get("estimated_minutes", "?")))}</span>
+        </div>
+        <h1 id="solve-problem-title">{esc(v["title"])}</h1>
+        <p class="lead">{esc(v["summary"])}</p>
+      </div>
+      <section>
+        <h2>{esc(ui["problem"])}</h2>
+        <p>{esc(v["description"])}</p>
+        <div class="contract"><span>{esc(ui["implement"])}</span><code>{esc(v["entrypoint"])}(…)</code></div>
+      </section>
+      {('<section><h2>' + esc(ui["example"]) + '</h2>' + ''.join(examples) + '</section>') if examples else ''}
+      {('<section><h2>' + esc(ui["requirements"]) + '</h2><ul>' + requirements + '</ul></section>') if requirements else ''}
+      {('<details class="solve-hints"><summary>' + ('Pistas' if lang == 'es' else 'Hints') + '</summary><ul>' + hints + '</ul></details>') if hints else ''}
+    </aside>
+
+    <section class="solve-code-pane" aria-label="{esc(ui["code"])}">
+      <div class="solve-editor-head">
+        <span>{esc(ui["solution_file"])}</span>
+        <span class="workspace-status" role="status">{esc(ui["not_running"])}</span>
+      </div>
+      <form id="run-form" class="solve-run-form">
+        <label class="visually-hidden" for="code-editor">{esc(ui["code"])}</label>
+        <textarea id="code-editor" class="code-editor solve-editor" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off">{esc(source)}</textarea>
+      </form>
+      <section class="solve-output" aria-labelledby="run-feedback-title">
+        <div class="solve-output-head">{esc(ui["tests_output"])}</div>
+        <section id="run-feedback" class="run-feedback" aria-live="polite" aria-labelledby="run-feedback-title" hidden>
+          <h2 id="run-feedback-title">{esc(ui["feedback"])}</h2>
+        </section>
+      </section>
+    </section>
+  </main>'''
+
+    (target / f"{eid}.html").write_text(
+        solve_shell(
+            lang=lang,
+            title=v["title"],
+            body=body,
+            description=v["summary"],
+            asset_prefix=asset_prefix,
+        ),
+        encoding="utf-8",
+    )
+
+
 def build_problem(meta: dict, directory: Path, lang: str) -> None:
     eid = meta["id"]
     ui = UI[lang]
@@ -327,7 +465,9 @@ def build_problem(meta: dict, directory: Path, lang: str) -> None:
     runtime = "ROOT + C++" if v.get("requires") else "C++17"
     command = jupyter_command(eid)
     wasm_badge = '<span class="badge wasm-badge">WASM</span>' if v.get("browser_wasm") == "supported" else ""
-    workspace = browser_workspace(meta, directory, lang)
+    workspace = ""
+    solve_action = (f'<a class="button secondary large browser-solve-link" href="../solve/{esc(eid)}.html">{esc(ui["solve_browser"])}</a>'
+                    if v.get("browser_wasm") == "supported" else "")
     body = f'''
   <main class="problem-layout">
     <a class="back-link" href="{home_href}">{esc(ui["all_katas"])}</a>
@@ -378,7 +518,10 @@ def build_problem(meta: dict, directory: Path, lang: str) -> None:
           <p>{esc(ui["start_help"])}</p>
           <pre><code>{esc(command)}</code></pre>
         </div>
-        <a class="button primary large jupyter-link" href="{esc(notebook_url(eid))}" target="_blank" rel="noopener" data-command="{esc(command)}">{esc(ui['open_in_jupyter'])}</a>
+        <div class="start-actions">
+          {solve_action}
+          <a class="button primary large jupyter-link" href="{esc(notebook_url(eid))}" target="_blank" rel="noopener" data-command="{esc(command)}">{esc(ui['open_in_jupyter'])}</a>
+        </div>
       </section>
     </article>
   </main>'''
@@ -403,7 +546,7 @@ def build_problem(meta: dict, directory: Path, lang: str) -> None:
 
 
 def main() -> None:
-    for stale_dir in (DOCS / "problems", DOCS / "en"):
+    for stale_dir in (DOCS / "problems", DOCS / "solve", DOCS / "en"):
         if stale_dir.exists():
             shutil.rmtree(stale_dir)
     exercises = load_exercises()
@@ -411,6 +554,7 @@ def main() -> None:
         build_index(exercises, lang)
         for meta, directory in exercises:
             build_problem(meta, directory, lang)
+            build_solve(meta, directory, lang)
     print(f"Built {len(exercises)} public katas in ES + EN under {DOCS}")
 
 
