@@ -146,7 +146,7 @@ async function run() {
     }
 
     async function submit(page, code) {
-      await page.evalCode('document.getElementById("code-editor").value = ' + JSON.stringify(code));
+      await page.evalCode('(() => { const editor = document.getElementById("code-editor"); editor.value = ' + JSON.stringify(code) + '; editor.dispatchEvent(new Event("input", {bubbles:true})); return true; })()');
       await page.evalCode('document.getElementById("run-form").requestSubmit(); true');
       await sleep(100);
       await page.waitFor('run complete', () => page.evalCode('!document.getElementById("run-button").disabled'));
@@ -165,6 +165,10 @@ async function run() {
     console.log('[2/5] Full-screen desktop workspace + diagnostics');
     const inspect = await openPage('/solve/cpp-root-histogram-inspect.html');
     await inspect.waitFor('solve editor', () => inspect.evalCode('document.getElementById("code-editor")?.value?.includes("inspect_histogram")'));
+    await inspect.waitFor('Prism C++ highlighting', () => inspect.evalCode('document.querySelector(".syntax-editor-shell.syntax-highlighted") && document.querySelector("#code-highlight .token.keyword") && document.querySelector("#code-highlight .token.root-api")'));
+    const highlighting = await inspect.evalCode('({root: document.querySelector("#code-highlight .token.root-api")?.textContent, sourceMatches: document.querySelector("#code-highlight code")?.textContent === document.getElementById("code-editor")?.value})');
+    if (highlighting.root !== 'TH1D' || !highlighting.sourceMatches) throw new Error('Prism/ROOT highlighting is not synchronized: ' + JSON.stringify(highlighting));
+
     const layout = await inspect.evalCode('({hasGrid: !!document.querySelector(".solve-workspace"), hasProblem: !!document.getElementById("solve-problem"), hasToggle: !!document.getElementById("problem-toggle"), hasOutputToggle: !!document.getElementById("output-toggle"), hasOutputResizer: !!document.getElementById("output-resizer"), jupyterHidden: document.querySelector(".jupyter-opt-in")?.hidden === true, editorRadius: getComputedStyle(document.getElementById("code-editor")).borderRadius, runRadius: getComputedStyle(document.getElementById("run-button")).borderRadius})');
     if (!layout.hasGrid || !layout.hasProblem || !layout.hasToggle || !layout.hasOutputToggle || !layout.hasOutputResizer) throw new Error('Solve layout is incomplete');
     if (!layout.jupyterHidden) throw new Error('Jupyter should be hidden on solve page by default');
@@ -177,11 +181,18 @@ async function run() {
 
     const correctInspect = await submit(inspect, SOLUTIONS['cpp-root-histogram-inspect']);
     if (!correctInspect.cls.includes('status-passed')) throw new Error('Inspect correct solution failed:\n' + correctInspect.text);
+    await inspect.waitFor('highlight update after edit', () => inspect.evalCode('document.querySelector("#code-highlight code")?.textContent === document.getElementById("code-editor")?.value'));
     const syntaxResult = await submit(inspect, SYNTAX_ERROR);
     if (!syntaxResult.cls.includes('status-compile_error') || !syntaxResult.text.includes('solution.cpp')) {
       throw new Error('Compile diagnostics lost solution.cpp context:\n' + syntaxResult.text);
     }
     if (inspect.requests.some((url) => url.includes('/api/run'))) throw new Error('WASM solve page called /api/run');
+
+    await inspect.evalCode('(() => { const editor = document.getElementById("code-editor"); editor.focus(); editor.setSelectionRange(5, 5); return editor.selectionStart; })()');
+    await inspect.cdp.send('Input.dispatchKeyEvent', {type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39, nativeVirtualKeyCode: 39});
+    await inspect.cdp.send('Input.dispatchKeyEvent', {type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39, nativeVirtualKeyCode: 39});
+    const caretAfterArrow = await inspect.evalCode('document.getElementById("code-editor").selectionStart');
+    if (caretAfterArrow !== 6) throw new Error('Editor arrow key was intercepted; caret is ' + caretAfterArrow);
 
     const splitBefore = await inspect.evalCode('document.getElementById("solve-output").getBoundingClientRect().height');
     await inspect.evalCode('document.getElementById("output-resizer").dispatchEvent(new KeyboardEvent("keydown", {key:"ArrowUp", bubbles:true})); true');
