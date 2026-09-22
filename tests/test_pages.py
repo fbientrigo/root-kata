@@ -59,6 +59,11 @@ class GitHubPagesTests(unittest.TestCase):
         self.assertIn('id="output-toggle"', solve)
         self.assertIn('id="output-resizer"', solve)
         self.assertIn('id="solve-output"', solve)
+        self.assertIn('class="syntax-editor-shell"', solve)
+        self.assertIn('id="code-highlight"', solve)
+        self.assertIn('vendor/prism/prism-core.min.js', solve)
+        self.assertIn('vendor/prism/prism-cpp.min.js', solve)
+        self.assertIn('editor_highlight.js', solve)
         self.assertIn('jupyter-link jupyter-opt-in" hidden', solve)
 
         blocked = (ROOT / "docs" / "problems" / "cpp-root-fit-gaussian.html").read_text(encoding="utf-8")
@@ -71,6 +76,29 @@ class GitHubPagesTests(unittest.TestCase):
         for solve_dir in (ROOT / "docs" / "solve", ROOT / "docs" / "en" / "solve"):
             pages = sorted(p.stem for p in solve_dir.glob("*.html"))
             self.assertEqual(pages, supported)
+
+    def test_prism_cpp_assets_are_vendored_and_solve_only(self):
+        for relative in (
+            "docs/vendor/prism/prism-core.min.js",
+            "docs/vendor/prism/prism-clike.min.js",
+            "docs/vendor/prism/prism-c.min.js",
+            "docs/vendor/prism/prism-cpp.min.js",
+            "docs/vendor/prism/LICENSE",
+            "docs/editor_highlight.js",
+        ):
+            self.assertTrue((ROOT / relative).is_file(), relative)
+
+        solve = (ROOT / "docs" / "solve" / "cpp-root-histogram.html").read_text(encoding="utf-8")
+        dashboard = (ROOT / "docs" / "index.html").read_text(encoding="utf-8")
+        self.assertIn("prism-core.min.js", solve)
+        self.assertIn("prism-cpp.min.js", solve)
+        self.assertNotIn("prism-core.min.js", dashboard)
+
+        highlighter = (ROOT / "docs" / "editor_highlight.js").read_text(encoding="utf-8")
+        self.assertIn("Prism", highlighter)
+        self.assertIn("root-type", highlighter)
+        self.assertIn("T[A-Z]", highlighter)
+        self.assertIn("requestAnimationFrame", highlighter)
 
     def test_browser_engine_paths_are_project_site_safe(self):
         site = (ROOT / "docs" / "site.js").read_text(encoding="utf-8")
