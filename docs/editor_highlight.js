@@ -30,7 +30,6 @@
   const render = () => {
     renderPending = false;
     code.innerHTML = prism.highlight(editor.value, prism.languages.cpp, 'cpp');
-    if (editor.value.endsWith('\n')) code.insertAdjacentText('beforeend', ' ');
     syncScroll();
   };
 
