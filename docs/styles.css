@@ -10,6 +10,13 @@
   --accent-text: light-dark(#ffffff, #0d1632);
   --ok: light-dark(#147a4b, #6fd5a5);
   --code: light-dark(#eef1f5, #11141a);
+  --syntax-comment: light-dark(#5f6f7d, #8f9baa);
+  --syntax-keyword: light-dark(#6f2dbd, #c792ea);
+  --syntax-string: light-dark(#086c54, #8bd5ca);
+  --syntax-number: light-dark(#9a4900, #f5a97f);
+  --syntax-function: light-dark(#005cad, #82aaff);
+  --syntax-type: light-dark(#00677a, #7dcfff);
+  --syntax-root: light-dark(#8a3f0a, #ffb86c);
 }
 * { box-sizing: border-box; }
 html { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
@@ -419,24 +426,93 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
   min-height: 0;
   margin: 0;
 }
-.solve-editor {
+.syntax-editor-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--code);
+  border-bottom: 1px solid var(--border);
+}
+.solve-editor,
+.code-highlight {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   min-height: 0;
-  resize: none;
   margin: 0;
   border: 0;
-  border-bottom: 1px solid var(--border);
   padding: 16px;
-  background: var(--code);
-  color: var(--text);
   font: 500 .92rem/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   tab-size: 2;
+  white-space: pre;
+}
+.solve-editor {
+  z-index: 1;
+  resize: none;
+  overflow: auto;
+  background: var(--code);
+  color: var(--text);
+}
+.code-highlight {
+  z-index: 0;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--code);
+  color: var(--text);
+}
+.code-highlight code {
+  font: inherit;
+  white-space: inherit;
+}
+.syntax-editor-shell.syntax-highlighted .code-highlight {
+  display: block;
+}
+.syntax-editor-shell.syntax-highlighted .solve-editor {
+  background: transparent;
+  color: transparent;
+  caret-color: var(--text);
 }
 .solve-editor:focus {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
+}
+.token.comment,
+.token.prolog {
+  color: var(--syntax-comment);
+  font-style: italic;
+}
+.token.keyword,
+.token.boolean,
+.token.directive {
+  color: var(--syntax-keyword);
+}
+.token.string,
+.token.char {
+  color: var(--syntax-string);
+}
+.token.number,
+.token.constant {
+  color: var(--syntax-number);
+}
+.token.function,
+.token.generic-function {
+  color: var(--syntax-function);
+}
+.token.class-name {
+  color: var(--syntax-type);
+}
+.token.root-api {
+  color: var(--syntax-root);
+  font-weight: 750;
+}
+.token.operator,
+.token.punctuation {
+  color: var(--muted);
 }
 .solve-output-resizer {
   min-height: 0;
@@ -533,7 +609,8 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
     min-height: 38px;
     padding-inline: 8px;
   }
-  .solve-editor {
+  .solve-editor,
+  .code-highlight {
     padding: 12px;
     font-size: .88rem;
   }
@@ -542,5 +619,16 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
   }
   .start-actions .button {
     flex: 1 1 12rem;
+  }
+}
+
+@media (forced-colors: active) {
+  .syntax-editor-shell.syntax-highlighted .code-highlight {
+    display: none;
+  }
+  .syntax-editor-shell.syntax-highlighted .solve-editor {
+    background: Canvas;
+    color: CanvasText;
+    caret-color: CanvasText;
   }
 }

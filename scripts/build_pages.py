@@ -342,7 +342,12 @@ def solve_shell(
 </head>
 <body class="solve-body">
   {body}
+  <script src="{asset_prefix}vendor/prism/prism-core.min.js" defer></script>
+  <script src="{asset_prefix}vendor/prism/prism-clike.min.js" defer></script>
+  <script src="{asset_prefix}vendor/prism/prism-c.min.js" defer></script>
+  <script src="{asset_prefix}vendor/prism/prism-cpp.min.js" defer></script>
   <script src="{asset_prefix}site.js" defer></script>
+  <script src="{asset_prefix}editor_highlight.js" defer></script>
 </body>
 </html>
 '''
@@ -428,7 +433,10 @@ def build_solve(meta: dict, directory: Path, lang: str) -> None:
       </div>
       <form id="run-form" class="solve-run-form">
         <label class="visually-hidden" for="code-editor">{esc(ui["code"])}</label>
-        <textarea id="code-editor" class="code-editor solve-editor" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off">{esc(source)}</textarea>
+        <div class="syntax-editor-shell">
+          <pre id="code-highlight" class="code-highlight language-cpp" aria-hidden="true"><code class="language-cpp"></code></pre>
+          <textarea id="code-editor" class="code-editor solve-editor" spellcheck="false" autocapitalize="off" autocomplete="off" wrap="off">{esc(source)}</textarea>
+        </div>
       </form>
       <div id="output-resizer" class="solve-output-resizer" role="separator" tabindex="0"
            aria-orientation="horizontal" aria-controls="solve-output" aria-label="{esc(ui["resize_output"])}"></div>
