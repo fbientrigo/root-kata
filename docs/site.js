@@ -282,6 +282,7 @@
       const {value, selectionStart: start, selectionEnd: end} = editor;
       if (start === end) {
         editor.setRangeText('  ', start, end, 'end');
+        editor.dispatchEvent(new Event('input', {bubbles: true}));
         return;
       }
       const lineStart = value.lastIndexOf('\n', start - 1) + 1;
@@ -292,6 +293,7 @@
         outdent ? line.replace(/^ {1,2}/, '') : `  ${line}`
       ).join('\n');
       editor.setRangeText(changed, lineStart, blockEnd, 'select');
+      editor.dispatchEvent(new Event('input', {bubbles: true}));
     };
 
     editor.addEventListener('keydown', (event) => {
@@ -307,6 +309,7 @@
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
       if (button.disabled) return;
+      const source = editor.value;
       button.disabled = true;
       form.setAttribute('aria-busy', 'true');
       status.textContent = lang === 'es' ? 'Ejecutando…' : 'Running…';
@@ -316,7 +319,7 @@
         if (browserWasm === 'supported' && selectedTarget === 'wasm') {
           const moduleUrl = new URL('engine/exercise_runner.js', siteRoot).href;
           const { ExerciseRunner } = await import(moduleUrl);
-          result = await ExerciseRunner.runExercise(exerciseId, editor.value, {
+          result = await ExerciseRunner.runExercise(exerciseId, source, {
             lang,
             onStatusChange: (engineStatus) => {
               if (engineStatus === 'booting') {
@@ -330,7 +333,7 @@
           const response = await fetch('/api/run', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({exercise_id: exerciseId, code: editor.value, lang}),
+            body: JSON.stringify({exercise_id: exerciseId, code: source, lang}),
           });
           result = await response.json();
           if (!response.ok) throw new Error(result.message || result.error || 'Request failed');

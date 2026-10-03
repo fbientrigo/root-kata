@@ -5,6 +5,7 @@ on:
     paths:
       - 'docs/engine/**'
       - 'docs/site.js'
+      - 'docs/editor_highlight.js'
       - 'docs/styles.css'
       - 'scripts/build_pages.py'
       - 'scripts/build_wasm_runtime.sh'

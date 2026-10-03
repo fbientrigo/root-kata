@@ -342,7 +342,7 @@ def solve_shell(
 </head>
 <body class="solve-body">
   {body}
-  <script src="{asset_prefix}vendor/prism/prism-core.min.js" defer></script>
+  <script src="{asset_prefix}vendor/prism/prism-core.min.js" defer data-manual></script>
   <script src="{asset_prefix}vendor/prism/prism-clike.min.js" defer></script>
   <script src="{asset_prefix}vendor/prism/prism-c.min.js" defer></script>
   <script src="{asset_prefix}vendor/prism/prism-cpp.min.js" defer></script>
