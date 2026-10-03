@@ -143,8 +143,14 @@ async function run() {
         throw new Error('Timeout waiting for ' + description);
       };
       if (bootstrap) await cdp.send('Page.addScriptToEvaluateOnNewDocument', {source: bootstrap});
-      await cdp.send('Page.navigate', {url});
-      await waitFor('page ready', () => evalCode('location.href === ' + JSON.stringify(url) + ' && document.readyState === "complete"'));
+      const target = new URL(url);
+      const navigation = await cdp.send('Page.navigate', {url});
+      if (navigation.result?.errorText) throw new Error('Navigation failed: ' + navigation.result.errorText);
+      await waitFor('page ready', () => evalCode(
+        'location.origin === ' + JSON.stringify(target.origin) +
+        ' && location.pathname === ' + JSON.stringify(target.pathname) +
+        ' && document.readyState === "complete"'
+      ));
       return { cdp, evalCode, waitFor, requests };
     }
 
