@@ -98,7 +98,6 @@ class GitHubPagesTests(unittest.TestCase):
         self.assertIn("Prism", highlighter)
         self.assertIn("root-type", highlighter)
         self.assertIn("T[A-Z]", highlighter)
-        self.assertIn("requestAnimationFrame", highlighter)
 
     def test_browser_engine_paths_are_project_site_safe(self):
         site = (ROOT / "docs" / "site.js").read_text(encoding="utf-8")

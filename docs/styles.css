@@ -466,6 +466,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
   color: var(--text);
 }
 .code-highlight code {
+  display: block;
   font: inherit;
   white-space: inherit;
 }
@@ -476,6 +477,10 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
   background: transparent;
   color: transparent;
   caret-color: var(--text);
+}
+.syntax-editor-shell.syntax-highlighted .solve-editor::selection {
+  color: transparent;
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 .solve-editor:focus {
   outline: 2px solid var(--accent);
@@ -630,5 +635,9 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px soli
     background: Canvas;
     color: CanvasText;
     caret-color: CanvasText;
+  }
+  .syntax-editor-shell.syntax-highlighted .solve-editor::selection {
+    color: HighlightText;
+    background: Highlight;
   }
 }

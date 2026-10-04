@@ -20,28 +20,26 @@
     });
   }
 
-  let renderPending = false;
-
   const syncScroll = () => {
-    layer.scrollTop = editor.scrollTop;
-    layer.scrollLeft = editor.scrollLeft;
+    // The textarea includes a final empty line and native scrollbar space.
+    // A pre has different scroll limits; mirror offsets, not its scroll range.
+    code.style.transform = `translate(${-editor.scrollLeft}px, ${-editor.scrollTop}px)`;
   };
 
   const render = () => {
-    renderPending = false;
-    code.innerHTML = prism.highlight(editor.value, prism.languages.cpp, 'cpp');
+    try {
+      code.innerHTML = prism.highlight(editor.value, prism.languages.cpp, 'cpp');
+      // Prism normalizes some characters (e.g. NBSP). Show the authoritative
+      // native editor if highlighting cannot preserve the source exactly.
+      shell.classList.toggle('syntax-highlighted', code.textContent === editor.value);
+    } catch {
+      shell.classList.remove('syntax-highlighted');
+    }
     syncScroll();
   };
 
-  const scheduleRender = () => {
-    if (renderPending) return;
-    renderPending = true;
-    window.requestAnimationFrame(render);
-  };
-
-  editor.addEventListener('input', scheduleRender);
+  editor.addEventListener('input', render);
   editor.addEventListener('scroll', syncScroll, {passive: true});
 
   render();
-  shell.classList.add('syntax-highlighted');
 })();

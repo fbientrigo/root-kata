@@ -116,14 +116,15 @@ async function run() {
   try {
     const httpBase = launched.wsUrl.replace('ws://', 'http://').replace(/\/devtools\/browser\/.*/, '');
 
-    async function openPage(relativePath) {
+    async function openPage(relativePath, bootstrap) {
       const url = SERVER_URL + relativePath;
-      const resp = await fetch(httpBase + '/json/new?' + encodeURIComponent(url), { method: 'PUT' });
+      const resp = await fetch(httpBase + '/json/new?about:blank', { method: 'PUT' });
       const tab = await resp.json();
       const cdp = await createCdpClient(tab.webSocketDebuggerUrl);
       await cdp.send('Page.enable');
       await cdp.send('Runtime.enable');
       await cdp.send('Network.enable');
+      await cdp.send('Network.setCacheDisabled', {cacheDisabled: true});
       const requests = [];
       cdp.addEventListener((msg) => {
         if (msg.method === 'Network.requestWillBeSent') requests.push(msg.params.request.url);
@@ -141,8 +142,229 @@ async function run() {
         }
         throw new Error('Timeout waiting for ' + description);
       };
-      await waitFor('page ready', () => evalCode('document.readyState === "complete"'));
+      if (bootstrap) await cdp.send('Page.addScriptToEvaluateOnNewDocument', {source: bootstrap});
+      const target = new URL(url);
+      const navigation = await cdp.send('Page.navigate', {url});
+      if (navigation.result?.errorText) throw new Error('Navigation failed: ' + navigation.result.errorText);
+      await waitFor('page ready', () => evalCode(
+        'location.origin === ' + JSON.stringify(target.origin) +
+        ' && location.pathname === ' + JSON.stringify(target.pathname) +
+        ' && document.readyState === "complete"'
+      ));
       return { cdp, evalCode, waitFor, requests };
+    }
+
+    // Hold animation frames throughout this suite: eventual convergence must
+    // never hide a stale visible source. The execution module is a boundary spy,
+    // not a compiler substitute for the existing WASM acceptance below.
+    console.log('[editor] Immediate source, selection, scroll and Run consistency');
+    const editorPage = await openPage('/solve/cpp-root-histogram.html', `
+      window.heldFrames = [];
+      window.requestAnimationFrame = callback => heldFrames.push(callback);
+      window.editorState = () => {
+        const editor = document.getElementById('code-editor');
+        const layer = document.getElementById('code-highlight');
+        const code = layer.querySelector('code');
+        const active = editor.closest('.syntax-editor-shell').classList.contains('syntax-highlighted') && getComputedStyle(layer).display !== 'none';
+        const transform = new DOMMatrix(getComputedStyle(code).transform);
+        return {source: editor.value, visible: active ? code.textContent : editor.value,
+          active, selection: [editor.selectionStart, editor.selectionEnd],
+          scroll: [editor.scrollLeft, editor.scrollTop],
+          displacement: [transform.m41 - layer.scrollLeft, transform.m42 - layer.scrollTop],
+          color: getComputedStyle(editor).color};
+      };
+      window.checkEditor = label => {
+        const state = editorState();
+        if (state.source !== state.visible) throw new Error(label + ': stale source ' + JSON.stringify(state));
+        return state;
+      };
+    `);
+    const checkEditor = async (expression) => {
+      const result = await editorPage.cdp.send('Runtime.evaluate', {
+        expression, returnByValue: true, awaitPromise: true
+      });
+      if (result.error || result.result?.exceptionDetails) {
+        throw new Error('Editor regression: ' + JSON.stringify(result));
+      }
+      return result.result.result.value;
+    };
+    const initialEditor = await checkEditor('checkEditor("initial readiness")');
+    if (!initialEditor.active || initialEditor.color !== 'rgba(0, 0, 0, 0)') throw new Error('Highlighting did not initialize');
+
+    // Check inside the input event, not after a round trip or a frame.
+    await checkEditor(`(() => {
+      const editor = document.getElementById('code-editor');
+      window.inputStates = [];
+      editor.addEventListener('input', () => inputStates.push(checkEditor('input event')));
+      editor.focus(); editor.setSelectionRange(0, 0);
+      return true;
+    })()`);
+    await editorPage.cdp.send('Input.insertText', {text: '// typed\n'});
+    await checkEditor('checkEditor("native typing")');
+    await editorPage.cdp.send('Browser.grantPermissions', {
+      origin: SERVER_URL, permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite']
+    });
+    await checkEditor('navigator.clipboard.writeText("// pasted\\n").then(() => true)');
+    await editorPage.cdp.send('Input.dispatchKeyEvent', {type: 'keyDown', key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86, modifiers: 2});
+    await editorPage.cdp.send('Input.dispatchKeyEvent', {type: 'keyUp', key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86, modifiers: 2});
+    await checkEditor(`(() => {
+      const state = checkEditor('native paste');
+      if (!state.source.startsWith('// typed\\n// pasted\\n')) throw new Error('Paste did not insert clipboard text');
+      return true;
+    })()`);
+    // Same-task assertions catch the missing notification after setRangeText.
+    await checkEditor(`(() => {
+      const editor = document.getElementById('code-editor');
+      editor.setSelectionRange(0, 0);
+      editor.dispatchEvent(new KeyboardEvent('keydown', {key: 'Tab', bubbles: true}));
+      checkEditor('Tab');
+      if (!editor.value.startsWith('  // typed')) throw new Error('Tab did not indent');
+      editor.setSelectionRange(0, editor.value.indexOf('\\n'));
+      editor.dispatchEvent(new KeyboardEvent('keydown', {key: 'Tab', shiftKey: true, bubbles: true}));
+      checkEditor('Shift+Tab');
+      if (!editor.value.startsWith('// typed')) throw new Error('Shift+Tab did not outdent');
+      editor.setSelectionRange(0, editor.value.length);
+      editor.dispatchEvent(new KeyboardEvent('keydown', {key: 'Tab', bubbles: true}));
+      checkEditor('block Tab');
+      editor.dispatchEvent(new KeyboardEvent('keydown', {key: 'Tab', shiftKey: true, bubbles: true}));
+      checkEditor('block Shift+Tab');
+      return true;
+    })()`);
+
+    await checkEditor(`(() => {
+      const editor = document.getElementById('code-editor');
+      editor.value = 'int answer() { return 42; }\\n';
+      editor.dispatchEvent(new Event('input', {bubbles: true}));
+      checkEditor('programmatic value + input');
+      editor.setSelectionRange(0, 3);
+      editor.setRangeText('double', 0, 3, 'select');
+      editor.dispatchEvent(new Event('input', {bubbles: true}));
+      checkEditor('programmatic replacement + input');
+      if (editor.value.slice(editor.selectionStart, editor.selectionEnd) !== 'double') throw new Error('Native selection lost');
+      const selection = getComputedStyle(editor, '::selection');
+      if (selection.color !== 'rgba(0, 0, 0, 0)' || selection.backgroundColor === 'rgba(0, 0, 0, 0)') throw new Error('Selection paints a second source or is invisible');
+      const layer = document.getElementById('code-highlight');
+      if (getComputedStyle(layer).pointerEvents !== 'none' || layer.getAttribute('aria-hidden') !== 'true') throw new Error('Decorative layer intercepts interaction');
+      return true;
+    })()`);
+    await editorPage.cdp.send('Input.dispatchKeyEvent', {type: 'keyDown', key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8});
+    await editorPage.cdp.send('Input.dispatchKeyEvent', {type: 'keyUp', key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8});
+    await checkEditor('checkEditor("native delete")');
+    await checkEditor(`(() => {
+      const editor = document.getElementById('code-editor');
+      editor.focus(); const deleted = editor.value;
+      document.execCommand('undo'); checkEditor('undo');
+      if (editor.value === deleted) throw new Error('Undo did not restore deletion');
+      document.execCommand('redo'); checkEditor('redo');
+      if (editor.value !== deleted) throw new Error('Redo did not restore deletion');
+      return true;
+    })()`);
+    await editorPage.cdp.send('Emulation.setEmulatedMedia', {features: [{name: 'forced-colors', value: 'active'}]});
+    await checkEditor(`(() => {
+      const state = checkEditor('forced colors');
+      if (state.active || state.color === 'rgba(0, 0, 0, 0)') throw new Error('Forced colors hides native source');
+      return true;
+    })()`);
+    await editorPage.cdp.send('Emulation.setEmulatedMedia', {features: []});
+
+    // A final empty line and long lines exercise both scroll axes. Test the
+    // actual visual displacement: the pre's scroll range is not authoritative.
+    await checkEditor(`(() => {
+      const editor = document.getElementById('code-editor');
+      editor.value = Array.from({length: 80}, (_, i) => '// ' + i + 'x'.repeat(200)).join('\\n') + '\\n';
+      editor.dispatchEvent(new Event('input', {bubbles: true}));
+      for (const offset of [0, 120, 100000]) {
+        editor.scrollTop = offset; editor.scrollLeft = offset;
+        editor.dispatchEvent(new Event('scroll'));
+        const state = checkEditor('scroll ' + offset);
+        if (Math.abs(state.displacement[0] + state.scroll[0]) > 1 || Math.abs(state.displacement[1] + state.scroll[1]) > 1) throw new Error('Scroll divergence: ' + JSON.stringify(state));
+      }
+      return true;
+    })()`);
+    const wheelTarget = await checkEditor(`(() => {
+      const editor = document.getElementById('code-editor');
+      editor.scrollTop = 0; editor.scrollLeft = 0;
+      editor.dispatchEvent(new Event('scroll'));
+      window.nativeScrollState = undefined;
+      const onScroll = () => {
+        const state = checkEditor('native scroll event');
+        if (state.scroll.some(offset => offset > 0)) {
+          window.nativeScrollState = state;
+          editor.removeEventListener('scroll', onScroll);
+        }
+      };
+      editor.addEventListener('scroll', onScroll);
+      const rect = editor.getBoundingClientRect();
+      return {x: rect.x + rect.width / 2, y: rect.y + rect.height / 2};
+    })()`);
+    await editorPage.cdp.send('Input.dispatchMouseEvent', {type: 'mouseWheel', ...wheelTarget, deltaX: 80, deltaY: 120});
+    await editorPage.waitFor('native wheel scroll event', () => editorPage.evalCode('window.nativeScrollState !== undefined'), 5000);
+    await checkEditor(`(() => {
+      const state = nativeScrollState;
+      if (!state.scroll.some(offset => offset > 0) || Math.abs(state.displacement[0] + state.scroll[0]) > 1 || Math.abs(state.displacement[1] + state.scroll[1]) > 1) throw new Error('Native scroll did not synchronize');
+      return true;
+    })()`);
+    await editorPage.cdp.send('Emulation.setDeviceMetricsOverride', {width: 390, height: 844, deviceScaleFactor: 1, mobile: true});
+    await checkEditor(`(() => {
+      const editor = document.getElementById('code-editor');
+      editor.scrollTop = 100000; editor.scrollLeft = 100000;
+      editor.dispatchEvent(new Event('scroll'));
+      const state = checkEditor('mobile resize');
+      if (Math.abs(state.displacement[0] + state.scroll[0]) > 1 || Math.abs(state.displacement[1] + state.scroll[1]) > 1) throw new Error('Resize scroll divergence');
+      return true;
+    })()`);
+    await editorPage.cdp.send('Emulation.clearDeviceMetricsOverride');
+
+    // Normalization or failure must reveal the textarea, never stale Prism text.
+    await checkEditor(`(() => {
+      const editor = document.getElementById('code-editor');
+      editor.value = '// nonbreaking\\u00a0space\\n';
+      editor.dispatchEvent(new Event('input'));
+      const normalized = checkEditor('NBSP fallback');
+      if (normalized.active || normalized.color === 'rgba(0, 0, 0, 0)') throw new Error('Normalized source hidden');
+      const highlight = Prism.highlight;
+      Prism.highlight = () => { throw new Error('test failure'); };
+      editor.value = '// changed after failure\\n'; editor.dispatchEvent(new Event('input'));
+      if (checkEditor('Prism failure').active) throw new Error('Stale layer still visible');
+      Prism.highlight = highlight; editor.dispatchEvent(new Event('input'));
+      if (!checkEditor('Prism recovery').active) throw new Error('Highlighting did not recover');
+      return true;
+    })()`);
+
+    let moduleRequest;
+    const moduleSpy = editorPage.cdp.addEventListener((message) => {
+      if (message.method === 'Fetch.requestPaused') moduleRequest = message.params.requestId;
+    });
+    await editorPage.cdp.send('Fetch.enable', {patterns: [{urlPattern: '*/engine/exercise_runner.js'}]});
+    const clickedSource = await checkEditor(`(() => {
+      const editor = document.getElementById('code-editor');
+      editor.value = 'const char* answer() { return R"(first\\nsecond)"; }\\n'; editor.dispatchEvent(new Event('input'));
+      const start = editor.value.indexOf('second');
+      editor.setSelectionRange(start, start + 6);
+      editor.dispatchEvent(new KeyboardEvent('keydown', {key: 'Tab', bubbles: true}));
+      checkEditor('raw string Tab');
+      if (!editor.value.includes('\\n  second')) throw new Error('Raw string content did not change');
+      const state = checkEditor('immediate Run');
+      document.getElementById('run-form').requestSubmit();
+      return state.visible;
+    })()`);
+    await editorPage.waitFor('module request', () => moduleRequest);
+    // Editing while the import is pending must not change the submitted source.
+    await checkEditor(`(() => {
+      const editor = document.getElementById('code-editor');
+      editor.value = 'int answer() { return 99; }\\n'; editor.dispatchEvent(new Event('input'));
+      return checkEditor('edit during import');
+    })()`);
+    await editorPage.cdp.send('Fetch.fulfillRequest', {requestId: moduleRequest, responseCode: 200,
+      responseHeaders: [{name: 'Content-Type', value: 'text/javascript'}],
+      body: Buffer.from('export const ExerciseRunner = {runExercise: async (id, source) => {window.executedSource = source; return {status:"passed", summary:"spy completed"};}};').toString('base64')});
+    await editorPage.waitFor('execution spy', () => editorPage.evalCode('window.executedSource !== undefined'));
+    if (await editorPage.evalCode('window.executedSource') !== clickedSource) throw new Error('Run used source changed after click');
+    moduleSpy();
+    editorPage.cdp.close();
+    if (process.env.ROOT_KATA_EDITOR_ONLY === '1') {
+      console.log('Editor browser regressions passed (animation frames held).');
+      return;
     }
 
     async function submit(page, code) {
