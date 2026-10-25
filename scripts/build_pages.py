@@ -190,6 +190,7 @@ def shell(
   <meta name="description" content="{esc(description)}">
   <title>{esc(title)} · ROOT Kata</title>
   <link rel="stylesheet" href="{asset_prefix}styles.css">
+  <link rel="stylesheet" href="{asset_prefix}observatory.css">
 </head>
 <body>
   <header class="site-header">
@@ -229,6 +230,40 @@ def kata_row(meta_view: dict, lang: str) -> str:
       </article>'''
 
 
+def field_visual(lang: str) -> str:
+    """Small decorative phase-space engraving; not simulated or measured events."""
+    strands = []
+    for index in range(17):
+        y = 54 + index * 12
+        mid = round(150 + (y - 150) * 0.22)
+        tail = round(150 + (y - 150) * 0.74)
+        style = "flow-path accent" if index in (2, 7, 12, 15) else "flow-path"
+        strands.append(
+            f'<path class="{style}" d="M 18 {y} C 158 {y} 190 {mid} 306 {mid} '
+            f'S 446 {tail} 540 {tail}" />'
+        )
+    caption = "TRAYECTORIAS / REPRESENTACIÓN ESQUEMÁTICA" if lang == "es" else "TRAJECTORIES / SCHEMATIC RENDERING"
+    right = "APRENDER HACIENDO" if lang == "es" else "LEARN BY DOING"
+    return f'''
+    <figure class="field-visual">
+      <div class="field-head"><span>FIELD_NOTE // 01</span><span>C++17 / ROOT</span></div>
+      <svg viewBox="0 0 560 320" aria-hidden="true" focusable="false">
+        <path class="field-guide field-dash" d="M 18 95H540 M 18 150H540 M 18 205H540 M 180 35V280 M 306 35V280 M 430 35V280"/>
+        <circle class="field-guide" cx="306" cy="150" r="74"/>
+        <path class="field-guide field-dash" d="M 306 34V285"/>
+        {''.join(strands)}
+        <circle class="field-node" cx="306" cy="150" r="3"/>
+        <circle class="field-node" cx="430" cy="151" r="2"/>
+        <text x="18" y="29" class="field-label">INPUT</text>
+        <text x="307" y="29" text-anchor="middle">SELECT</text>
+        <text x="540" y="29" text-anchor="end" class="field-label">OBSERVE</text>
+        <text x="19" y="306">x ∈ ℝⁿ</text>
+        <text x="540" y="306" text-anchor="end">TH1D / ∑w</text>
+      </svg>
+      <figcaption class="field-foot"><span>{caption}</span><span>{right}</span></figcaption>
+    </figure>'''
+
+
 def build_index(exercises: list[tuple[dict, Path]], lang: str) -> None:
     ui = UI[lang]
     page_prefix = "" if lang == "es" else "en/"
@@ -245,10 +280,14 @@ def build_index(exercises: list[tuple[dict, Path]], lang: str) -> None:
     body = f'''
   <main class="home">
     <section class="hero">
-      <h1>{esc(ui["hero_title"])}</h1>
-      <p>{esc(ui["hero_text"])}</p>
-      <div class="flow" aria-label="Learning path">{flow}</div>
-      <div class="card-actions"><a class="button secondary" href="{asset_prefix}quick-reference.html">{esc(ui["cheat_sheet"])}</a></div>
+      <div class="hero-copy">
+        <p class="eyebrow">ROOT KATA / {esc(ui["hero_eyebrow"])}</p>
+        <h1>{esc(ui["hero_title"])}</h1>
+        <p>{esc(ui["hero_text"])}</p>
+        <div class="flow" aria-label="Learning path">{flow}</div>
+        <div class="card-actions"><a class="button secondary" href="{asset_prefix}quick-reference.html">{esc(ui["cheat_sheet"])}</a></div>
+      </div>
+      {field_visual(lang)}
     </section>
 
     <section class="progress-panel" data-total="{total}" aria-labelledby="progress-title">
@@ -339,6 +378,7 @@ def solve_shell(
   <meta name="description" content="{esc(description)}">
   <title>{esc(title)} · ROOT Kata</title>
   <link rel="stylesheet" href="{asset_prefix}styles.css">
+  <link rel="stylesheet" href="{asset_prefix}observatory.css">
 </head>
 <body class="solve-body">
   {body}
