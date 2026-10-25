@@ -435,9 +435,25 @@ async function run() {
     console.log('[3/5] Mobile editor-first layout');
     await inspect.cdp.send('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
     await inspect.cdp.send('Page.reload', { ignoreCache: true });
-    await inspect.waitFor('mobile solve editor', () => inspect.evalCode('!!document.getElementById("code-editor")'));
-    const mobile = await inspect.evalCode('({hidden: document.querySelector(".solve-workspace").classList.contains("problem-hidden"), editorWidth: document.getElementById("code-editor").getBoundingClientRect().width, viewport: window.innerWidth})');
-    if (!mobile.hidden) throw new Error('Mobile solve page should start editor-first');
+    // The editor exists before deferred site.js initializes the mobile panel.
+    // Check the initial UX only after document load, without weakening the assertion.
+    await inspect.waitFor('mobile document and scripts ready', () => inspect.evalCode(
+      'document.readyState === "complete" && !!document.getElementById("code-editor")'
+    ));
+    const mobile = await inspect.evalCode(`(() => {
+      const workspace = document.querySelector(".solve-workspace");
+      const editor = document.getElementById("code-editor");
+      const toggle = document.getElementById("problem-toggle");
+      return {
+        viewport: window.innerWidth,
+        mediaMatch: window.matchMedia("(max-width: 760px)").matches,
+        hidden: workspace.classList.contains("problem-hidden"),
+        ariaExpanded: toggle.getAttribute("aria-expanded"),
+        editorWidth: editor.getBoundingClientRect().width,
+      };
+    })()`);
+    if (!mobile.mediaMatch) throw new Error('Mobile viewport emulation failed: ' + JSON.stringify(mobile));
+    if (!mobile.hidden || mobile.ariaExpanded !== 'false') throw new Error('Mobile solve page should start editor-first: ' + JSON.stringify(mobile));
     if (mobile.editorWidth < mobile.viewport * 0.9) throw new Error('Mobile editor wastes horizontal space: ' + JSON.stringify(mobile));
     inspect.cdp.close();
 
