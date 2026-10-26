@@ -189,6 +189,7 @@ def shell(
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="{esc(description)}">
   <title>{esc(title)} · ROOT Kata</title>
+  <link rel="icon" type="image/svg+xml" href="{asset_prefix}favicon.svg">
   <link rel="stylesheet" href="{asset_prefix}styles.css">
   <link rel="stylesheet" href="{asset_prefix}observatory.css">
 </head>
@@ -377,6 +378,7 @@ def solve_shell(
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="{esc(description)}">
   <title>{esc(title)} · ROOT Kata</title>
+  <link rel="icon" type="image/svg+xml" href="{asset_prefix}favicon.svg">
   <link rel="stylesheet" href="{asset_prefix}styles.css">
   <link rel="stylesheet" href="{asset_prefix}observatory.css">
 </head>
