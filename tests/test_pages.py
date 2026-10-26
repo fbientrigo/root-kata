@@ -1,3 +1,4 @@
+import os
 import subprocess
 import sys
 import unittest
@@ -23,6 +24,22 @@ class GitHubPagesTests(unittest.TestCase):
         for problems_dir in (ROOT / "docs" / "problems", ROOT / "docs" / "en" / "problems"):
             pages = sorted(p.stem for p in problems_dir.glob("*.html"))
             self.assertEqual(pages, expected)
+
+    def test_favicon_resolves_from_every_published_page(self):
+        favicon = ROOT / "docs" / "favicon.svg"
+        self.assertTrue(favicon.is_file())
+        for folder in (
+            ROOT / "docs",
+            ROOT / "docs" / "en",
+            ROOT / "docs" / "problems",
+            ROOT / "docs" / "en" / "problems",
+            ROOT / "docs" / "solve",
+            ROOT / "docs" / "en" / "solve",
+        ):
+            for page in folder.glob("*.html"):
+                relative_icon = os.path.relpath(favicon, page.parent).replace(os.sep, "/")
+                markup = page.read_text(encoding="utf-8")
+                self.assertIn(f'href="{relative_icon}"', markup, str(page))
 
     def test_spanish_is_primary_and_english_is_nested(self):
         self.assertTrue((ROOT / "docs" / "index.html").is_file())
