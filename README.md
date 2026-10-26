@@ -1,5 +1,10 @@
 # ROOT Kata
 
+<img width="2527" height="1248" alt="image" src="https://github.com/user-attachments/assets/5340eeb2-1c4c-4715-bc04-b3646070907a" />
+
+<img width="2557" height="1268" alt="image" src="https://github.com/user-attachments/assets/6077bb44-9600-4314-9fa8-908f297ab748" />
+
+
 **Ejercicios cortos y comprobables de C++/ROOT que se resuelven en Jupyter usando el compilador y ROOT de tu propia máquina.**
 
 > Prototipo educativo no oficial. No está afiliado ni respaldado por CERN.
